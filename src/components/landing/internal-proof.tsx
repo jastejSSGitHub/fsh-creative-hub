@@ -11,7 +11,7 @@ const AVATAR_COLORS = [
 export function InternalProof() {
   return (
     <section className="bg-hub-paper px-5 py-20 text-center sm:px-8 sm:py-28">
-      <ScrollReveal>
+      <ScrollReveal essential>
         <div className="mx-auto flex max-w-lg flex-col items-center">
           <div className="flex items-center justify-center">
             {AVATAR_COLORS.map((color, i) => (

@@ -1,5 +1,8 @@
 "use client";
 
+import { useInView } from "framer-motion";
+import { useEffect, useRef } from "react";
+
 import { cn } from "@/lib/utils";
 
 type CapabilityVideoTileProps = {
@@ -17,6 +20,21 @@ export function CapabilityVideoTile({
   className,
   priority = false,
 }: CapabilityVideoTileProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const inView = useInView(containerRef, { margin: "120px" });
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (inView) {
+      void video.play().catch(() => undefined);
+    } else {
+      video.pause();
+    }
+  }, [inView]);
+
   const aspectClass = {
     square: "aspect-square",
     video: "aspect-video",
@@ -25,6 +43,7 @@ export function CapabilityVideoTile({
 
   return (
     <div
+      ref={containerRef}
       className={cn(
         "relative overflow-hidden rounded-lg border border-white/10 bg-hub-espresso shadow-lg",
         aspectClass,
@@ -32,12 +51,13 @@ export function CapabilityVideoTile({
       )}
     >
       <video
+        ref={videoRef}
         src={src}
         autoPlay
         muted
         loop
         playsInline
-        preload={priority ? "auto" : "metadata"}
+        preload={priority ? "metadata" : "none"}
         className="absolute inset-0 h-full w-full object-cover"
         aria-label={label}
       />

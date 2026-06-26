@@ -1,5 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
+
+import { AuthTransitionProvider } from "@/components/auth/auth-transition-provider";
 
 import "./globals.css";
 
@@ -25,6 +27,11 @@ export const metadata: Metadata = {
     "Internal creative collaboration for FSH Design — projects, initiatives, assets, and team consensus.",
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -36,7 +43,7 @@ export default function RootLayout({
       className={`${bricolage.variable} ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-hub-paper text-hub-espresso font-sans">
-        {children}
+        <AuthTransitionProvider>{children}</AuthTransitionProvider>
       </body>
     </html>
   );

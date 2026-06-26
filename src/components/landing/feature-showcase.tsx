@@ -3,7 +3,13 @@
 import { motion, useReducedMotion } from "framer-motion";
 
 import { AssetPlaceholder } from "@/components/landing/asset-placeholder";
+import { CommentsWorkflowIllustration } from "@/components/landing/comments-workflow-illustration";
+import { FeatureIllustrationFrame } from "@/components/landing/feature-illustration-frame";
+import { IdeasWorkflowIllustration } from "@/components/landing/ideas-workflow-illustration";
+import { PresentWorkflowIllustration } from "@/components/landing/present-workflow-illustration";
+import { ProjectsWorkflowIllustration } from "@/components/landing/projects-workflow-illustration";
 import { ScrollReveal } from "@/components/landing/scroll-reveal";
+import { TrimmedLoopVideo } from "@/components/landing/trimmed-loop-video";
 import { cn } from "@/lib/utils";
 
 const FEATURES = [
@@ -25,7 +31,8 @@ const FEATURES = [
     index: 1,
     media: {
       type: "video" as const,
-      src: "/media/Landing%20page/Approved-By-trimmed.mp4",
+      src: "/media/Landing%20page/Approved-By.mp4",
+      startAt: 2,
     },
   },
   {
@@ -57,6 +64,45 @@ const FEATURES = [
   },
 ] as const;
 
+const ILLUSTRATION_FRAMES = {
+  PROJECTS: "bg-gradient-to-br from-[#7B2CBF] via-[#C77DFF] to-[#E0AAFF]",
+  COMMENTS: "bg-gradient-to-br from-[#3A86FF] via-[#8338EC] to-[#C77DFF]",
+  IDEAS: "bg-gradient-to-br from-[#FFC94B] via-[#F4A261] to-[#FF6B6B]",
+  PRESENT: "bg-gradient-to-br from-[#1a1a1a] via-[#3d3d3d] to-[#0b0b0b]",
+} as const;
+
+function ProjectsVisual() {
+  return (
+    <FeatureIllustrationFrame gradientClassName={ILLUSTRATION_FRAMES.PROJECTS}>
+      <ProjectsWorkflowIllustration />
+    </FeatureIllustrationFrame>
+  );
+}
+
+function CommentsVisual() {
+  return (
+    <FeatureIllustrationFrame gradientClassName={ILLUSTRATION_FRAMES.COMMENTS}>
+      <CommentsWorkflowIllustration />
+    </FeatureIllustrationFrame>
+  );
+}
+
+function IdeasVisual() {
+  return (
+    <FeatureIllustrationFrame gradientClassName={ILLUSTRATION_FRAMES.IDEAS}>
+      <IdeasWorkflowIllustration />
+    </FeatureIllustrationFrame>
+  );
+}
+
+function PresentVisual() {
+  return (
+    <FeatureIllustrationFrame gradientClassName={ILLUSTRATION_FRAMES.PRESENT}>
+      <PresentWorkflowIllustration />
+    </FeatureIllustrationFrame>
+  );
+}
+
 function FeatureVisual({
   label,
   aspect,
@@ -66,7 +112,7 @@ function FeatureVisual({
   label: string;
   aspect: "wide" | "video" | "portrait";
   index: number;
-  media: { type: "video"; src: string } | null;
+  media: { type: "video"; src: string; startAt?: number } | null;
 }) {
   const prefersReducedMotion = useReducedMotion();
 
@@ -85,7 +131,7 @@ function FeatureVisual({
           index={index + 2}
           label={label}
           aspect={aspect}
-          className="w-full shadow-[0_24px_64px_rgba(11,11,11,0.12)]"
+          className="w-full border-0 shadow-[0_24px_64px_rgba(11,11,11,0.12)]"
         />
       </motion.div>
     );
@@ -114,15 +160,10 @@ function FeatureVisual({
         )}
       >
         {media.type === "video" ? (
-          <video
+          <TrimmedLoopVideo
             src={media.src}
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="metadata"
-            className="absolute inset-0 h-full w-full object-cover"
-            aria-label={label}
+            startAt={media.startAt}
+            label={label}
           />
         ) : null}
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-3 py-2.5">
@@ -137,7 +178,7 @@ function FeatureVisual({
 
 export function FeatureShowcase() {
   return (
-    <section className="bg-hub-paper px-5 py-16 sm:px-8 sm:py-24">
+    <section className="bg-hub-paper px-5 pt-10 pb-16 sm:px-8 sm:pt-12 sm:pb-24">
       <div className="mx-auto max-w-6xl space-y-24 sm:space-y-32 lg:space-y-40">
         {FEATURES.map((feature, i) => {
           const reversed = i % 2 === 1;
@@ -165,12 +206,24 @@ export function FeatureShowcase() {
                   </p>
                 </div>
 
-                <FeatureVisual
-                  label={feature.visualLabel}
-                  aspect={feature.visualAspect}
-                  index={feature.index}
-                  media={feature.media}
-                />
+                <div className="w-full">
+                  {feature.kicker === "PROJECTS" ? (
+                    <ProjectsVisual />
+                  ) : feature.kicker === "COMMENTS" ? (
+                    <CommentsVisual />
+                  ) : feature.kicker === "IDEAS" ? (
+                    <IdeasVisual />
+                  ) : feature.kicker === "PRESENT" ? (
+                    <PresentVisual />
+                  ) : (
+                    <FeatureVisual
+                      label={feature.visualLabel}
+                      aspect={feature.visualAspect}
+                      index={feature.index}
+                      media={feature.media}
+                    />
+                  )}
+                </div>
               </article>
             </ScrollReveal>
           );

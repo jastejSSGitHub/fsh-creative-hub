@@ -43,6 +43,7 @@ It is "Figma for internal creative ops" — a visual, project-based collaboratio
 | Framework | **Next.js (App Router) + React + TypeScript** | Real auth, routing, API routes, Vercel-native. Moves off the single-HTML-file constraint because real auth/RLS needs it. |
 | Styling | **Tailwind CSS** | Fast, responsive-first, consistent tokens. |
 | UI primitives | **shadcn/ui** (Radix under the hood) | Accessible modals, dropdowns, tabs out of the box — saves hours. |
+| Motion | **Framer Motion** | Landing-page scroll reveals + tasteful app micro-interactions. |
 | Auth | **Supabase Auth** (email magic link + Google OAuth) | Same project, no extra service. Magic link = no password friction for a small team. |
 | Database | **Supabase Postgres** | Already in use. |
 | Storage | **Supabase Storage** (`hub-media` bucket) | New bucket, separate from `graphics` and fitpro's `progress-photos`. |
@@ -57,6 +58,9 @@ It is "Figma for internal creative ops" — a visual, project-based collaboratio
 ## 4. Information Architecture
 
 ```
+Landing Page (public, unauthenticated) — "/"
+└── CTA → Login → Hub
+
 Hub (authenticated)
 └── Projects (grid of project cards)
     └── Project Workspace
@@ -262,7 +266,30 @@ All tables prefixed `hub_` to isolate from fitpro tables.
 - Per initiative: full-screen, chrome-free sequence of `approved` + `final` assets.
 - Arrow-key / swipe navigation. Clean background. For team review meetings.
 
-### 6.12 Mobile Responsiveness
+### 6.13 Landing Page (public front door)
+The only unauthenticated route (`/`). Logged-out users land here; CTA routes to login → hub. Logged-in users can skip through (or get a "Open Hub" button instead of "Sign in").
+
+**Design direction — bold on a monochrome base (deliberate choice):**
+FSH's brand is strict black-and-white, color only from client work. The landing page honors this: the boldness comes from *scale, contrast, motion, and structure* — not from a rainbow palette. Real asset thumbnails from the hub are the only color on the page. This is braver *and* on-brand, and tells a better story to leadership than generic maximalism.
+
+- Near-black + off-white, high contrast. Optional grain/noise texture.
+- Oversized **Bricolage Grotesque** display type as the hero device.
+- Single restrained accent only on the primary CTA.
+
+**Sections:**
+1. **Hero** — giant kinetic headline (e.g. "Where FSH creative gets decided."), one-line descriptor, primary CTA ("Enter the Hub"), small "Internal tool · FSH Design" tag. Animated background: grain + slow gradient *or* slowly floating real asset thumbnails.
+2. **Problem strip** — one bold line: "Creative review shouldn't live in 40 Slack messages."
+3. **Feature showcase** — 4–6 scroll-revealed sections, each = punchy phrase + real product visual: project grid, asset lightbox + consensus bar, @mention comments, ideas board, presentation mode.
+4. **How it works** — 3 steps: Pick a project → Drop the work → Reach consensus.
+5. **Internal proof** — member avatar stack, "Built by the FSH design team," optional live stat ("{n} assets reviewed").
+6. **Closing CTA** — full-bleed, single button.
+
+**Motion:** Framer Motion — scroll reveals, a marquee, hover micro-interactions, optional custom cursor. Restrained, intentional. **Must respect `prefers-reduced-motion`.**
+
+**Mobile:** hero type scales down but stays bold; sections stack; motion lightens. Fully responsive.
+
+
+### 6.14 Mobile Responsiveness
 - Mobile-first. Project grid → single column. Initiative tabs → dropdown. Asset grid → 1–2 col. Lightbox → vertical scroll, sticky action bar at bottom. Touch targets ≥ 44px.
 
 ---
@@ -307,6 +334,9 @@ Brainstorming, activity, For-You inbox.
 **Phase 7 — Presentation mode + polish + mobile pass**
 Full-screen review, empty states, mobile QA.
 
+**Phase 8 — Landing page**
+Public `/` route. Built last so it can use real product visuals (project grid, lightbox, etc.). Bold monochrome hero, scroll-reveal feature showcase, CTA → login → hub. Framer Motion with `prefers-reduced-motion` respected. *Checkpoint: a teammate who's never seen the tool understands it in 15 seconds and clicks through.*
+
 ---
 
 ## 9. Success Criteria
@@ -331,8 +361,8 @@ Build it in the existing folder: FSH Internal Tools/fsh-creative-hub/
 TECH STACK (use exactly this):
 - Next.js (App Router) + React + TypeScript
 - Tailwind CSS + shadcn/ui
-- Supabase (Auth, Postgres, Storage, Realtime) — REUSE existing project
-  ref: hrkdjshgoeambbovxmuk, url: https://hrkdjshgoeambbovxmuk.supabase.co
+- Supabase (Auth, Postgres, Storage, Realtime) — dedicated project
+  ref: rnyeonvbnrwephpviyzu, url: https://rnyeonvbnrwephpviyzu.supabase.co
 - New storage bucket: hub-media (create it, public read)
 - Deploy target: Vercel + GitHub
 - All new tables are prefixed hub_ and MUST NOT touch existing fitpro tables.
@@ -374,6 +404,21 @@ PHASE 6: Ideas board per initiative (sticky idea cards + upvote toggle, sort by 
   Personal "For You" @mention inbox with nav badge count.
 PHASE 7: Presentation mode per initiative (full-screen, chrome-free sequence of
   approved + final assets, arrow/swipe nav). Intentional empty states. Full mobile QA pass.
+PHASE 8: Public landing page at "/" (the ONLY unauthenticated route besides /login).
+  Logged-out users land here; primary CTA "Enter the Hub" routes to login then hub;
+  logged-in users see "Open Hub" instead. Design: BOLD but MONOCHROME — near-black +
+  off-white, high contrast, oversized Bricolage Grotesque hero type, grain/noise texture,
+  single restrained accent on the CTA only. Color comes ONLY from real asset thumbnails
+  (FSH brand rule: chrome stays black/white, color from the work). Sections: (1) kinetic
+  hero with headline + descriptor + CTA + "Internal tool · FSH Design" tag and an animated
+  background (grain + slow gradient or floating real asset thumbnails); (2) bold problem
+  line; (3) 4-6 scroll-revealed feature sections each pairing a punchy phrase with a real
+  product visual (project grid, lightbox + consensus bar, @mention comments, ideas board,
+  presentation mode); (4) 3-step "how it works"; (5) internal proof (member avatars,
+  "Built by the FSH design team"); (6) full-bleed closing CTA. Use Framer Motion for
+  scroll reveals, a marquee, and hover micro-interactions — restrained, not gimmicky.
+  MUST respect prefers-reduced-motion. Fully mobile responsive (hero scales, sections
+  stack, motion lightens).
 
 DESIGN: Neutral/monochrome chrome (espresso + off-white) so colorful asset thumbnails
 pop. Status colors: approved #22C55E, rejected #EF4444, final #FFC94B badge. Fonts:

@@ -11,7 +11,7 @@ export function ClosingCta({ isLoggedIn, year }: ClosingCtaProps) {
   return (
     <section className="relative overflow-hidden bg-hub-espresso px-5 py-24 text-center text-hub-paper sm:px-8 sm:py-32">
       <GrainOverlay />
-      <ScrollReveal className="relative z-20">
+      <ScrollReveal essential className="relative z-20">
         <h2 className="font-display text-[clamp(2.5rem,8vw,5.5rem)] font-extrabold leading-[0.95] tracking-[-0.03em]">
           Stop chasing approvals.
         </h2>

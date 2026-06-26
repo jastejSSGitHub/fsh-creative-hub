@@ -1,6 +1,5 @@
 import { LandingScrollbar } from "@/components/landing/landing-scrollbar";
 import { ClosingCta } from "@/components/landing/closing-cta";
-import { CustomCursor } from "@/components/landing/custom-cursor";
 import { FeatureShowcase } from "@/components/landing/feature-showcase";
 import { HeroSection } from "@/components/landing/hero-section";
 import { HowItWorks } from "@/components/landing/how-it-works";
@@ -18,7 +17,6 @@ export function LandingPage({ isLoggedIn }: LandingPageProps) {
   return (
     <div className="flex min-h-full flex-col bg-hub-paper">
       <LandingScrollbar />
-      <CustomCursor />
       <HeroSection isLoggedIn={isLoggedIn} />
       <MarqueeStrip />
       <ProblemStrip />
