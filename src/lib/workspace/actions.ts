@@ -324,6 +324,42 @@ export async function addCommentAction(input: {
   }
 }
 
+export async function deleteCommentAction(
+  commentId: string,
+): Promise<ActionResult> {
+  try {
+    const { supabase, user } = await requireUser();
+
+    const { data: comment } = await supabase
+      .from("hub_comments")
+      .select("asset_id, author_id")
+      .eq("id", commentId)
+      .single();
+
+    if (!comment) return { ok: false, error: "Comment not found." };
+
+    const { projectId } = await getProjectIdForAsset(supabase, comment.asset_id);
+    if (!projectId) return { ok: false, error: "Asset not found." };
+
+    const role = await getProjectMembership(supabase, projectId, user.id);
+    const canDelete = comment.author_id === user.id || canAdmin(role);
+
+    if (!canDelete) return { ok: false, error: "Cannot delete this comment." };
+
+    const { error } = await supabase
+      .from("hub_comments")
+      .delete()
+      .eq("id", commentId);
+
+    if (error) return { ok: false, error: error.message };
+
+    revalidateProject(projectId);
+    return { ok: true, id: commentId };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed." };
+  }
+}
+
 export async function resolveCommentAction(
   commentId: string,
   resolved: boolean,

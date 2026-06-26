@@ -1,155 +1,263 @@
 "use client";
 
-import { ClipboardList, LayoutGrid, PenTool } from "lucide-react";
-import Link from "next/link";
+import { Star, Users } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
 
+import { ProjectCreateMenu } from "@/components/project-files/project-create-menu";
+import {
+  navigateToProjectFile,
+  ProjectFileCard,
+} from "@/components/project-files/project-file-card";
+import {
+  ProjectContextMenu,
+  type ProjectContextMenuItem,
+} from "@/components/projects/project-context-menu";
+import {
+  ProjectFileSortMenu,
+  type FileSortField,
+  type FileSortOrder,
+} from "@/components/project-files/project-file-sort-menu";
+import { ProjectTemplatesBanner } from "@/components/project-files/project-templates-banner";
 import { ProjectInlineTitle } from "@/components/projects/project-inline-title";
+import { NavBackLink } from "@/components/ui/nav-back-link";
+import { HubSelect } from "@/components/ui/hub-select";
 import type { ProjectFileWithMeta } from "@/lib/project-files/queries";
-import { fileTypeLabel } from "@/lib/project-files/queries";
-import { canAdmin } from "@/lib/permissions";
-import { reviewBoardPath } from "@/lib/routes";
+import { canAdmin, canEdit } from "@/lib/permissions";
+import type { ProjectCardData } from "@/lib/projects/queries";
+import { hubCardGridClassName } from "@/lib/ui/hub-card-grid";
 import type { HubProject, HubRole } from "@/types/database";
-import { cn } from "@/lib/utils";
 
-type ProjectFileCardProps = {
+type FileTypeFilter = "all" | "review_board" | "canvas";
+
+const FILE_TYPE_OPTIONS: { value: FileTypeFilter; label: string }[] = [
+  { value: "all", label: "All files" },
+  { value: "review_board", label: "Review boards" },
+  { value: "canvas", label: "Canvases" },
+];
+
+type FileContextMenuState = {
   file: ProjectFileWithMeta;
-  projectId: string;
-};
-
-export function ProjectFileCard({ file, projectId }: ProjectFileCardProps) {
-  const href =
-    file.type === "review_board"
-      ? reviewBoardPath(projectId, file.id)
-      : "#";
-
-  const Icon = file.type === "review_board" ? ClipboardList : PenTool;
-
-  return (
-    <Link
-      href={href}
-      className="group flex h-full flex-col overflow-hidden rounded-xl border border-hub-espresso/10 bg-white text-left shadow-sm transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hub-accent/50"
-    >
-      <div className="relative aspect-[16/10] overflow-hidden bg-hub-espresso/5">
-        <div className="flex size-full flex-col items-center justify-center gap-2 bg-[linear-gradient(135deg,#fbf7ee_0%,#fff8e7_45%,#ffffff_100%)]">
-          <div className="flex size-12 items-center justify-center rounded-xl border border-hub-espresso/10 bg-white text-hub-accent shadow-sm">
-            <Icon className="size-6" aria-hidden />
-          </div>
-          <span className="font-mono text-[0.6rem] uppercase tracking-[0.14em] text-hub-espresso/45">
-            {fileTypeLabel(file.type)}
-          </span>
-        </div>
-      </div>
-
-      <div className="flex flex-1 flex-col gap-2 border-t border-hub-espresso/8 p-3 sm:p-4">
-        <h3 className="line-clamp-1 font-display text-base font-extrabold text-hub-espresso">
-          {file.name}
-        </h3>
-        <p className="text-xs text-hub-espresso/50">
-          {file.asset_count} asset{file.asset_count === 1 ? "" : "s"}
-        </p>
-        {file.type === "review_board" && file.approved_count > 0 && (
-          <p className="text-xs font-medium text-hub-approved">
-            {file.approved_count} approved
-          </p>
-        )}
-      </div>
-    </Link>
-  );
-}
+  x: number;
+  y: number;
+} | null;
 
 type ProjectHomeProps = {
   project: HubProject;
   role: HubRole;
   files: ProjectFileWithMeta[];
+  projectCard: ProjectCardData;
+  currentUserId: string;
   onCreateReviewBoard: () => void;
+  onShare: () => void;
 };
+
+function sortFiles(
+  files: ProjectFileWithMeta[],
+  sortField: FileSortField,
+  sortOrder: FileSortOrder,
+): ProjectFileWithMeta[] {
+  const sorted = [...files].sort((a, b) => {
+    if (sortField === "alphabetical") {
+      return a.name.localeCompare(b.name);
+    }
+
+    const aTime = new Date(a.created_at).getTime();
+    const bTime = new Date(b.created_at).getTime();
+    return aTime - bTime;
+  });
+
+  if (sortOrder === "newest") {
+    sorted.reverse();
+  }
+
+  return sorted;
+}
 
 export function ProjectHome({
   project,
   role,
   files,
+  projectCard,
+  currentUserId,
   onCreateReviewBoard,
+  onShare,
 }: ProjectHomeProps) {
-  const canEdit = role === "admin" || role === "editor";
+  const router = useRouter();
+  const canCreate = canEdit(role);
+  const [sortField, setSortField] = useState<FileSortField>("last_modified");
+  const [sortOrder, setSortOrder] = useState<FileSortOrder>("newest");
+  const [typeFilter, setTypeFilter] = useState<FileTypeFilter>("all");
+  const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
+  const [contextMenu, setContextMenu] = useState<FileContextMenuState>(null);
+
+  const currentMember = projectCard.members.find(
+    (member) => member.id === currentUserId,
+  );
+
+  const filteredFiles = useMemo(() => {
+    const byType =
+      typeFilter === "all"
+        ? files
+        : files.filter((file) => file.type === typeFilter);
+
+    return sortFiles(byType, sortField, sortOrder);
+  }, [files, sortField, sortOrder, typeFilter]);
+
+  const isShared = projectCard.members.length > 1;
+
+  function buildFileContextMenuItems(file: ProjectFileWithMeta): ProjectContextMenuItem[] {
+    return [
+      {
+        id: "open",
+        label: "Open",
+        onSelect: () =>
+          navigateToProjectFile(router, project.id, file, {
+            projectName: project.name,
+          }),
+        disabled: file.type !== "review_board",
+      },
+      {
+        id: "open-new-tab",
+        label: "Open in new tab",
+        onSelect: () =>
+          navigateToProjectFile(router, project.id, file, {
+            newTab: true,
+            projectName: project.name,
+          }),
+        disabled: file.type !== "review_board",
+      },
+    ];
+  }
 
   return (
-    <section className="min-w-0 space-y-6">
+    <>
+    <section
+      className="min-w-0 space-y-5"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) {
+          setSelectedFileId(null);
+        }
+      }}
+    >
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-        <Link
-          href="/projects"
-          prefetch
-          className="inline-flex justify-self-start font-mono text-[0.65rem] uppercase tracking-[0.14em] text-hub-espresso/45 hover:text-hub-espresso"
-        >
-          ← All projects
-        </Link>
-        <div className="flex min-w-0 justify-center justify-self-center">
+        <NavBackLink href="/projects" label="All Projects" className="justify-self-start" />
+
+        <div className="flex justify-center justify-self-center px-2">
           <ProjectInlineTitle
             projectId={project.id}
             name={project.name}
             canRename={canAdmin(role)}
+            variant="header"
           />
         </div>
-        <div className="flex justify-self-end">
-          {canEdit ? (
-            <button
-              type="button"
-              onClick={onCreateReviewBoard}
-              className="min-h-10 shrink-0 rounded-md bg-hub-espresso px-4 text-sm font-medium text-hub-paper transition-opacity hover:opacity-90"
+
+        <div className="flex flex-wrap items-center justify-end justify-self-end gap-2">
+          <ProjectCreateMenu
+            canCreate={canCreate}
+            onCreateReviewBoard={onCreateReviewBoard}
+          />
+
+          <button
+            type="button"
+            onClick={onShare}
+            className="inline-flex min-h-9 items-center rounded-[6px] border border-hub-espresso/12 bg-white px-3.5 text-[0.8125rem] font-medium text-hub-espresso transition-colors hover:bg-hub-espresso/[0.03]"
+          >
+            Share
+          </button>
+
+          {projectCard.isFavorite && (
+            <span
+              className="inline-flex size-9 items-center justify-center rounded-[6px] border border-hub-espresso/10 bg-white"
+              aria-label="Favorited project"
             >
-              + New review board
-            </button>
-          ) : (
-            <span className="min-h-10" aria-hidden />
+              <Star className="size-4 fill-hub-favorite stroke-none" aria-hidden />
+            </span>
+          )}
+
+          {isShared && (
+            <span
+              className="inline-flex size-9 items-center justify-center rounded-[6px] border border-hub-espresso/10 bg-white text-hub-espresso/55"
+              aria-label="Shared with team"
+            >
+              <Users className="size-4" aria-hidden />
+            </span>
           )}
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <LayoutGrid className="size-4 text-hub-espresso/40" aria-hidden />
-        <h2 className="font-display text-lg font-bold text-hub-espresso">Files</h2>
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <HubSelect
+          value={typeFilter}
+          onChange={setTypeFilter}
+          options={FILE_TYPE_OPTIONS}
+          aria-label="Filter files"
+          variant="field"
+          menuAlign="right"
+        />
+
+        <ProjectFileSortMenu
+          sortField={sortField}
+          sortOrder={sortOrder}
+          onSortFieldChange={setSortField}
+          onSortOrderChange={setSortOrder}
+          menuAlign="right"
+        />
       </div>
 
-      {files.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-hub-espresso/15 bg-white/70 px-6 py-14 text-center">
-          <div className="mx-auto flex size-14 items-center justify-center rounded-xl border border-hub-espresso/10 bg-white text-hub-accent">
-            <ClipboardList className="size-7" aria-hidden />
-          </div>
-          <p className="mt-4 font-display text-xl font-extrabold text-hub-espresso">
-            Start with a review board
+      <ProjectTemplatesBanner
+        projectId={project.id}
+        onUseTemplate={() => onCreateReviewBoard()}
+      />
+
+      {filteredFiles.length === 0 ? (
+        <div className="rounded-md border border-dashed border-hub-espresso/15 bg-white/70 px-6 py-14 text-center">
+          <p className="font-display text-lg font-extrabold text-hub-espresso">
+            No files yet
           </p>
           <p className="mx-auto mt-2 max-w-md text-sm text-hub-espresso/55">
-            Upload marketing visuals, menus, or videos. Your team can approve, reject, and
-            comment on each asset.
+            Create a review board to upload assets, or pick a template above to get
+            started quickly.
           </p>
-          {canEdit && (
+          {canCreate && (
             <button
               type="button"
               onClick={onCreateReviewBoard}
-              className={cn(
-                "mt-5 min-h-10 rounded-md bg-hub-espresso px-5 text-sm font-medium text-hub-paper",
-              )}
+              className="mt-5 inline-flex min-h-9 items-center rounded-[6px] bg-hub-primary px-4 text-[0.8125rem] font-medium text-white transition-colors hover:bg-[#1590e8]"
             >
               Create review board
             </button>
           )}
-          <p className="mt-6 font-mono text-[0.6rem] uppercase tracking-wider text-hub-espresso/35">
-            Open canvas — coming soon
-          </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {files.map((file) => (
-            <ProjectFileCard key={file.id} file={file} projectId={project.id} />
+        <div className={hubCardGridClassName}>
+          {filteredFiles.map((file) => (
+            <ProjectFileCard
+              key={file.id}
+              file={file}
+              projectId={project.id}
+              projectName={project.name}
+              selected={selectedFileId === file.id}
+              editorDisplayName={currentMember?.display_name ?? "Unknown user"}
+              editorAvatarUrl={currentMember?.avatar_url}
+              isFavorite
+              onSelect={setSelectedFileId}
+              onContextMenu={(target, x, y) =>
+                setContextMenu({ file: target, x, y })
+              }
+            />
           ))}
-          <div className="flex min-h-[180px] flex-col items-center justify-center rounded-xl border border-dashed border-hub-espresso/12 bg-hub-espresso/[0.02] p-6 text-center">
-            <PenTool className="size-6 text-hub-espresso/25" aria-hidden />
-            <p className="mt-2 font-mono text-[0.6rem] uppercase tracking-wider text-hub-espresso/35">
-              Open canvas
-            </p>
-            <p className="mt-1 text-xs text-hub-espresso/40">Coming soon</p>
-          </div>
         </div>
       )}
     </section>
+
+    <ProjectContextMenu
+      open={contextMenu !== null}
+      x={contextMenu?.x ?? 0}
+      y={contextMenu?.y ?? 0}
+      items={contextMenu ? buildFileContextMenuItems(contextMenu.file) : []}
+      onClose={() => setContextMenu(null)}
+    />
+    </>
   );
 }

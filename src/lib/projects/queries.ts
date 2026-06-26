@@ -229,3 +229,154 @@ export async function getProjectMembership(
 
   return (data?.role as HubRole | undefined) ?? null;
 }
+
+export type ProjectDetailContext = {
+  card: ProjectCardData;
+  currentUserId: string;
+};
+
+export async function getProjectDetailContext(
+  supabase: SupabaseClient,
+  projectId: string,
+  userId: string,
+): Promise<ProjectDetailContext | null> {
+  const { data: membership, error: membershipError } = await supabase
+    .from("hub_project_members")
+    .select(
+      `
+      role,
+      is_favorite,
+      favorited_at,
+      project:hub_projects (
+        id,
+        name,
+        description,
+        cover_url,
+        created_at,
+        updated_at,
+        trashed_at
+      )
+    `,
+    )
+    .eq("project_id", projectId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (membershipError) throw membershipError;
+
+  const rawProject = membership?.project as
+    | {
+        id: string;
+        name: string;
+        description: string | null;
+        cover_url: string | null;
+        created_at: string;
+        updated_at: string;
+        trashed_at: string | null;
+      }
+    | {
+        id: string;
+        name: string;
+        description: string | null;
+        cover_url: string | null;
+        created_at: string;
+        updated_at: string;
+        trashed_at: string | null;
+      }[]
+    | null
+    | undefined;
+
+  const project = Array.isArray(rawProject) ? rawProject[0] : rawProject;
+
+  if (!membership || !project) return null;
+
+  const [{ data: allMembers }, { data: initiatives }, { data: activities }] =
+    await Promise.all([
+      supabase
+        .from("hub_project_members")
+        .select(
+          `
+          project_id,
+          role,
+          profile:hub_profiles (
+            id,
+            display_name,
+            avatar_url
+          )
+        `,
+        )
+        .eq("project_id", projectId),
+      supabase
+        .from("hub_initiatives")
+        .select("id, project_id")
+        .eq("project_id", projectId),
+      supabase
+        .from("hub_activity")
+        .select("project_id, created_at, summary")
+        .eq("project_id", projectId)
+        .order("created_at", { ascending: false })
+        .limit(1),
+    ]);
+
+  const initiativeIds = (initiatives ?? []).map((i) => i.id);
+  let assetCount = 0;
+
+  if (initiativeIds.length > 0) {
+    const { count } = await supabase
+      .from("hub_assets")
+      .select("id", { count: "exact", head: true })
+      .in("initiative_id", initiativeIds);
+
+    assetCount = count ?? 0;
+  }
+
+  const members: ProjectMemberPreview[] = [];
+  for (const row of allMembers ?? []) {
+    const rawProfile = row.profile as
+      | {
+          id: string;
+          display_name: string;
+          avatar_url: string | null;
+        }
+      | {
+          id: string;
+          display_name: string;
+          avatar_url: string | null;
+        }[]
+      | null;
+
+    const profile = Array.isArray(rawProfile) ? rawProfile[0] : rawProfile;
+    if (!profile) continue;
+
+    members.push({
+      id: profile.id,
+      display_name: profile.display_name,
+      avatar_url: profile.avatar_url,
+      role: row.role as HubRole,
+    });
+  }
+
+  members.sort((a, b) => a.display_name.localeCompare(b.display_name));
+
+  const lastActivity = activities?.[0];
+
+  return {
+    currentUserId: userId,
+    card: {
+      id: project.id,
+      name: project.name,
+      description: project.description,
+      cover_url: project.cover_url,
+      created_at: project.created_at,
+      updated_at: project.updated_at ?? project.created_at,
+      trashed_at: project.trashed_at ?? null,
+      role: membership.role as HubRole,
+      isFavorite: Boolean(membership.is_favorite),
+      favoritedAt: (membership.favorited_at as string | null) ?? null,
+      assetCount,
+      lastActivityAt: lastActivity?.created_at ?? null,
+      lastActivitySummary: lastActivity?.summary ?? null,
+      members,
+    },
+  };
+}

@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 
 import { copyProjectLink } from "@/components/projects/project-card";
 import { HubDialog } from "@/components/projects/hub-dialog";
+import { MemberAvatar } from "@/components/projects/member-avatar";
 import { HubSelect } from "@/components/ui/hub-select";
 import { inviteEmailDomain, validateInviteEmail } from "@/lib/email";
 import {
@@ -33,13 +34,6 @@ const ROLE_OPTIONS = ROLES.map((role) => ({
   value: role,
   label: roleLabel(role),
 }));
-
-function memberInitials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0].slice(0, 1).toLowerCase();
-  return `${parts[0][0]}${parts[1][0]}`.toLowerCase();
-}
 
 function roleDisplay(role: HubRole): string {
   return roleLabel(role).toLowerCase();
@@ -319,18 +313,13 @@ export function InviteMembersDialog({
                     key={member.id}
                     className="group flex items-center gap-2.5 rounded-[6px] py-1.5 pr-1 transition-colors hover:bg-hub-espresso/[0.04]"
                   >
-                    <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-[#18a0fb] text-[0.625rem] font-semibold text-white">
-                      {member.avatar_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={member.avatar_url}
-                          alt=""
-                          className="size-full rounded-full object-cover"
-                        />
-                      ) : (
-                        memberInitials(member.display_name)
-                      )}
-                    </span>
+                    <MemberAvatar
+                      displayName={member.display_name}
+                      avatarUrl={member.avatar_url}
+                      variant="primary"
+                      size="xs"
+                      className="bg-[#18a0fb]"
+                    />
 
                     <p className="min-w-0 flex-1 truncate text-[0.8125rem] text-hub-espresso">
                       {member.display_name}

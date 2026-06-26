@@ -1,14 +1,6 @@
-import { HubTooltip } from "@/components/ui/hub-tooltip";
-import { roleLabel } from "@/lib/permissions";
+import { MemberAvatar } from "@/components/projects/member-avatar";
 import { cn } from "@/lib/utils";
 import type { ProjectMemberPreview } from "@/lib/projects/queries";
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-}
 
 type MemberAvatarStackProps = {
   members: ProjectMemberPreview[];
@@ -36,26 +28,14 @@ export function MemberAvatarStack({
     <div className={cn("flex items-center", className)}>
       <div className="flex -space-x-2">
         {visible.map((member) => (
-          <HubTooltip
-            key={member.id}
-            label={`${member.display_name} · ${roleLabel(member.role)}`}
-            className="z-10 hover:z-20"
-          >
-            <span
-              className="inline-flex size-8 items-center justify-center rounded-full border-2 border-white bg-hub-espresso/10 font-mono text-[0.6rem] font-semibold text-hub-espresso"
-            >
-              {member.avatar_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={member.avatar_url}
-                  alt=""
-                  className="size-full rounded-full object-cover"
-                />
-              ) : (
-                initials(member.display_name)
-              )}
-            </span>
-          </HubTooltip>
+          <span key={member.id} className="relative z-10 hover:z-20">
+            <MemberAvatar
+              displayName={member.display_name}
+              avatarUrl={member.avatar_url}
+              variant="stack"
+              size="sm"
+            />
+          </span>
         ))}
       </div>
       {overflow > 0 && (

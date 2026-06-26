@@ -450,6 +450,63 @@ export async function trashProjectAction(projectId: string): Promise<ActionResul
   }
 }
 
+export async function deleteProjectAction(
+  projectId: string,
+  confirmName: string,
+): Promise<ActionResult> {
+  try {
+    const { supabase, user } = await requireUser();
+    const trimmedName = confirmName.trim();
+
+    if (!projectId) {
+      return { ok: false, error: "Project is required." };
+    }
+
+    if (!trimmedName) {
+      return { ok: false, error: "Type the project name to confirm deletion." };
+    }
+
+    const membership = await getProjectMembership(supabase, projectId, user.id);
+    if (!canAdmin(membership)) {
+      return { ok: false, error: "Only project admins can delete projects." };
+    }
+
+    const { data: project, error: projectError } = await supabase
+      .from("hub_projects")
+      .select("name, trashed_at")
+      .eq("id", projectId)
+      .single();
+
+    if (projectError || !project) {
+      return { ok: false, error: projectError?.message ?? "Project not found." };
+    }
+
+    if (!project.trashed_at) {
+      return { ok: false, error: "Move the project to trash before deleting it permanently." };
+    }
+
+    if (project.name !== trimmedName) {
+      return { ok: false, error: "Project name does not match." };
+    }
+
+    const { error } = await supabase.from("hub_projects").delete().eq("id", projectId);
+
+    if (error) {
+      return { ok: false, error: error.message };
+    }
+
+    revalidatePath(PROJECTS_PATH);
+    revalidatePath(projectPath(projectId));
+
+    return { ok: true, projectId };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Could not delete project.",
+    };
+  }
+}
+
 export async function restoreProjectAction(projectId: string): Promise<ActionResult> {
   try {
     const { supabase, user } = await requireUser();

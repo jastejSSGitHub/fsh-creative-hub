@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import { useAuthTransition } from "@/components/auth/auth-transition-provider";
 import { buttonVariants } from "@/components/ui/button";
+import { NavBackLink } from "@/components/ui/nav-back-link";
 import { LANDING_PATH, PROJECTS_PATH } from "@/lib/routes";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -481,14 +482,9 @@ export function LoginForm() {
           </div>
         )}
 
-        <p className="text-center">
-          <Link
-            href={LANDING_PATH}
-            className="font-mono text-xs uppercase tracking-[0.12em] text-hub-espresso/45 underline-offset-4 hover:underline"
-          >
-            ← Back to landing
-          </Link>
-        </p>
+        <div className="flex justify-center">
+          <NavBackLink href={LANDING_PATH} label="Home" />
+        </div>
       </div>
   );
 }

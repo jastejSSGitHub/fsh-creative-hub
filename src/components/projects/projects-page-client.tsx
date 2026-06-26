@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useMemo, useState, useTransition } from "react";
 
 import { CreateProjectDialog } from "@/components/projects/create-project-dialog";
+import { DeleteProjectDialog } from "@/components/projects/delete-project-dialog";
 import {
   copyProjectLink,
   navigateToProject,
@@ -24,7 +25,9 @@ import {
   trashProjectAction,
 } from "@/lib/projects/actions";
 import { captureProjectsPageSnapshot } from "@/lib/projects/snapshot";
+import { fireConfetti } from "@/lib/confetti";
 import type { ProjectCardData } from "@/lib/projects/queries";
+import { hubCardGridClassName } from "@/lib/ui/hub-card-grid";
 import { canAdmin } from "@/lib/permissions";
 
 import { cn } from "@/lib/utils";
@@ -53,6 +56,7 @@ export function ProjectsPageClient({
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState>(null);
   const [renameTarget, setRenameTarget] = useState<ProjectCardData | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ProjectCardData | null>(null);
   const [shareTarget, setShareTarget] = useState<ProjectCardData | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -89,9 +93,42 @@ export function ProjectsPageClient({
 
   const visibleProjects = view === "trash" ? trashedProjects : activeProjects;
 
-  function showToast(message: string) {
+  function showToast(message: string, options?: { confetti?: boolean }) {
     setToast(message);
+    if (options?.confetti) {
+      fireConfetti();
+    }
     window.setTimeout(() => setToast(null), 2200);
+  }
+
+  function restoreProject(project: ProjectCardData) {
+    const previous = localProjects;
+
+    setLocalProjects((current) =>
+      current.map((entry) =>
+        entry.id === project.id
+          ? { ...entry, trashed_at: null, updated_at: new Date().toISOString() }
+          : entry,
+      ),
+    );
+    setView("all");
+    setSelectedProjectId(project.id);
+
+    startTransition(async () => {
+      const result = await restoreProjectAction(project.id);
+      if (!result.ok) {
+        setLocalProjects(previous);
+        showToast(result.error ?? "Could not restore project.");
+        return;
+      }
+      showToast("Project restored", { confetti: true });
+      router.refresh();
+    });
+  }
+
+  function removeProjectFromList(projectId: string) {
+    setLocalProjects((current) => current.filter((project) => project.id !== projectId));
+    setSelectedProjectId((current) => (current === projectId ? null : current));
   }
 
   function refreshProjects() {
@@ -144,9 +181,16 @@ export function ProjectsPageClient({
         {
           id: "restore",
           label: "Restore project",
-          onSelect: () =>
-            runAction(() => restoreProjectAction(project.id), "Project restored"),
+          onSelect: () => restoreProject(project),
           disabled: !isAdmin || isPending,
+        },
+        {
+          id: "delete-permanently",
+          label: "Delete permanently",
+          onSelect: () => setDeleteTarget(project),
+          disabled: !isAdmin || isPending,
+          destructive: true,
+          separatorBefore: true,
         },
       ];
     }
@@ -226,7 +270,7 @@ export function ProjectsPageClient({
     }
 
     return (
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className={hubCardGridClassName}>
         {projectList.map((project) => (
           <ProjectCard
             key={project.id}
@@ -269,18 +313,14 @@ export function ProjectsPageClient({
           <button
             type="button"
             onClick={() => setCreateOpen(true)}
-            className={cn(
-              buttonVariants({ variant: "outline" }),
-              "inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-full border-hub-espresso/15 bg-white px-4 text-sm font-medium text-hub-espresso shadow-sm hover:bg-hub-espresso/5 sm:w-auto",
-            )}
+            className="inline-flex min-h-9 w-full shrink-0 items-center justify-center gap-1.5 self-end rounded-[6px] bg-hub-primary px-3 text-[0.8125rem] font-medium text-white shadow-sm transition-colors hover:bg-[#1590e8] sm:w-auto"
           >
             <Plus className="size-4" aria-hidden />
             Create project
           </button>
         </div>
 
-        <div className="-mx-3 overflow-x-auto px-3 sm:mx-0 sm:px-0">
-          <div className="flex min-w-max items-center gap-1 border-b border-hub-espresso/10 pb-1">
+        <div className="flex flex-wrap items-center gap-1">
           <button
             type="button"
             onClick={() => {
@@ -316,7 +356,6 @@ export function ProjectsPageClient({
               </span>
             )}
           </button>
-          </div>
         </div>
 
         {view === "all" && activeProjects.length === 0 ? (
@@ -365,6 +404,20 @@ export function ProjectsPageClient({
         onClose={() => setShareTarget(null)}
       />
 
+      <DeleteProjectDialog
+        open={Boolean(deleteTarget)}
+        projectId={deleteTarget?.id ?? null}
+        projectName={deleteTarget?.name ?? ""}
+        onClose={() => setDeleteTarget(null)}
+        onDeleted={() => {
+          if (deleteTarget) {
+            removeProjectFromList(deleteTarget.id);
+          }
+          showToast("Project permanently deleted");
+          router.refresh();
+        }}
+      />
+
       <ProjectContextMenu
         open={Boolean(contextMenu)}
         x={contextMenu?.x ?? 0}
@@ -374,7 +427,7 @@ export function ProjectsPageClient({
       />
 
       {toast && (
-        <div className="pointer-events-none fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full border border-hub-espresso/10 bg-hub-espresso px-4 py-2 text-sm text-white shadow-lg">
+        <div className="pointer-events-none fixed bottom-6 left-1/2 z-50 -translate-x-1/2 animate-in fade-in slide-in-from-bottom-2 rounded-full border border-hub-espresso/10 bg-hub-espresso px-4 py-2 text-sm font-medium text-white shadow-lg duration-300">
           {toast}
         </div>
       )}

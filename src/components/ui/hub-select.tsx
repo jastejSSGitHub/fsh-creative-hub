@@ -16,6 +16,7 @@ type HubSelectProps<T extends string = string> = {
   options: HubSelectOption<T>[];
   disabled?: boolean;
   variant?: "field" | "inline";
+  menuAlign?: "left" | "right";
   "aria-label"?: string;
   className?: string;
   formatLabel?: (label: string) => string;
@@ -29,6 +30,7 @@ export function HubSelect<T extends string = string>({
   options,
   disabled = false,
   variant = "field",
+  menuAlign = "left",
   "aria-label": ariaLabel,
   className,
   formatLabel = (label) => label,
@@ -124,10 +126,11 @@ export function HubSelect<T extends string = string>({
         <span className="truncate">{formatLabel(selected?.label ?? "")}</span>
         <ChevronRight
           className={cn(
-            "pointer-events-none absolute text-hub-espresso/35",
+            "pointer-events-none absolute text-hub-espresso/40 transition-transform duration-150",
             variant === "field"
-              ? "top-1/2 right-2 size-3 -translate-y-1/2 rotate-90"
+              ? "top-1/2 right-2 size-3.5 -translate-y-1/2 rotate-90"
               : "top-1/2 right-0 size-3 -translate-y-1/2",
+            open && variant === "field" && "rotate-[270deg]",
           )}
         />
       </button>
@@ -139,7 +142,7 @@ export function HubSelect<T extends string = string>({
           aria-label={ariaLabel}
           className={cn(
             "absolute z-50 min-w-full overflow-hidden rounded-[6px] border border-hub-espresso/12 bg-white py-1 shadow-xl",
-            variant === "inline" ? "right-0" : "left-0",
+            variant === "inline" ? "right-0" : menuAlign === "right" ? "right-0" : "left-0",
             placement === "below" ? "top-full mt-1" : "bottom-full mb-1",
           )}
         >

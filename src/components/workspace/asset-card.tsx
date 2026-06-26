@@ -2,6 +2,7 @@
 
 import type { AssetWithVotes } from "@/lib/workspace/queries";
 import { ConsensusBar } from "@/components/workspace/consensus-bar";
+import { AssetMediaPreview } from "@/components/workspace/asset-media-preview";
 import { STATUS_STYLES } from "@/components/workspace/asset-status";
 import { cn } from "@/lib/utils";
 
@@ -21,24 +22,11 @@ export function AssetCard({ asset, onOpen }: AssetCardProps) {
     >
       <div className="relative aspect-[4/3] overflow-hidden bg-hub-espresso/5">
         <span className={cn("absolute inset-x-0 top-0 z-10 h-1", status.stripe)} />
-        {asset.type === "video" ? (
-          <video
-            src={asset.public_url}
-            className="size-full object-cover"
-            muted
-            playsInline
-            preload="metadata"
-          />
-        ) : (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={asset.public_url}
-            alt={asset.name}
-            loading="lazy"
-            decoding="async"
-            className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-          />
-        )}
+        <AssetMediaPreview
+          type={asset.type === "video" ? "video" : "image"}
+          src={asset.public_url}
+          alt={asset.name}
+        />
         {asset.status === "final" && (
           <span className="absolute top-3 right-3 rounded-md bg-hub-final px-2 py-0.5 font-mono text-[0.6rem] font-semibold uppercase tracking-wider text-hub-espresso">
             Final pick

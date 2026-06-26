@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { MemberAvatar } from "@/components/projects/member-avatar";
 import { formatRelativeTime } from "@/lib/format-relative-time";
 import type { ForYouItem } from "@/lib/inbox/queries";
 import { assetPath } from "@/lib/routes";
@@ -42,9 +43,12 @@ export function ForYouList({ items }: ForYouListProps) {
               href={href}
               className="group flex gap-3 px-4 py-3.5 transition-colors hover:bg-hub-espresso/[0.02] sm:px-5"
             >
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-hub-espresso/8 font-mono text-[0.58rem] font-semibold text-hub-espresso">
-                {item.comment.author.display_name.slice(0, 2).toUpperCase()}
-              </span>
+              <MemberAvatar
+                displayName={item.comment.author.display_name}
+                avatarUrl={item.comment.author.avatar_url}
+                variant="muted"
+                size="sm"
+              />
 
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">

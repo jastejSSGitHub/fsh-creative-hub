@@ -34,7 +34,7 @@ export function MarqueeStrip() {
   return (
     <section
       aria-label="Creative work samples"
-      className="overflow-hidden border-y border-hub-espresso/10 bg-hub-paper py-6 sm:py-8"
+      className="overflow-hidden bg-hub-paper py-6 sm:py-8"
     >
       <div className="flex w-max">
         <MarqueeTrack />

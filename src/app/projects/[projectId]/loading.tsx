@@ -1,5 +1,5 @@
-import { ProjectWorkspaceSkeleton } from "@/components/workspace/project-workspace-skeleton";
+import { ProjectHomeLoadingSkeleton } from "@/components/project-files/project-home-loading-skeleton";
 
-export default function ProjectWorkspaceLoading() {
-  return <ProjectWorkspaceSkeleton />;
+export default function ProjectLoading() {
+  return <ProjectHomeLoadingSkeleton />;
 }

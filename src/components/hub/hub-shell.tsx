@@ -1,10 +1,13 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 
 import { FeatureOnboardingHost } from "@/components/onboarding/feature-onboarding-host";
 import { LOGIN_PATH, PROJECTS_PATH } from "@/lib/routes";
 import { createClient } from "@/lib/supabase/server";
 import type { HubProfile } from "@/types/database";
-import Link from "next/link";
+import { cn } from "@/lib/utils";
+
+const HUB_CONTENT_CLASS = "mx-auto w-full max-w-6xl px-3 sm:px-6";
 
 type HubShellProps = {
   children: React.ReactNode;
@@ -35,8 +38,13 @@ export async function HubShell({ children }: HubShellProps) {
 
   return (
     <div className="flex min-h-full flex-col overflow-x-clip bg-hub-paper">
-      <header className="border-b border-hub-espresso/10 bg-hub-espresso px-3 py-3 sm:px-6 sm:py-3.5">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-4">
+      <header className="border-b border-hub-espresso/10 bg-hub-espresso py-3 sm:py-3.5">
+        <div
+          className={cn(
+            HUB_CONTENT_CLASS,
+            "flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between",
+          )}
+        >
           <div className="min-w-0">
             <Link
               href={PROJECTS_PATH}
@@ -49,20 +57,18 @@ export async function HubShell({ children }: HubShellProps) {
             </p>
           </div>
 
-          <div className="flex w-full items-center justify-end border-t border-white/10 pt-3 md:w-auto md:border-0 md:pt-0">
-            <form action="/auth/signout" method="post" className="flex items-center">
-              <button
-                type="submit"
-                className="inline-flex min-h-9 items-center rounded-md border border-white/12 px-2.5 font-mono text-[0.58rem] uppercase tracking-[0.1em] text-white/65 transition-colors hover:border-white/25 hover:text-white sm:px-3 sm:text-[0.62rem]"
-              >
-                Sign out
-              </button>
-            </form>
-          </div>
+          <form action="/auth/signout" method="post" className="shrink-0 self-end sm:self-auto">
+            <button
+              type="submit"
+              className="inline-flex min-h-9 items-center rounded-md border border-white/12 px-2.5 font-mono text-[0.58rem] uppercase tracking-[0.1em] text-white/65 transition-colors hover:border-white/25 hover:text-white sm:px-3 sm:text-[0.62rem]"
+            >
+              Sign out
+            </button>
+          </form>
         </div>
       </header>
-      <main className="mx-auto w-full min-w-0 max-w-6xl flex-1 px-3 py-5 sm:px-6 sm:py-10">
-        {children}
+      <main className="flex-1 py-5 sm:py-10">
+        <div className={cn(HUB_CONTENT_CLASS, "min-w-0")}>{children}</div>
       </main>
       <FeatureOnboardingHost userId={user.id} />
     </div>

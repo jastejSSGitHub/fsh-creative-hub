@@ -50,19 +50,29 @@ export function ReactionPicker({
 
   function handleClick(reaction: VoteReaction) {
     if (disabled) return;
-    triggerBurst(reaction);
+    if (userReaction !== reaction) {
+      triggerBurst(reaction);
+    }
     onReact(reaction);
   }
 
   return (
-    <div className="overflow-hidden">
+    <div>
       <div className="grid grid-cols-4 gap-2">
         {REACTIONS.map((reaction) => {
           const selected = userReaction === reaction;
           const meta = REACTION_META[reaction];
 
           return (
-            <HubTooltip key={reaction} label={selected ? `${meta.label} · tap to change` : meta.label}>
+            <HubTooltip
+              key={reaction}
+              side="top"
+              label={
+                selected
+                  ? `${meta.label} · tap again to remove`
+                  : meta.label
+              }
+            >
               <div className="relative">
                 <button
                   type="button"

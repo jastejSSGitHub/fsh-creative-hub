@@ -6,6 +6,7 @@ import { useCallback, useState } from "react";
 
 import { formatEditedTime } from "@/lib/format-edited-time";
 import type { ProjectCardData } from "@/lib/projects/queries";
+import { captureProjectNavigationSnapshot } from "@/lib/projects/project-navigation-snapshot";
 import { projectPath } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
@@ -14,9 +15,17 @@ type ProjectRouter = Pick<ReturnType<typeof useRouter>, "push" | "prefetch">;
 export function navigateToProject(
   router: ProjectRouter,
   projectId: string,
-  options?: { newTab?: boolean },
+  options?: { newTab?: boolean; projectName?: string; fileCount?: number },
 ) {
   const href = projectPath(projectId);
+
+  if (options?.projectName) {
+    captureProjectNavigationSnapshot({
+      projectId,
+      projectName: options.projectName,
+      fileCount: options.fileCount,
+    });
+  }
 
   if (options?.newTab) {
     window.open(href, "_blank", "noopener,noreferrer");
@@ -57,7 +66,11 @@ export function ProjectCard({
 
   function openProject(newTab = false) {
     onBeforeOpen?.();
-    navigateToProject(router, project.id, { newTab });
+    navigateToProject(router, project.id, {
+      newTab,
+      projectName: project.name,
+      fileCount: project.assetCount,
+    });
   }
 
   function handleFavoriteToggle(event: React.MouseEvent) {
@@ -102,7 +115,7 @@ export function ProjectCard({
         }
       }}
       className={cn(
-        "group relative flex h-full cursor-default flex-col overflow-hidden rounded-xl border bg-white shadow-sm transition-[box-shadow,border-color] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hub-accent/50",
+        "group relative flex h-full cursor-default select-none flex-col overflow-hidden rounded-md border bg-white shadow-sm transition-[box-shadow,border-color] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hub-primary/50",
         selected
           ? "border-hub-accent ring-2 ring-hub-accent/35"
           : "border-hub-espresso/10",
@@ -120,7 +133,10 @@ export function ProjectCard({
           />
         ) : (
           <div className="flex size-full items-center justify-center bg-[linear-gradient(135deg,#0b0b0b_0%,#2a2418_55%,#fbf7ee_100%)]">
-            <span className="font-display text-3xl font-extrabold text-white/90">
+            <span
+              aria-hidden
+              className="pointer-events-none font-display text-3xl font-extrabold text-white/90"
+            >
               {project.name.slice(0, 1).toUpperCase()}
             </span>
           </div>
@@ -144,7 +160,7 @@ export function ProjectCard({
               className={cn(
                 "size-4 stroke-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)] transition-[fill,opacity] duration-150",
                 project.isFavorite
-                  ? "fill-hub-final"
+                  ? "fill-hub-favorite"
                   : "fill-white/75",
               )}
             />

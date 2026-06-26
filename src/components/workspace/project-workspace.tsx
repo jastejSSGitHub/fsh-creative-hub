@@ -1,37 +1,35 @@
 "use client";
 
+import { Play } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { MemberAvatarStack } from "@/components/projects/member-avatar-stack";
 import { InviteMembersDialog } from "@/components/projects/invite-members-dialog";
 import { ProjectInlineTitle } from "@/components/projects/project-inline-title";
-import { ActivityFeed } from "@/components/workspace/activity-feed";
 import { AssetCard } from "@/components/workspace/asset-card";
 import { AssetDetailOverlay } from "@/components/workspace/asset-detail-overlay";
+import { AssetGridLoading } from "@/components/workspace/asset-grid-loading";
 import { AssetUploadZone } from "@/components/workspace/asset-upload-zone";
 import { CreateInitiativeDialog } from "@/components/workspace/create-initiative-dialog";
-import { IdeasBoard } from "@/components/workspace/ideas-board";
 import { PresentationMode } from "@/components/workspace/presentation-mode";
 import { buttonVariants } from "@/components/ui/button";
+import { NavBackLink } from "@/components/ui/nav-back-link";
 import { canAdmin, canEdit } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/client";
 import { captureWorkspaceSnapshot } from "@/lib/projects/workspace-snapshot";
+import { captureReviewBoardNavigationSnapshot, readReviewBoardNavigationSnapshot } from "@/lib/projects/review-board-snapshot";
 import type { ProjectCardData } from "@/lib/projects/queries";
 import { PROJECTS_PATH, reviewBoardPath } from "@/lib/routes";
 import {
   getAssetsForInitiative,
-  type ActivityWithActor,
   type AssetWithVotes,
   type CommentWithAuthor,
-  type IdeaWithMeta,
   type ProjectMemberWithRole,
 } from "@/lib/workspace/queries";
 import type { HubInitiative, HubProject, HubRole } from "@/types/database";
 import { cn } from "@/lib/utils";
-import Link from "next/link";
 
-type WorkspaceView = "assets" | "ideas" | "activity";
 type StatusFilter = "all" | "pending" | "approved" | "rejected" | "final";
 
 type ProjectWorkspaceProps = {
@@ -43,22 +41,14 @@ type ProjectWorkspaceProps = {
   members: ProjectMemberWithRole[];
   assets: AssetWithVotes[];
   assetsByInitiative?: Record<string, AssetWithVotes[]>;
-  ideas: IdeaWithMeta[];
-  activities: ActivityWithActor[];
   selectedInitiativeId: string | null;
-  initialView: WorkspaceView;
   initialFilter: StatusFilter;
   openAssetId: string | null;
   openAssetComments: CommentWithAuthor[];
   projectCardForInvite: ProjectCardData | null;
   backHref?: string;
+  deferAssetsLoad?: boolean;
 };
-
-const VIEWS: { id: WorkspaceView; label: string }[] = [
-  { id: "assets", label: "Assets" },
-  { id: "ideas", label: "Ideas" },
-  { id: "activity", label: "Activity" },
-];
 
 const FILTERS: { id: StatusFilter; label: string }[] = [
   { id: "all", label: "All" },
@@ -77,15 +67,13 @@ export function ProjectWorkspace({
   members,
   assets,
   assetsByInitiative: initialAssetsByInitiative,
-  ideas,
-  activities,
   selectedInitiativeId,
-  initialView,
   initialFilter,
   openAssetId,
   openAssetComments,
   projectCardForInvite,
   backHref,
+  deferAssetsLoad = false,
 }: ProjectWorkspaceProps) {
   const router = useRouter();
   const [createInitiativeOpen, setCreateInitiativeOpen] = useState(false);
@@ -104,12 +92,20 @@ export function ProjectWorkspace({
       return initialAssetsByInitiative;
     }
 
+    if (deferAssetsLoad) {
+      return {};
+    }
+
     const id = selectedInitiativeId ?? initiatives[0]?.id;
     return id ? { [id]: assets } : {};
   });
-  const [initiativeAssetsLoading, setInitiativeAssetsLoading] = useState(false);
+  const [initiativeAssetsLoading, setInitiativeAssetsLoading] = useState(deferAssetsLoad);
   const loadedInitiativeIdsRef = useRef(
-    new Set(Object.keys(initialAssetsByInitiative ?? {})),
+    new Set(
+      deferAssetsLoad
+        ? []
+        : Object.keys(initialAssetsByInitiative ?? {}),
+    ),
   );
   const fetchingInitiativeIdsRef = useRef(new Set<string>());
 
@@ -134,12 +130,25 @@ export function ProjectWorkspace({
       return;
     }
 
+    if (deferAssetsLoad) {
+      return;
+    }
+
     const id = selectedInitiativeId ?? initiatives[0]?.id;
     if (id) {
       loadedInitiativeIdsRef.current.add(id);
       setAssetsByInitiative((prev) => ({ ...prev, [id]: assets }));
     }
-  }, [selectedInitiativeId, initiatives, assets, initialAssetsByInitiative]);
+  }, [selectedInitiativeId, initiatives, assets, initialAssetsByInitiative, deferAssetsLoad]);
+
+  useEffect(() => {
+    if (!deferAssetsLoad) return;
+
+    const id = localInitiativeId ?? selectedInitiativeId ?? initiatives[0]?.id;
+    if (!id) return;
+
+    void ensureInitiativeAssets(id);
+  }, [deferAssetsLoad, localInitiativeId, selectedInitiativeId, initiatives]);
 
   useEffect(() => {
     router.prefetch(PROJECTS_PATH);
@@ -150,6 +159,22 @@ export function ProjectWorkspace({
       hasInitiatives: initiatives.length > 0,
     });
   }, [project.id, initiatives.length]);
+
+  useEffect(() => {
+    if (!reviewBoard) return;
+
+    captureReviewBoardNavigationSnapshot({
+      projectId: project.id,
+      boardId: reviewBoard.id,
+      projectName: project.name,
+      boardName: reviewBoard.name,
+      sectionCount: initiatives.length,
+      assetCount: Object.values(assetsByInitiative).reduce(
+        (total, sectionAssets) => total + sectionAssets.length,
+        0,
+      ),
+    });
+  }, [project.id, project.name, reviewBoard, initiatives.length, assetsByInitiative]);
 
   const activeInitiativeId = localInitiativeId;
   const activeInitiative = initiatives.find((i) => i.id === activeInitiativeId);
@@ -177,7 +202,6 @@ export function ProjectWorkspace({
   function buildQueryParams(includeAssetId = overlayAssetId) {
     const params = new URLSearchParams();
     if (activeInitiativeId) params.set("initiative", activeInitiativeId);
-    params.set("view", initialView);
     if (statusFilter !== "all") params.set("filter", statusFilter);
     if (includeAssetId) params.set("asset", includeAssetId);
     return params;
@@ -243,22 +267,6 @@ export function ProjectWorkspace({
     await ensureInitiativeAssets(initiativeId);
   }
 
-  function setQuery(updates: Record<string, string | null>) {
-    const params = buildQueryParams();
-
-    for (const [key, value] of Object.entries(updates)) {
-      if (value === null) params.delete(key);
-      else params.set(key, value);
-    }
-
-    if (updates.asset !== undefined) {
-      setOverlayAssetId(updates.asset);
-    }
-
-    const qs = params.toString();
-    router.push(`${boardBasePath}${qs ? `?${qs}` : ""}`);
-  }
-
   const presentationAssets = useMemo(
     () =>
       initiativeAssets
@@ -287,17 +295,18 @@ export function ProjectWorkspace({
     role: m.role,
   }));
 
+  const assetCountHint = reviewBoard
+    ? readReviewBoardNavigationSnapshot(project.id, reviewBoard.id)?.assetCount
+    : undefined;
+
   return (
     <>
       <section className="min-w-0 space-y-5 sm:space-y-6">
         <div className="space-y-3">
-            <Link
+            <NavBackLink
               href={backHref ?? PROJECTS_PATH}
-              prefetch
-              className="inline-flex font-mono text-[0.65rem] uppercase tracking-[0.14em] text-hub-espresso/45 hover:text-hub-espresso"
-            >
-              {reviewBoard ? `← ${project.name}` : "← All projects"}
-            </Link>
+              label={reviewBoard ? project.name : "All Projects"}
+            />
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0 flex-1 space-y-1">
@@ -320,7 +329,7 @@ export function ProjectWorkspace({
               </div>
 
               <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto sm:shrink-0 sm:justify-end sm:gap-3">
-                {boardStats && initialView === "assets" && (
+                {boardStats && (
                   <div className="flex items-center gap-2 rounded-full border border-hub-espresso/10 bg-white px-3 py-1.5 font-mono text-[0.6rem] uppercase tracking-wider text-hub-espresso/55">
                     <span className="text-hub-approved">{boardStats.approved} approved</span>
                     <span aria-hidden>·</span>
@@ -334,26 +343,21 @@ export function ProjectWorkspace({
                   <button
                     type="button"
                     onClick={() => setInviteOpen(true)}
-                    className={cn(
-                      buttonVariants({ variant: "outline" }),
-                      "min-h-10 flex-1 rounded-md sm:flex-none",
-                    )}
+                    className="inline-flex min-h-10 flex-1 items-center justify-center rounded-md border border-transparent bg-hub-primary px-4 text-sm font-medium text-white transition-colors hover:bg-[#1590e8] sm:flex-none"
                   >
                     Invite
                   </button>
                 )}
-                {initialView === "assets" && presentationAssets.length > 0 && (
+                {presentationAssets.length > 0 && (
                   <button
                     type="button"
                     onClick={() => {
                       setPresentationIndex(0);
                       setPresentationOpen(true);
                     }}
-                    className={cn(
-                      buttonVariants({ variant: "outline" }),
-                      "min-h-10 flex-1 rounded-md sm:flex-none",
-                    )}
+                    className="inline-flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent bg-hub-espresso px-4 text-sm font-medium text-hub-paper transition-colors hover:bg-hub-espresso/90 sm:flex-none"
                   >
+                    <Play className="size-3.5 fill-current" aria-hidden />
                     Present
                   </button>
                 )}
@@ -432,37 +436,14 @@ export function ProjectWorkspace({
                 <button
                   type="button"
                   onClick={() => setCreateInitiativeOpen(true)}
-                  className={cn(
-                    buttonVariants({ variant: "outline", size: "sm" }),
-                    "min-h-10 w-full rounded-md sm:w-auto",
-                  )}
+                  className="inline-flex min-h-10 w-full items-center justify-center rounded-md border border-hub-accent/60 bg-hub-accent px-4 text-sm font-medium text-hub-espresso transition-colors hover:bg-[#f5be3a] sm:w-auto"
                 >
                   + Section
                 </button>
               )}
             </div>
 
-            <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-              <div className="flex min-w-max gap-1 border-b border-hub-espresso/10 pb-1">
-              {VIEWS.map((view) => (
-                <button
-                  key={view.id}
-                  type="button"
-                  onClick={() => setQuery({ view: view.id, asset: null })}
-                  className={cn(
-                    "min-h-10 shrink-0 rounded-t-md px-3 text-sm font-medium sm:px-4",
-                    initialView === view.id
-                      ? "bg-white text-hub-espresso shadow-sm"
-                      : "text-hub-espresso/50 hover:text-hub-espresso",
-                  )}
-                >
-                  {view.label}
-                </button>
-              ))}
-              </div>
-            </div>
-
-            {initialView === "assets" && activeInitiativeId && (
+            {activeInitiativeId && (
               <div className="space-y-5">
                 {canEdit(role) && (
                   <AssetUploadZone
@@ -494,14 +475,7 @@ export function ProjectWorkspace({
                 </div>
 
                 {initiativeAssetsLoading && initiativeAssets.length === 0 ? (
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                    {Array.from({ length: 6 }).map((_, index) => (
-                      <div
-                        key={index}
-                        className="aspect-[4/3] animate-pulse rounded-xl border border-hub-espresso/10 bg-hub-espresso/5"
-                      />
-                    ))}
-                  </div>
+                  <AssetGridLoading assetCountHint={assetCountHint} />
                 ) : initiativeAssets.length === 0 ? (
                   <div className="rounded-xl border border-dashed border-hub-espresso/15 px-6 py-12 text-center">
                     <p className="font-display text-lg font-bold text-hub-espresso">
@@ -563,17 +537,6 @@ export function ProjectWorkspace({
                 )}
               </div>
             )}
-
-            {initialView === "ideas" && activeInitiativeId && (
-              <IdeasBoard
-                ideas={ideas}
-                initiativeId={activeInitiativeId}
-                projectId={project.id}
-                role={role}
-              />
-            )}
-
-            {initialView === "activity" && <ActivityFeed activities={activities} />}
           </>
         )}
       </section>

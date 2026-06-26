@@ -184,6 +184,10 @@ export function activeProjectLabel(count: number): string {
 }
 
 export function subscribeToProjectsPageSnapshot(onStoreChange: () => void) {
+  if (typeof window === "undefined") {
+    return () => {};
+  }
+
   const handleChange = () => onStoreChange();
 
   window.addEventListener(PROJECTS_SNAPSHOT_CHANGE_EVENT, handleChange);

@@ -1,4 +1,5 @@
 import { formatRelativeTime } from "@/lib/format-relative-time";
+import { MemberAvatar } from "@/components/projects/member-avatar";
 import type { ActivityWithActor } from "@/lib/workspace/queries";
 
 type ActivityFeedProps = {
@@ -24,9 +25,12 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
           key={item.id}
           className="flex gap-3 rounded-xl border border-hub-espresso/10 bg-white px-4 py-3"
         >
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-hub-espresso/10 font-mono text-xs font-semibold text-hub-espresso">
-            {item.actor.display_name.slice(0, 2).toUpperCase()}
-          </span>
+          <MemberAvatar
+            displayName={item.actor.display_name}
+            avatarUrl={item.actor.avatar_url}
+            variant="muted"
+            size="md"
+          />
           <div className="min-w-0 flex-1">
             <p className="text-sm text-hub-espresso">
               <span className="font-medium">{item.actor.display_name}</span>{" "}

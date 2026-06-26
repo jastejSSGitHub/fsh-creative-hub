@@ -5,21 +5,13 @@ import { getProjectFile } from "@/lib/project-files/queries";
 import { LOGIN_PATH, projectPath } from "@/lib/routes";
 import { getProjectMembership, type ProjectCardData } from "@/lib/projects/queries";
 import { createClient } from "@/lib/supabase/server";
-import {
-  getActivityForProject,
-  getAssetsForInitiatives,
-  getCommentsForAsset,
-  getIdeasForInitiative,
-  getInitiatives,
-  getProjectMembers,
-} from "@/lib/workspace/queries";
+import { getCommentsForAsset, getInitiatives, getProjectMembers } from "@/lib/workspace/queries";
 import type { AssetStatus, HubProject } from "@/types/database";
 
 type ReviewBoardPageProps = {
   params: Promise<{ projectId: string; boardId: string }>;
   searchParams: Promise<{
     initiative?: string;
-    view?: string;
     filter?: string;
     asset?: string;
   }>;
@@ -85,9 +77,6 @@ export default async function ReviewBoardPage({
       ? query.initiative
       : initiatives[0]?.id ?? null;
 
-  const view =
-    query.view === "ideas" || query.view === "activity" ? query.view : "assets";
-
   const filter: AssetStatus | "all" =
     query.filter === "pending" ||
     query.filter === "approved" ||
@@ -98,24 +87,8 @@ export default async function ReviewBoardPage({
 
   const openAssetId = query.asset ?? null;
 
-  const initiativeIds = initiatives.map((initiative) => initiative.id);
-
-  const [assetsByInitiative, ideas, activities, openAssetComments] =
-    await Promise.all([
-      getAssetsForInitiatives(supabase, initiativeIds),
-      selectedInitiativeId && view === "ideas"
-        ? getIdeasForInitiative(supabase, selectedInitiativeId, user.id)
-        : Promise.resolve([]),
-      view === "activity"
-        ? getActivityForProject(supabase, projectId)
-        : Promise.resolve([]),
-      openAssetId
-        ? getCommentsForAsset(supabase, openAssetId)
-        : Promise.resolve([]),
-    ]);
-
-  const assets = selectedInitiativeId
-    ? assetsByInitiative[selectedInitiativeId] ?? []
+  const openAssetComments = openAssetId
+    ? await getCommentsForAsset(supabase, openAssetId)
     : [];
 
   const projectCardForInvite = buildInviteProjectCard(project, role, members);
@@ -128,12 +101,9 @@ export default async function ReviewBoardPage({
       userId={user.id}
       initiatives={initiatives}
       members={members}
-      assets={assets}
-      assetsByInitiative={assetsByInitiative}
-      ideas={ideas}
-      activities={activities}
+      assets={[]}
+      deferAssetsLoad
       selectedInitiativeId={selectedInitiativeId}
-      initialView={view}
       initialFilter={filter}
       openAssetId={openAssetId}
       openAssetComments={openAssetComments}
