@@ -249,7 +249,7 @@ export function TextDocumentWorkspace({
         onChange={(cover) => updateConfig({ ...config, cover })}
       />
 
-      <div className="mx-auto max-w-[52rem] px-4 sm:px-6">
+      <div className="mx-auto w-[90%] px-4 sm:px-6">
         <div
           ref={titleAreaRef}
           className={cn(

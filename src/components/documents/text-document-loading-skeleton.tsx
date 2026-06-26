@@ -141,7 +141,7 @@ export function TextDocumentLoadingSkeleton() {
 
       <DocumentCoverBannerStatic cover={cover} />
 
-      <div className="mx-auto max-w-[52rem] px-4 sm:px-6">
+      <div className="mx-auto w-[90%] px-4 sm:px-6">
         <div className="relative -mt-10 pt-2">
           <div className="relative">
             <span

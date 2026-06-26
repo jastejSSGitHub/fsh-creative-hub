@@ -13,6 +13,24 @@ export const DEFAULT_COVER_IMAGES: CoverImageOption[] = [
     src: "/media/Text Document Banners/Art1.png",
     bannerPosition: 40,
   },
+  {
+    id: "art2",
+    label: "Ink Mountains",
+    src: "/media/Text Document Banners/Art2.png",
+    bannerPosition: 45,
+  },
+  {
+    id: "art3",
+    label: "River Mist",
+    src: "/media/Text Document Banners/Art3.png",
+    bannerPosition: 50,
+  },
+  {
+    id: "art4",
+    label: "Forest Path",
+    src: "/media/Text Document Banners/Art4.png",
+    bannerPosition: 42,
+  },
 ];
 
 export function coverImageById(id: string): CoverImageOption | undefined {

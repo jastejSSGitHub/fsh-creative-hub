@@ -1,6 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { COVER_GRADIENTS } from "@/lib/documents/covers";
 import { DEFAULT_COVER_IMAGES, resolveCoverImageSrc } from "@/lib/documents/cover-images";
@@ -19,6 +21,144 @@ type DocumentCoverBannerProps = {
 
 const coverBannerClassName =
   "relative -mx-[calc((100vw-100%)/2)] mb-2 h-[12rem] w-screen max-w-none overflow-hidden sm:h-[14rem]";
+
+function CoverImagePicker({
+  open,
+  onClose,
+  cover,
+  onChange,
+}: {
+  open: boolean;
+  onClose: () => void;
+  cover: DocumentCover;
+  onChange: (cover: DocumentCover) => void;
+}) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function handlePointerDown(event: MouseEvent) {
+      if (panelRef.current?.contains(event.target as Node)) return;
+      onClose();
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+
+    window.addEventListener("mousedown", handlePointerDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("mousedown", handlePointerDown);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open, onClose]);
+
+  if (!open || !mounted) return null;
+
+  return createPortal(
+    <>
+      <button
+        type="button"
+        aria-label="Close cover picker"
+        className="fixed inset-0 z-[130] bg-hub-foreground/45 backdrop-blur-[2px]"
+        onClick={onClose}
+      />
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Choose banner cover"
+        className="fixed left-1/2 top-1/2 z-[131] max-h-[calc(100dvh-2rem)] w-[min(26rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[8px] border border-hub-foreground/12 bg-hub-surface p-3 shadow-2xl"
+      >
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <p className="text-[0.6875rem] font-medium uppercase tracking-wider text-hub-foreground/45">
+            Banner images
+          </p>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="inline-flex size-6 shrink-0 items-center justify-center rounded-[4px] text-hub-foreground/45 transition-colors hover:bg-hub-foreground/[0.06] hover:text-hub-foreground"
+          >
+            <X className="size-3.5" aria-hidden />
+          </button>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {DEFAULT_COVER_IMAGES.map((image) => (
+            <button
+              key={image.id}
+              type="button"
+              title={image.label}
+              onClick={() => {
+                onChange({
+                  kind: "image",
+                  value: image.id,
+                  position: image.bannerPosition,
+                });
+                onClose();
+              }}
+              className={cn(
+                "relative aspect-[16/10] overflow-hidden rounded-[4px] ring-offset-2 transition-transform hover:scale-[1.02]",
+                cover.kind === "image" &&
+                  cover.value === image.id &&
+                  "ring-2 ring-hub-primary",
+              )}
+            >
+              <img
+                src={resolveCoverImageSrc(image.id)}
+                alt={image.label}
+                className="size-full object-cover"
+              />
+            </button>
+          ))}
+        </div>
+
+        <p className="mb-2 mt-4 text-[0.6875rem] font-medium uppercase tracking-wider text-hub-foreground/45">
+          Gradient covers
+        </p>
+        <div className="grid grid-cols-4 gap-2">
+          {COVER_GRADIENTS.map((g) => (
+            <button
+              key={g.id}
+              type="button"
+              title={g.label}
+              onClick={() => {
+                onChange({ kind: "gradient", value: g.id, position: 50 });
+                onClose();
+              }}
+              className={cn(
+                "h-10 rounded-[4px] ring-offset-2 transition-transform hover:scale-105",
+                cover.kind === "gradient" &&
+                  cover.value === g.id &&
+                  "ring-2 ring-hub-primary",
+              )}
+              style={{ background: g.css }}
+            />
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            const url = window.prompt("Image URL for cover");
+            if (url) onChange({ kind: "image", value: url, position: 50 });
+            onClose();
+          }}
+          className="mt-3 w-full rounded-[6px] border border-hub-foreground/12 px-3 py-2 text-[0.8125rem] text-hub-foreground hover:bg-hub-foreground/[0.03]"
+        >
+          Upload image URL…
+        </button>
+      </div>
+    </>,
+    document.body,
+  );
+}
 
 function CoverImageLayer({
   cover,
@@ -178,75 +318,12 @@ export function DocumentCoverBanner({
           ) : null}
 
           {pickerOpen ? (
-            <div className="absolute left-1/2 top-4 z-20 w-[min(24rem,calc(100%-2rem))] -translate-x-1/2 rounded-[8px] border border-hub-foreground/12 bg-hub-surface p-3 shadow-xl">
-              <p className="mb-2 text-[0.6875rem] font-medium uppercase tracking-wider text-hub-foreground/45">
-                Banner images
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                {DEFAULT_COVER_IMAGES.map((image) => (
-                  <button
-                    key={image.id}
-                    type="button"
-                    title={image.label}
-                    onClick={() => {
-                      onChange({
-                        kind: "image",
-                        value: image.id,
-                        position: image.bannerPosition,
-                      });
-                      setPickerOpen(false);
-                    }}
-                    className={cn(
-                      "relative aspect-[16/10] overflow-hidden rounded-[4px] ring-offset-2 transition-transform hover:scale-[1.02]",
-                      cover.kind === "image" &&
-                        cover.value === image.id &&
-                        "ring-2 ring-hub-primary",
-                    )}
-                  >
-                    <img
-                      src={resolveCoverImageSrc(image.id)}
-                      alt=""
-                      className="size-full object-cover"
-                    />
-                  </button>
-                ))}
-              </div>
-
-              <p className="mb-2 mt-4 text-[0.6875rem] font-medium uppercase tracking-wider text-hub-foreground/45">
-                Gradient covers
-              </p>
-              <div className="grid grid-cols-4 gap-2">
-                {COVER_GRADIENTS.map((g) => (
-                  <button
-                    key={g.id}
-                    type="button"
-                    title={g.label}
-                    onClick={() => {
-                      onChange({ kind: "gradient", value: g.id, position: 50 });
-                      setPickerOpen(false);
-                    }}
-                    className={cn(
-                      "h-10 rounded-[4px] ring-offset-2 transition-transform hover:scale-105",
-                      cover.kind === "gradient" &&
-                        cover.value === g.id &&
-                        "ring-2 ring-hub-primary",
-                    )}
-                    style={{ background: g.css }}
-                  />
-                ))}
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  const url = window.prompt("Image URL for cover");
-                  if (url) onChange({ kind: "image", value: url, position: 50 });
-                  setPickerOpen(false);
-                }}
-                className="mt-3 w-full rounded-[6px] border border-hub-foreground/12 px-3 py-2 text-[0.8125rem] text-hub-foreground hover:bg-hub-foreground/[0.03]"
-              >
-                Upload image URL…
-              </button>
-            </div>
+            <CoverImagePicker
+              open={pickerOpen}
+              onClose={() => setPickerOpen(false)}
+              cover={cover}
+              onChange={onChange}
+            />
           ) : null}
         </>
       ) : null}

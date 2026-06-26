@@ -456,7 +456,7 @@ export function BlockEditor({
 
   return (
     <div
-      className="relative mx-auto min-h-[50vh] max-w-[42rem] pb-24 pl-24"
+      className="relative mx-auto min-h-[50vh] w-full pb-24 pl-24"
       onDragOver={(e) => {
         if (!canEdit || blocks.length === 0) return;
         const last = blocks[blocks.length - 1];
