@@ -64,7 +64,7 @@ export function CreateTextDocumentDialog({
           docId: result.docId,
           docName: trimmed,
           icon: defaultDocumentIcon(),
-          cover: defaultDocumentCover(),
+          cover: defaultDocumentCover(trimmed),
         });
         router.push(textDocumentPath(projectId, result.docId));
       }

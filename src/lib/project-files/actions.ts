@@ -180,7 +180,7 @@ export async function createTextDocumentAction(
 
     if (!trimmed) return { ok: false, error: "Document name is required." };
 
-    const config = emptyDocumentConfig();
+    const config = emptyDocumentConfig(trimmed);
 
     const { data: doc, error } = await supabase
       .from("hub_project_files")

@@ -47,11 +47,11 @@ export type TextDocumentConfig = {
   plainTextPreview: string;
 };
 
-export function emptyDocumentConfig(): TextDocumentConfig {
+export function emptyDocumentConfig(documentName?: string | null): TextDocumentConfig {
   return {
     version: 1,
     icon: defaultDocumentIcon(),
-    cover: defaultDocumentCover(),
+    cover: defaultDocumentCover(documentName),
     blocks: [createBlock("paragraph")],
     plainTextPreview: "",
   };

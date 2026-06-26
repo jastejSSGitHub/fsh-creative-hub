@@ -62,7 +62,7 @@ export function TextDocumentWorkspace({
 
     return {
       ...parsed,
-      cover: defaultDocumentCover(),
+      cover: defaultDocumentCover(doc.name),
       icon: defaultDocumentIcon(),
     };
   });
@@ -127,7 +127,7 @@ export function TextDocumentWorkspace({
     legacyMigratedRef.current = true;
     persist(doc.name, {
       ...parsed,
-      cover: defaultDocumentCover(),
+      cover: defaultDocumentCover(doc.name),
       icon: defaultDocumentIcon(),
     });
   }, [doc.config, doc.name, editable, persist]);
@@ -246,6 +246,8 @@ export function TextDocumentWorkspace({
       <DocumentCoverBanner
         cover={config.cover}
         canEdit={editable}
+        projectId={project.id}
+        docId={doc.id}
         onChange={(cover) => updateConfig({ ...config, cover })}
       />
 
@@ -254,7 +256,7 @@ export function TextDocumentWorkspace({
           ref={titleAreaRef}
           className={cn(
             "relative",
-            config.cover ? "-mt-10 pt-2" : "pt-6",
+            config.cover ? "-mt-6 pt-4 sm:-mt-7 sm:pt-5" : "pt-6",
           )}
           onMouseEnter={() => setTitleHovered(true)}
           onMouseLeave={() => setTitleHovered(false)}
@@ -279,7 +281,7 @@ export function TextDocumentWorkspace({
                 {!config.cover ? (
                   <button
                     type="button"
-                    onClick={() => updateConfig({ ...config, cover: defaultCover() })}
+                    onClick={() => updateConfig({ ...config, cover: defaultCover(title) })}
                     className="rounded-[6px] px-2 py-1 text-[0.75rem] text-hub-foreground/45 transition-colors hover:bg-hub-foreground/[0.05] hover:text-hub-foreground"
                   >
                     Add cover
@@ -296,7 +298,7 @@ export function TextDocumentWorkspace({
                 onClick={editable ? () => setIconPickerOpen(true) : undefined}
                 className={cn(
                   "absolute left-0 z-10",
-                  config.cover ? "bottom-full translate-y-7" : "bottom-full translate-y-1",
+                  config.cover ? "bottom-full translate-y-5 sm:translate-y-6" : "bottom-full translate-y-1",
                 )}
               />
             ) : null}

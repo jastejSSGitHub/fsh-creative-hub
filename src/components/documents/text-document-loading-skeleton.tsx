@@ -128,7 +128,7 @@ export function TextDocumentLoadingSkeleton() {
     return readTextDocumentNavigationSnapshot(docPath.projectId, docPath.docId);
   }, [docPath]);
 
-  const cover = resolveDocumentCover(snapshot?.cover ?? null);
+  const cover = resolveDocumentCover(snapshot?.cover ?? null, snapshot?.docName);
   const icon = resolveDocumentIcon(snapshot?.icon ?? null);
 
   return (
@@ -142,10 +142,10 @@ export function TextDocumentLoadingSkeleton() {
       <DocumentCoverBannerStatic cover={cover} />
 
       <div className="mx-auto w-[90%] px-4 sm:px-6">
-        <div className="relative -mt-10 pt-2">
+        <div className="relative -mt-6 pt-4 sm:-mt-7 sm:pt-5">
           <div className="relative">
             <span
-              className="pointer-events-none absolute left-0 bottom-full z-10 inline-flex translate-y-7 text-[3.5rem] leading-none"
+              className="pointer-events-none absolute left-0 bottom-full z-10 inline-flex translate-y-5 text-[3.5rem] leading-none sm:translate-y-6"
               aria-hidden
             >
               {icon}

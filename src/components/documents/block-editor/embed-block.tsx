@@ -17,11 +17,12 @@ type EmbedBlockProps = {
   canEdit: boolean;
   onUpdate: (patch: Partial<DocumentBlock>) => void;
   onDelete?: () => void;
+  onInsertBelow?: () => void;
 };
 
 const DEFAULT_EMBED_HEIGHT = 560;
 
-export function WebEmbedBlock({ block, canEdit, onUpdate, onDelete }: EmbedBlockProps) {
+export function WebEmbedBlock({ block, canEdit, onUpdate, onDelete, onInsertBelow }: EmbedBlockProps) {
   const [draftUrl, setDraftUrl] = useState(block.meta?.embedUrl ?? "");
   const [editing, setEditing] = useState(!block.meta?.embedUrl);
   const embedUrl = block.meta?.embedUrl?.trim() ?? "";
@@ -91,11 +92,12 @@ export function WebEmbedBlock({ block, canEdit, onUpdate, onDelete }: EmbedBlock
         setEditing(true);
       }}
       onDelete={onDelete}
+      onInsertBelow={onInsertBelow}
     />
   );
 }
 
-export function HtmlEmbedBlock({ block, canEdit, onUpdate, onDelete }: EmbedBlockProps) {
+export function HtmlEmbedBlock({ block, canEdit, onUpdate, onDelete, onInsertBelow }: EmbedBlockProps) {
   const [draftHtml, setDraftHtml] = useState(block.meta?.embedHtml ?? "");
   const [editing, setEditing] = useState(!block.meta?.embedHtml?.trim());
   const embedHtml = block.meta?.embedHtml?.trim() ?? "";
@@ -197,6 +199,7 @@ export function HtmlEmbedBlock({ block, canEdit, onUpdate, onDelete }: EmbedBloc
           setEditing(true);
         }}
         onDelete={onDelete}
+        onInsertBelow={onInsertBelow}
       />
     );
   }
@@ -211,6 +214,7 @@ export function HtmlEmbedBlock({ block, canEdit, onUpdate, onDelete }: EmbedBloc
         setEditing(true);
       }}
       onDelete={onDelete}
+      onInsertBelow={onInsertBelow}
     >
       <iframe
         srcDoc={wrapHtmlDocument(embedHtml)}
@@ -229,6 +233,7 @@ function UrlEmbedFrame({
   height,
   onEdit,
   onDelete,
+  onInsertBelow,
 }: {
   canEdit: boolean;
   label: string;
@@ -236,6 +241,7 @@ function UrlEmbedFrame({
   height: number;
   onEdit: () => void;
   onDelete?: () => void;
+  onInsertBelow?: () => void;
 }) {
   return (
     <EmbedFrame
@@ -245,6 +251,7 @@ function UrlEmbedFrame({
       height={height}
       onEdit={onEdit}
       onDelete={onDelete}
+      onInsertBelow={onInsertBelow}
       onOpen={() => window.open(url, "_blank", "noopener,noreferrer")}
     >
       <iframe
@@ -324,6 +331,7 @@ function EmbedFrame({
   onEdit,
   onDelete,
   onOpen,
+  onInsertBelow,
   children,
 }: {
   canEdit: boolean;
@@ -333,6 +341,7 @@ function EmbedFrame({
   onEdit: () => void;
   onDelete?: () => void;
   onOpen?: () => void;
+  onInsertBelow?: () => void;
   children: ReactNode;
 }) {
   return (
@@ -382,8 +391,32 @@ function EmbedFrame({
       </div>
       <div className="relative bg-hub-foreground/[0.02]" style={{ height }}>
         {children}
+        {canEdit && onInsertBelow ? (
+          <EmbedInsertCorner onInsertBelow={onInsertBelow} />
+        ) : null}
       </div>
     </div>
+  );
+}
+
+function EmbedInsertCorner({ onInsertBelow }: { onInsertBelow: () => void }) {
+  return (
+    <div
+      role="textbox"
+      tabIndex={0}
+      aria-label="Add a blank line below embed. Press Enter."
+      className="absolute bottom-1 right-1 z-10 size-10 cursor-text rounded-[4px] outline-none focus-visible:bg-hub-primary/10 focus-visible:ring-1 focus-visible:ring-hub-primary/35"
+      onKeyDown={(event) => {
+        if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault();
+          onInsertBelow();
+        }
+      }}
+      onClick={(event) => {
+        event.stopPropagation();
+        event.currentTarget.focus();
+      }}
+    />
   );
 }
 

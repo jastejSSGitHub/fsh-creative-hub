@@ -1,11 +1,15 @@
 "use client";
 
-import { X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Upload, X } from "lucide-react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 
 import { COVER_GRADIENTS } from "@/lib/documents/covers";
 import { DEFAULT_COVER_IMAGES, resolveCoverImageSrc } from "@/lib/documents/cover-images";
+import {
+  normalizeCoverImageUrl,
+  uploadDocumentCoverImage,
+} from "@/lib/documents/cover-upload";
 import {
   coverBackgroundStyle,
   defaultDocumentCover,
@@ -16,29 +20,45 @@ import { cn } from "@/lib/utils";
 type DocumentCoverBannerProps = {
   cover: DocumentCover | null;
   canEdit: boolean;
+  projectId: string;
+  docId: string;
   onChange: (cover: DocumentCover | null) => void;
 };
 
 const coverBannerClassName =
-  "relative -mx-[calc((100vw-100%)/2)] mb-2 h-[12rem] w-screen max-w-none overflow-hidden sm:h-[14rem]";
+  "relative -mx-[calc((100vw-100%)/2)] mb-4 h-[12rem] w-screen max-w-none overflow-hidden sm:mb-5 sm:h-[14rem]";
 
 function CoverImagePicker({
   open,
   onClose,
   cover,
   onChange,
+  projectId,
+  docId,
 }: {
   open: boolean;
   onClose: () => void;
   cover: DocumentCover;
   onChange: (cover: DocumentCover) => void;
+  projectId: string;
+  docId: string;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [mounted, setMounted] = useState(false);
+  const [urlDraft, setUrlDraft] = useState("");
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isUploading, startUploadTransition] = useTransition();
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    setUploadError(null);
+    setUrlDraft("");
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -59,6 +79,32 @@ function CoverImagePicker({
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [open, onClose]);
+
+  function applyCustomImage(value: string) {
+    onChange({ kind: "image", value, position: 50 });
+    onClose();
+  }
+
+  function handleUrlApply() {
+    const normalized = normalizeCoverImageUrl(urlDraft);
+    if (!normalized) {
+      setUploadError("Enter a valid http or https image URL.");
+      return;
+    }
+    applyCustomImage(normalized);
+  }
+
+  function handleFileSelect(file: File) {
+    setUploadError(null);
+    startUploadTransition(async () => {
+      const result = await uploadDocumentCoverImage(projectId, docId, file);
+      if (!result.ok) {
+        setUploadError(result.error);
+        return;
+      }
+      applyCustomImage(result.publicUrl);
+    });
+  }
 
   if (!open || !mounted) return null;
 
@@ -143,17 +189,63 @@ function CoverImagePicker({
             />
           ))}
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            const url = window.prompt("Image URL for cover");
-            if (url) onChange({ kind: "image", value: url, position: 50 });
-            onClose();
-          }}
-          className="mt-3 w-full rounded-[6px] border border-hub-foreground/12 px-3 py-2 text-[0.8125rem] text-hub-foreground hover:bg-hub-foreground/[0.03]"
-        >
-          Upload image URL…
-        </button>
+        <div className="mt-4 border-t border-hub-foreground/8 pt-3">
+          <p className="mb-2 text-[0.6875rem] font-medium uppercase tracking-wider text-hub-foreground/45">
+            Your image
+          </p>
+          <button
+            type="button"
+            disabled={isUploading}
+            onClick={() => fileInputRef.current?.click()}
+            className="inline-flex min-h-9 w-full items-center justify-center gap-2 rounded-[6px] border border-hub-foreground/12 bg-hub-foreground/[0.02] px-3 py-2 text-[0.8125rem] font-medium text-hub-foreground transition-colors hover:bg-hub-foreground/[0.04] disabled:pointer-events-none disabled:opacity-50"
+          >
+            <Upload className="size-3.5 shrink-0" aria-hidden />
+            {isUploading ? "Uploading…" : "Upload from computer"}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            className="hidden"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = "";
+              if (file) handleFileSelect(file);
+            }}
+          />
+          <div className="mt-2 flex gap-2">
+            <input
+              type="url"
+              value={urlDraft}
+              disabled={isUploading}
+              placeholder="Or paste image URL"
+              className="min-h-9 min-w-0 flex-1 rounded-[6px] border border-hub-foreground/12 bg-hub-surface px-3 text-[0.8125rem] text-hub-foreground outline-none placeholder:text-hub-foreground/35 focus:border-hub-primary/40 focus:ring-1 focus:ring-hub-primary/25"
+              onChange={(event) => {
+                setUrlDraft(event.target.value);
+                if (uploadError) setUploadError(null);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  handleUrlApply();
+                }
+              }}
+            />
+            <button
+              type="button"
+              disabled={isUploading || !urlDraft.trim()}
+              onClick={handleUrlApply}
+              className="shrink-0 rounded-[6px] border border-hub-foreground/12 px-3 text-[0.8125rem] font-medium text-hub-foreground transition-colors hover:bg-hub-foreground/[0.03] disabled:pointer-events-none disabled:opacity-40"
+            >
+              Use URL
+            </button>
+          </div>
+          {uploadError ? (
+            <p className="mt-2 text-[0.75rem] text-hub-rejected" role="alert">
+              {uploadError}
+            </p>
+          ) : null}
+        </div>
       </div>
     </>,
     document.body,
@@ -212,6 +304,8 @@ export function DocumentCoverBannerStatic({ cover }: { cover: DocumentCover }) {
 export function DocumentCoverBanner({
   cover,
   canEdit,
+  projectId,
+  docId,
   onChange,
 }: DocumentCoverBannerProps) {
   const [repositioning, setRepositioning] = useState(false);
@@ -230,6 +324,11 @@ export function DocumentCoverBanner({
     setRepositioning(false);
   }
 
+  function cancelReposition() {
+    setDragY(cover?.position ?? 50);
+    setRepositioning(false);
+  }
+
   return (
     <div className={cn("group", coverBannerClassName)}>
       {cover.kind === "image" ? (
@@ -245,9 +344,39 @@ export function DocumentCoverBanner({
 
       {canEdit ? (
         <>
-          <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
+          {repositioning ? (
+            <div
+              className="absolute inset-0 z-10 cursor-grab touch-none active:cursor-grabbing"
+              onPointerDown={(e) => {
+                e.currentTarget.setPointerCapture(e.pointerId);
+                dragRef.current = { startY: e.clientY, startPos: dragY };
+              }}
+              onPointerMove={(e) => {
+                if (!dragRef.current) return;
+                const delta = (e.clientY - dragRef.current.startY) * 0.15;
+                setDragY(Math.max(0, Math.min(100, dragRef.current.startPos + delta)));
+              }}
+              onPointerUp={(e) => {
+                dragRef.current = null;
+                e.currentTarget.releasePointerCapture(e.pointerId);
+              }}
+              onPointerCancel={(e) => {
+                dragRef.current = null;
+                e.currentTarget.releasePointerCapture(e.pointerId);
+              }}
+            />
+          ) : null}
+
+          <div
+            className={cn(
+              "absolute inset-0 z-20 flex items-center justify-center transition-opacity",
+              repositioning
+                ? "pointer-events-none opacity-100"
+                : "opacity-0 group-hover:opacity-100",
+            )}
+          >
             {!repositioning ? (
-              <div className="flex gap-2">
+              <div className="pointer-events-auto flex gap-2">
                 <button
                   type="button"
                   onClick={() => setPickerOpen((o) => !o)}
@@ -276,7 +405,7 @@ export function DocumentCoverBanner({
                 </button>
               </div>
             ) : (
-              <div className="flex flex-col items-center gap-2">
+              <div className="pointer-events-auto flex flex-col items-center gap-2">
                 <span className="rounded-full bg-black/55 px-3 py-1 text-[0.75rem] text-white backdrop-blur-sm">
                   Drag image to reposition
                 </span>
@@ -284,14 +413,14 @@ export function DocumentCoverBanner({
                   <button
                     type="button"
                     onClick={savePosition}
-                    className="rounded-[6px] bg-hub-primary px-3 py-1.5 text-[0.75rem] font-medium text-white"
+                    className="rounded-[6px] bg-hub-primary px-3 py-1.5 text-[0.75rem] font-medium text-white hover:bg-hub-primary/90"
                   >
                     Save position
                   </button>
                   <button
                     type="button"
-                    onClick={() => setRepositioning(false)}
-                    className="rounded-[6px] bg-black/50 px-3 py-1.5 text-[0.75rem] font-medium text-white"
+                    onClick={cancelReposition}
+                    className="rounded-[6px] bg-black/50 px-3 py-1.5 text-[0.75rem] font-medium text-white backdrop-blur-sm hover:bg-black/65"
                   >
                     Cancel
                   </button>
@@ -300,29 +429,14 @@ export function DocumentCoverBanner({
             )}
           </div>
 
-          {repositioning ? (
-            <div
-              className="absolute inset-0 cursor-grab active:cursor-grabbing"
-              onPointerDown={(e) => {
-                dragRef.current = { startY: e.clientY, startPos: dragY };
-              }}
-              onPointerMove={(e) => {
-                if (!dragRef.current) return;
-                const delta = (e.clientY - dragRef.current.startY) * 0.15;
-                setDragY(Math.max(0, Math.min(100, dragRef.current.startPos + delta)));
-              }}
-              onPointerUp={() => {
-                dragRef.current = null;
-              }}
-            />
-          ) : null}
-
           {pickerOpen ? (
             <CoverImagePicker
               open={pickerOpen}
               onClose={() => setPickerOpen(false)}
               cover={cover}
               onChange={onChange}
+              projectId={projectId}
+              docId={docId}
             />
           ) : null}
         </>
@@ -351,6 +465,6 @@ export function DocumentCoverActions({
   );
 }
 
-export function defaultCover(): DocumentCover {
-  return defaultDocumentCover();
+export function defaultCover(documentName?: string | null): DocumentCover {
+  return defaultDocumentCover(documentName);
 }

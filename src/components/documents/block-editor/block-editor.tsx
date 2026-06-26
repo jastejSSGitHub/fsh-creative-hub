@@ -47,6 +47,34 @@ function isEmptyParagraph(block: DocumentBlock) {
   return block.type === "paragraph" && !block.content.trim();
 }
 
+function EmbedBelowInsertZone({
+  onInsert,
+}: {
+  onInsert: () => void;
+}) {
+  return (
+    <div
+      role="textbox"
+      tabIndex={0}
+      aria-label="Add a blank line below embed. Press Enter."
+      className={cn(
+        "mt-1 min-h-6 w-full cursor-text rounded-[4px] outline-none",
+        "opacity-40 transition-opacity hover:opacity-100 focus:opacity-100",
+        "focus-visible:ring-1 focus-visible:ring-hub-primary/25",
+      )}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault();
+          onInsert();
+        }
+      }}
+      onClick={(event) => {
+        event.currentTarget.focus();
+      }}
+    />
+  );
+}
+
 function needsDedicatedTrailingZone(blocks: DocumentBlock[]) {
   const last = blocks[blocks.length - 1];
   if (!last) return true;
@@ -359,12 +387,21 @@ export function BlockEditor({
       onShellClick?: (event: MouseEvent<HTMLDivElement>) => void;
     },
   ) =>
-    renderBlockShell(block, content, {
-      className: "py-2",
-      dropTarget: options?.dropTarget,
-      extendHoverArea: options?.extendHoverArea,
-      onShellClick: options?.onShellClick,
-    });
+    renderBlockShell(
+      block,
+      <div className="group/embed-insert">
+        {content}
+        {canEdit ? (
+          <EmbedBelowInsertZone onInsert={() => insertBlockAfter(block.id)} />
+        ) : null}
+      </div>,
+      {
+        className: "py-2",
+        dropTarget: options?.dropTarget,
+        extendHoverArea: options?.extendHoverArea,
+        onShellClick: options?.onShellClick,
+      },
+    );
 
   useEffect(() => {
     const headings = blocks
@@ -547,6 +584,7 @@ export function BlockEditor({
               canEdit={canEdit}
               onUpdate={(patch) => updateBlock(block.id, patch)}
               onDelete={canDeleteBlock ? () => deleteBlock(block.id) : undefined}
+              onInsertBelow={() => insertBlockAfter(block.id)}
             />,
             shellOptions,
           );
@@ -560,6 +598,7 @@ export function BlockEditor({
               canEdit={canEdit}
               onUpdate={(patch) => updateBlock(block.id, patch)}
               onDelete={canDeleteBlock ? () => deleteBlock(block.id) : undefined}
+              onInsertBelow={() => insertBlockAfter(block.id)}
             />,
             shellOptions,
           );
