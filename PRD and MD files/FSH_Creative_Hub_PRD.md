@@ -279,7 +279,7 @@ FSH's brand is strict black-and-white, color only from client work. The landing 
 **Sections:**
 1. **Hero** — giant kinetic headline (e.g. "Where FSH creative gets decided."), one-line descriptor, primary CTA ("Enter the Hub"), small "Internal tool · FSH Design" tag. Animated background: grain + slow gradient *or* slowly floating real asset thumbnails.
 2. **Problem strip** — one bold line: "Creative review shouldn't live in 40 Slack messages."
-3. **Feature showcase** — 4–6 scroll-revealed sections, each = punchy phrase + real product visual: project grid, asset lightbox + consensus bar, @mention comments, ideas board, presentation mode.
+3. **Feature showcase** — 4–6 scroll-revealed sections, each = punchy phrase + product visual. **Illustrations and motion mockups are preferred** over live product screenshots (keeps the page evergreen and avoids exposing real client work). Topics: project grid, asset lightbox + consensus bar, @mention comments, ideas board, presentation mode.
 4. **How it works** — 3 steps: Pick a project → Drop the work → Reach consensus.
 5. **Internal proof** — member avatar stack, "Built by the FSH design team," optional live stat ("{n} assets reviewed").
 6. **Closing CTA** — full-bleed, single button.
@@ -335,7 +335,7 @@ Brainstorming, activity, For-You inbox.
 Full-screen review, empty states, mobile QA.
 
 **Phase 8 — Landing page**
-Public `/` route. Built last so it can use real product visuals (project grid, lightbox, etc.). Bold monochrome hero, scroll-reveal feature showcase, CTA → login → hub. Framer Motion with `prefers-reduced-motion` respected. *Checkpoint: a teammate who's never seen the tool understands it in 15 seconds and clicks through.*
+Public `/` route. Built last so feature sections can use polished **illustrations / motion mockups** (not live screenshots — see §6.13). Bold monochrome hero, scroll-reveal feature showcase, CTA → login → hub. Framer Motion with `prefers-reduced-motion` respected. *Checkpoint: a teammate who's never seen the tool understands it in 15 seconds and clicks through.*
 
 ---
 
@@ -412,9 +412,10 @@ PHASE 8: Public landing page at "/" (the ONLY unauthenticated route besides /log
   (FSH brand rule: chrome stays black/white, color from the work). Sections: (1) kinetic
   hero with headline + descriptor + CTA + "Internal tool · FSH Design" tag and an animated
   background (grain + slow gradient or floating real asset thumbnails); (2) bold problem
-  line; (3) 4-6 scroll-revealed feature sections each pairing a punchy phrase with a real
-  product visual (project grid, lightbox + consensus bar, @mention comments, ideas board,
-  presentation mode); (4) 3-step "how it works"; (5) internal proof (member avatars,
+  line;   (3) 4-6 scroll-revealed feature sections each pairing a punchy phrase with an
+  illustration or motion mockup (project grid, lightbox + consensus bar, @mention comments,
+  ideas board, presentation mode) — not live product screenshots; (4) 3-step "how it works";
+  (5) internal proof (member avatars,
   "Built by the FSH design team"); (6) full-bleed closing CTA. Use Framer Motion for
   scroll reveals, a marquee, and hover micro-interactions — restrained, not gimmicky.
   MUST respect prefers-reduced-motion. Fully mobile responsive (hero scales, sections

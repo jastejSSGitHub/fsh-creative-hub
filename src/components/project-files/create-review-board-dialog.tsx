@@ -152,7 +152,7 @@ export function CreateReviewBoardDialog({
           <div className="space-y-1.5">
             <label
               htmlFor="board-name"
-              className="font-mono text-[0.65rem] uppercase tracking-[0.12em] text-hub-espresso/50"
+              className="font-mono text-[0.65rem] uppercase tracking-[0.12em] text-hub-foreground/50"
             >
               Board name
             </label>
@@ -162,12 +162,12 @@ export function CreateReviewBoardDialog({
               onChange={(e) => setName(e.target.value)}
               disabled={isPending}
               placeholder="Summer Menu Review"
-              className="min-h-9 w-full rounded-md border border-hub-espresso/15 bg-white px-3 py-2 text-sm text-hub-espresso outline-none ring-hub-accent/40 placeholder:text-hub-espresso/35 focus:ring-2 disabled:opacity-60"
+              className="min-h-9 w-full rounded-md border border-hub-foreground/15 bg-hub-surface px-3 py-2 text-sm text-hub-foreground outline-none ring-hub-accent/40 placeholder:text-hub-foreground/35 focus:ring-2 disabled:opacity-60"
             />
           </div>
 
           <div className="space-y-2">
-            <p className="font-mono text-[0.65rem] uppercase tracking-[0.12em] text-hub-espresso/50">
+            <p className="font-mono text-[0.65rem] uppercase tracking-[0.12em] text-hub-foreground/50">
               Sections
             </p>
             <div className="flex flex-wrap gap-2">
@@ -182,8 +182,8 @@ export function CreateReviewBoardDialog({
                     className={cn(
                       "min-h-9 rounded-md border px-3 text-sm font-medium transition-colors",
                       selected
-                        ? "border-hub-espresso bg-hub-espresso text-hub-paper"
-                        : "border-hub-espresso/15 bg-white text-hub-espresso/70 hover:bg-hub-espresso/5",
+                        ? "border-hub-foreground bg-hub-espresso text-hub-paper"
+                        : "border-hub-foreground/15 bg-hub-surface text-hub-foreground/70 hover:bg-hub-foreground/5",
                     )}
                   >
                     {preset.label}
@@ -193,12 +193,12 @@ export function CreateReviewBoardDialog({
             </div>
           </div>
 
-          <label className="flex items-center gap-2 text-sm text-hub-espresso/70">
+          <label className="flex items-center gap-2 text-sm text-hub-foreground/70">
             <input
               type="checkbox"
               checked={includeCustom}
               onChange={(e) => setIncludeCustom(e.target.checked)}
-              className="size-4 rounded border-hub-espresso/20"
+              className="size-4 rounded border-hub-foreground/20"
             />
             Add custom section
           </label>
@@ -207,7 +207,7 @@ export function CreateReviewBoardDialog({
               value={customSectionName}
               onChange={(e) => setCustomSectionName(e.target.value)}
               placeholder="Custom section name"
-              className="min-h-9 w-full rounded-md border border-hub-espresso/15 bg-white px-3 py-2 text-sm"
+              className="min-h-9 w-full rounded-md border border-hub-foreground/15 bg-hub-surface px-3 py-2 text-sm"
             />
           )}
 
@@ -218,7 +218,7 @@ export function CreateReviewBoardDialog({
               disabled={isPending}
               className={cn(
                 buttonVariants({ variant: "outline" }),
-                "min-h-10 flex-1 rounded-md border-hub-espresso/15",
+                "min-h-10 flex-1 rounded-md border-hub-foreground/15",
               )}
             >
               Cancel
@@ -240,7 +240,7 @@ export function CreateReviewBoardDialog({
         <div className="max-h-[60vh] space-y-5 overflow-y-auto pr-1">
           {sectionMap.map((section) => (
             <div key={section.id} className="space-y-2">
-              <p className="font-display text-sm font-bold text-hub-espresso">
+              <p className="font-display text-sm font-bold text-hub-foreground">
                 {section.name}
               </p>
               {boardId && (
@@ -248,7 +248,7 @@ export function CreateReviewBoardDialog({
                   projectId={projectId}
                   boardId={boardId}
                   initiativeId={section.id}
-                  onUploaded={() => router.refresh()}
+                  onUploaded={() => undefined}
                 />
               )}
             </div>
@@ -260,7 +260,7 @@ export function CreateReviewBoardDialog({
               onClick={() => finish(true)}
               className={cn(
                 buttonVariants({ variant: "outline" }),
-                "min-h-10 flex-1 rounded-md border-hub-espresso/15",
+                "min-h-10 flex-1 rounded-md border-hub-foreground/15",
               )}
             >
               Skip for now

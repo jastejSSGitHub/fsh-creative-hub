@@ -15,9 +15,9 @@ type ProjectInlineTitleProps = {
 };
 
 const titleVariants = {
-  page: "font-display text-2xl font-extrabold tracking-tight break-words text-hub-espresso sm:text-3xl lg:text-4xl",
+  page: "font-display text-2xl font-extrabold tracking-tight break-words text-hub-foreground sm:text-3xl lg:text-4xl",
   header:
-    "font-display text-lg font-extrabold tracking-tight break-words text-hub-espresso sm:text-xl",
+    "font-display text-lg font-extrabold tracking-tight break-words text-hub-foreground sm:text-xl",
 } as const;
 
 const TOAST_DURATION_MS = 3000;
@@ -143,7 +143,7 @@ export function ProjectInlineTitle({
               }}
               className={cn(
                 titleClassName,
-                "col-start-1 row-start-1 min-w-0 rounded-md border border-hub-espresso/15 bg-white px-2.5 py-1 shadow-[0_0_0_3px_rgba(24,160,251,0.12)] outline-none ring-2 ring-[#18a0fb]/35 transition-shadow focus:border-[#18a0fb]/40 focus:ring-[#18a0fb]/45",
+                "col-start-1 row-start-1 min-w-0 rounded-md border border-hub-foreground/15 bg-hub-surface px-2.5 py-1 shadow-[0_0_0_3px_rgba(24,160,251,0.12)] outline-none ring-2 ring-[#18a0fb]/35 transition-shadow focus:border-[#18a0fb]/40 focus:ring-[#18a0fb]/45",
                 isHeaderVariant && "text-center",
               )}
               aria-label="Project name"
@@ -181,7 +181,7 @@ export function ProjectInlineTitle({
               "inline-block w-fit cursor-text rounded-md px-3 py-1 transition-colors hover:bg-[#18a0fb]/8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#18a0fb]/35",
               variant === "header" && "-mx-1 text-center",
               variant === "page" &&
-                "max-w-full -mx-3 hover:bg-hub-espresso/[0.04]",
+                "max-w-full -mx-3 hover:bg-hub-foreground/[0.04]",
             )}
           >
             {displayName}
@@ -202,7 +202,7 @@ export function ProjectInlineTitle({
         <div
           role="status"
           aria-live="polite"
-          className="pointer-events-none fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full border border-hub-approved/30 bg-hub-approved/15 px-4 py-2 text-sm font-medium text-hub-espresso shadow-lg backdrop-blur-sm"
+          className="pointer-events-none fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full border border-hub-approved/30 bg-hub-approved/15 px-4 py-2 text-sm font-medium text-hub-foreground shadow-lg backdrop-blur-sm"
         >
           Changed name
         </div>

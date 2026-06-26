@@ -195,13 +195,13 @@ export function FeatureShowcase() {
                 )}
               >
                 <div className="space-y-4 lg:space-y-5">
-                  <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-hub-espresso/45">
+                  <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-hub-foreground/45">
                     {feature.kicker}
                   </p>
-                  <h2 className="font-display text-[clamp(1.75rem,4vw,2.75rem)] font-extrabold leading-tight tracking-[-0.02em] text-hub-espresso">
+                  <h2 className="font-display text-[clamp(1.75rem,4vw,2.75rem)] font-extrabold leading-tight tracking-[-0.02em] text-hub-foreground">
                     {feature.headline}
                   </h2>
-                  <p className="max-w-md text-base leading-relaxed text-hub-espresso/60 sm:text-lg">
+                  <p className="max-w-md text-base leading-relaxed text-hub-foreground/60 sm:text-lg">
                     {feature.body}
                   </p>
                 </div>

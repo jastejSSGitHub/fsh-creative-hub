@@ -14,10 +14,37 @@ export function reviewBoardPath(
   return `/projects/${projectId}/boards/${boardId}`;
 }
 
+export function canvasPath(
+  projectId: string,
+  canvasId: string,
+): `/projects/${string}/canvas/${string}` {
+  return `/projects/${projectId}/canvas/${canvasId}`;
+}
+
+export function textDocumentPath(
+  projectId: string,
+  docId: string,
+): `/projects/${string}/docs/${string}` {
+  return `/projects/${projectId}/docs/${docId}`;
+}
+
 export function assetPath(
   projectId: string,
   initiativeId: string,
   assetId: string,
 ): `/projects/${string}/i/${string}/a/${string}` {
   return `/projects/${projectId}/i/${initiativeId}/a/${assetId}`;
+}
+
+const HUB_DETAIL_PATH_RE = /^\/projects\/[^/]+\/(boards|canvas|docs)\/[^/]+/;
+const CANVAS_PATH_RE = /^\/projects\/[^/]+\/canvas\/[^/]+/;
+
+/** Review boards, canvases, and other project file detail views. */
+export function isHubDetailPath(pathname: string): boolean {
+  return HUB_DETAIL_PATH_RE.test(pathname);
+}
+
+/** Open canvas editor — full-bleed, no hub chrome. */
+export function isCanvasPath(pathname: string): boolean {
+  return CANVAS_PATH_RE.test(pathname);
 }

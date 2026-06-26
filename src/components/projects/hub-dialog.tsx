@@ -79,7 +79,7 @@ export function HubDialog({
         onClose();
       }}
       className={cn(
-        "fixed inset-0 m-auto h-fit max-h-[calc(100dvh-2rem)] w-[min(100vw-2rem,30rem)] overflow-visible rounded-[12px] border border-hub-espresso/10 bg-hub-paper p-0 text-hub-espresso shadow-2xl backdrop:bg-hub-espresso/50 open:flex open:flex-col",
+        "fixed inset-0 m-auto h-fit max-h-[calc(100dvh-2rem)] w-[min(100vw-2rem,30rem)] overflow-visible rounded-[8px] border border-hub-foreground/10 bg-hub-paper p-0 text-hub-foreground shadow-2xl backdrop:bg-hub-foreground/50 open:flex open:flex-col",
         className,
       )}
     >
@@ -89,7 +89,7 @@ export function HubDialog({
             {title}
           </h2>
           {description && (
-            <p className="mt-0.5 text-xs leading-relaxed text-hub-espresso/55">
+            <p className="mt-0.5 text-xs leading-relaxed text-hub-foreground/55">
               {description}
             </p>
           )}
@@ -99,7 +99,7 @@ export function HubDialog({
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="flex size-6 shrink-0 items-center justify-center rounded-[6px] text-hub-espresso/40 transition-colors hover:bg-hub-espresso/5 hover:text-hub-espresso/70"
+          className="flex size-6 shrink-0 items-center justify-center rounded-[6px] text-hub-foreground/40 transition-colors hover:bg-hub-foreground/5 hover:text-hub-foreground/70"
         >
           <X className="size-3.5" strokeWidth={2} />
         </button>

@@ -23,7 +23,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
   const [detail, { data: project }, files] = await Promise.all([
     getProjectDetailContext(supabase, projectId, user.id),
     supabase.from("hub_projects").select("*").eq("id", projectId).maybeSingle(),
-    getProjectFiles(supabase, projectId),
+    getProjectFiles(supabase, projectId, user.id),
   ]);
 
   if (!detail || !project) notFound();

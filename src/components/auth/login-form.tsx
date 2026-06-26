@@ -15,7 +15,7 @@ const DEV_BYPASS_PATH = "/auth/dev-bypass";
 const showDevBypass = process.env.NODE_ENV === "development";
 
 const inputClassName =
-  "min-h-11 w-full rounded-sm border border-hub-espresso/15 bg-white px-4 text-hub-espresso outline-none ring-hub-accent/40 placeholder:text-hub-espresso/35 focus:ring-2 disabled:opacity-60";
+  "min-h-11 w-full rounded-sm border border-hub-foreground/15 bg-hub-surface px-4 text-hub-foreground outline-none ring-hub-accent/40 placeholder:text-hub-foreground/35 focus:ring-2 disabled:opacity-60";
 
 function getAuthCallbackUrl() {
   return `${window.location.origin}/auth/callback`;
@@ -255,11 +255,11 @@ export function LoginForm() {
   return (
     <div className="w-full max-w-md space-y-8">
         <div className="space-y-2 text-center">
-          <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-hub-espresso/45">
+          <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-hub-foreground/45">
             Sign in
           </p>
           <Link href={LANDING_PATH}>
-            <h1 className="font-display text-3xl font-extrabold tracking-tight text-hub-espresso transition-opacity hover:opacity-80 sm:text-4xl">
+            <h1 className="font-display text-3xl font-extrabold tracking-tight text-hub-foreground transition-opacity hover:opacity-80 sm:text-4xl">
               FSH Creative Hub
             </h1>
           </Link>
@@ -272,7 +272,7 @@ export function LoginForm() {
         )}
 
         {isSuccess && message && (
-          <p className="rounded-sm border border-hub-approved/30 bg-hub-approved/10 px-4 py-3 text-sm text-hub-espresso">
+          <p className="rounded-sm border border-hub-approved/30 bg-hub-approved/10 px-4 py-3 text-sm text-hub-foreground">
             {message}
           </p>
         )}
@@ -283,12 +283,12 @@ export function LoginForm() {
             onClick={handleGoogle}
             disabled={isPending}
             className={cn(
-              "group relative w-full overflow-hidden rounded-xl border border-hub-espresso/12 bg-white text-left shadow-sm transition-shadow hover:shadow-md disabled:opacity-60",
+              "group relative w-full overflow-hidden rounded-xl border border-hub-foreground/12 bg-hub-surface text-left shadow-sm transition-shadow hover:shadow-md disabled:opacity-60",
             )}
           >
             <div className="flex min-h-11 items-center justify-center gap-3 px-4 py-3">
               <GoogleIcon className="h-5 w-5 shrink-0" />
-              <span className="text-sm font-medium text-hub-espresso">
+              <span className="text-sm font-medium text-hub-foreground">
                 Continue with Google
               </span>
             </div>
@@ -298,10 +298,10 @@ export function LoginForm() {
 
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t border-hub-espresso/10" />
+            <span className="w-full border-t border-hub-foreground/10" />
           </div>
           <div className="relative flex justify-center">
-            <span className="bg-hub-paper px-3 font-mono text-[0.6rem] uppercase tracking-wider text-hub-espresso/40">
+            <span className="bg-hub-paper px-3 font-mono text-[0.6rem] uppercase tracking-wider text-hub-foreground/40">
               or email
             </span>
           </div>
@@ -311,7 +311,7 @@ export function LoginForm() {
           <div className="space-y-2">
             <label
               htmlFor="email"
-              className="font-mono text-[0.65rem] uppercase tracking-[0.14em] text-hub-espresso/50"
+              className="font-mono text-[0.65rem] uppercase tracking-[0.14em] text-hub-foreground/50"
             >
               Work email
             </label>
@@ -335,7 +335,7 @@ export function LoginForm() {
                 disabled={isPending || !email.trim()}
                 className={cn(
                   buttonVariants({ variant: "outline", size: "lg" }),
-                  "min-h-11 w-full rounded-xl border-hub-espresso/15 bg-white disabled:opacity-60",
+                  "min-h-11 w-full rounded-xl border-hub-foreground/15 bg-hub-surface disabled:opacity-60",
                 )}
               >
                 {isPending && signInMode === "magic"
@@ -350,14 +350,14 @@ export function LoginForm() {
                   setMessage(null);
                   setIsSuccess(false);
                 }}
-                className="w-full text-center text-sm text-hub-espresso/55 underline-offset-4 transition-colors hover:text-hub-espresso/75 hover:underline"
+                className="w-full text-center text-sm text-hub-foreground/55 underline-offset-4 transition-colors hover:text-hub-foreground/75 hover:underline"
               >
                 Prefer email and password instead?
               </button>
             </form>
           ) : (
             <div className="space-y-4">
-              <div className="flex rounded-sm border border-hub-espresso/12 bg-hub-espresso/[0.03] p-0.5">
+              <div className="flex rounded-sm border border-hub-foreground/12 bg-hub-foreground/[0.03] p-0.5">
                 <button
                   type="button"
                   onClick={() => {
@@ -368,8 +368,8 @@ export function LoginForm() {
                   className={cn(
                     "flex-1 rounded-sm py-2 font-mono text-[0.65rem] uppercase tracking-[0.12em] transition-colors",
                     emailAuthTab === "signin"
-                      ? "bg-white text-hub-espresso shadow-sm"
-                      : "text-hub-espresso/45 hover:text-hub-espresso/65",
+                      ? "bg-hub-surface text-hub-foreground shadow-sm"
+                      : "text-hub-foreground/45 hover:text-hub-foreground/65",
                   )}
                 >
                   Sign in
@@ -384,8 +384,8 @@ export function LoginForm() {
                   className={cn(
                     "flex-1 rounded-sm py-2 font-mono text-[0.65rem] uppercase tracking-[0.12em] transition-colors",
                     emailAuthTab === "register"
-                      ? "bg-white text-hub-espresso shadow-sm"
-                      : "text-hub-espresso/45 hover:text-hub-espresso/65",
+                      ? "bg-hub-surface text-hub-foreground shadow-sm"
+                      : "text-hub-foreground/45 hover:text-hub-foreground/65",
                   )}
                 >
                   Create account
@@ -403,7 +403,7 @@ export function LoginForm() {
                 <div className="space-y-2">
                   <label
                     htmlFor="password"
-                    className="font-mono text-[0.65rem] uppercase tracking-[0.14em] text-hub-espresso/50"
+                    className="font-mono text-[0.65rem] uppercase tracking-[0.14em] text-hub-foreground/50"
                   >
                     Password
                   </label>
@@ -434,7 +434,7 @@ export function LoginForm() {
                   disabled={isPending}
                   className={cn(
                     buttonVariants({ variant: "outline", size: "lg" }),
-                    "min-h-11 w-full rounded-xl border-hub-espresso/15 bg-white disabled:opacity-60",
+                    "min-h-11 w-full rounded-xl border-hub-foreground/15 bg-hub-surface disabled:opacity-60",
                   )}
                 >
                   {isPending
@@ -455,7 +455,7 @@ export function LoginForm() {
                   setMessage(null);
                   setIsSuccess(false);
                 }}
-                className="w-full text-center text-sm text-hub-espresso/55 underline-offset-4 transition-colors hover:text-hub-espresso/75 hover:underline"
+                className="w-full text-center text-sm text-hub-foreground/55 underline-offset-4 transition-colors hover:text-hub-foreground/75 hover:underline"
               >
                 Use a magic link instead
               </button>
@@ -465,7 +465,7 @@ export function LoginForm() {
 
         {showDevBypass && (
           <div className="space-y-2 rounded-sm border border-dashed border-hub-final/40 bg-hub-final/5 px-4 py-4">
-            <p className="text-center font-mono text-[0.6rem] uppercase tracking-[0.14em] text-hub-espresso/50">
+            <p className="text-center font-mono text-[0.6rem] uppercase tracking-[0.14em] text-hub-foreground/50">
               Local development
             </p>
             <button
@@ -474,7 +474,7 @@ export function LoginForm() {
               disabled={isPending}
               className={cn(
                 buttonVariants({ variant: "outline", size: "lg" }),
-                "min-h-11 w-full rounded-xl border-hub-final/50 bg-white text-hub-espresso hover:bg-hub-final/10 disabled:opacity-60",
+                "min-h-11 w-full rounded-xl border-hub-final/50 bg-hub-surface text-hub-foreground hover:bg-hub-final/10 disabled:opacity-60",
               )}
             >
               Skip login (dev)

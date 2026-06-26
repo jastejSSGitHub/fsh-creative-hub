@@ -86,14 +86,14 @@ export function HubTooltip({
               left: coords.left,
             }}
             className={cn(
-              "pointer-events-none fixed z-[200] max-w-[16rem] -translate-x-1/2 whitespace-normal rounded-[6px] border border-hub-espresso/12 bg-hub-espresso px-2.5 py-1.5 text-center text-[0.6875rem] font-medium tracking-tight text-hub-paper shadow-[0_8px_24px_rgba(11,11,11,0.22)]",
+              "pointer-events-none fixed z-[200] max-w-[16rem] -translate-x-1/2 whitespace-normal rounded-[6px] border border-hub-foreground/12 bg-hub-espresso px-2.5 py-1.5 text-center text-[0.6875rem] font-medium tracking-tight text-hub-paper shadow-[0_8px_24px_rgba(11,11,11,0.22)]",
               side === "top" ? "-translate-y-full" : "translate-y-0",
             )}
           >
             <span
               aria-hidden
               className={cn(
-                "absolute left-1/2 size-2 -translate-x-1/2 rotate-45 border border-hub-espresso/12 bg-hub-espresso",
+                "absolute left-1/2 size-2 -translate-x-1/2 rotate-45 border border-hub-foreground/12 bg-hub-espresso",
                 side === "top"
                   ? "-bottom-1 border-t-0 border-l-0"
                   : "-top-1 border-b-0 border-r-0",

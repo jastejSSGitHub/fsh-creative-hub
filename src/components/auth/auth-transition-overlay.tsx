@@ -68,7 +68,7 @@ function StageIndicators({
       {[0, 1, 2].map((index) => (
         <motion.span
           key={index}
-          className="h-1 rounded-full bg-hub-espresso/12"
+          className="h-1 rounded-full bg-hub-foreground/12"
           animate={{
             width: activeIndex === index ? 20 : 6,
             backgroundColor:
@@ -127,7 +127,7 @@ export function AuthTransitionOverlay({
     <AnimatePresence>
       {visible && kind && (
         <motion.div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-hub-espresso/45 px-6 backdrop-blur-[6px]"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-hub-foreground/45 px-6 backdrop-blur-[6px]"
           role="status"
           aria-live="polite"
           aria-busy="true"
@@ -138,7 +138,7 @@ export function AuthTransitionOverlay({
           transition={{ duration: reduced ? 0.01 : 0.22, ease: "easeOut" }}
         >
           <motion.div
-            className="w-full max-w-xs overflow-hidden rounded-2xl border border-hub-espresso/10 bg-hub-paper shadow-[0_24px_64px_rgba(26,15,8,0.22)]"
+            className="w-full max-w-xs overflow-hidden rounded-2xl border border-hub-foreground/10 bg-hub-paper shadow-[0_24px_64px_rgba(26,15,8,0.22)]"
             initial={reduced ? false : { opacity: 0, y: 14, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={reduced ? undefined : { opacity: 0, y: 8, scale: 0.98 }}
@@ -165,7 +165,7 @@ export function AuthTransitionOverlay({
                 <AnimatePresence mode="wait">
                   <motion.p
                     key={`${kind}-${stageIndex}`}
-                    className="font-display text-lg font-semibold tracking-tight text-hub-espresso"
+                    className="font-display text-lg font-semibold tracking-tight text-hub-foreground"
                     initial={reduced ? false : { opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={reduced ? undefined : { opacity: 0, y: -8 }}
@@ -178,7 +178,7 @@ export function AuthTransitionOverlay({
 
               <StageIndicators activeIndex={stageIndex} reduced={reduced} />
 
-              <div className="relative mx-auto mt-5 h-1 w-28 overflow-hidden rounded-full bg-hub-espresso/10">
+              <div className="relative mx-auto mt-5 h-1 w-28 overflow-hidden rounded-full bg-hub-foreground/10">
                 <ProgressShimmer reduced={reduced} progress={progress} />
               </div>
             </div>

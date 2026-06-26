@@ -1,10 +1,13 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { STATUS_STYLES } from "@/components/workspace/asset-status";
+import { PresentationImageViewer } from "@/components/workspace/presentation-image-viewer";
 import type { AssetWithVotes } from "@/lib/workspace/queries";
+import type { AssetStatus } from "@/types/database";
 import { cn } from "@/lib/utils";
 
 type PresentationModeProps = {
@@ -17,6 +20,16 @@ type PresentationModeProps = {
 
 const SWIPE_THRESHOLD_PX = 48;
 const CHROME_HIDE_MS = 3200;
+
+const PRESENTATION_STATUS_BADGE: Record<AssetStatus, string> = {
+  pending: "border-white/25 bg-white/10 text-white/80",
+  approved: "border-hub-approved/45 bg-hub-approved/35 text-white",
+  rejected: "border-hub-rejected/45 bg-hub-rejected/35 text-white",
+  final: "border-hub-final/50 bg-hub-final/40 text-white",
+};
+
+const SIDE_NAV_BUTTON_CLASS =
+  "pointer-events-auto absolute top-1/2 z-30 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/35 text-white shadow-[0_4px_24px_rgba(0,0,0,0.35)] backdrop-blur-md transition-[opacity,background-color,transform] duration-300 hover:scale-[1.03] hover:bg-white/15 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-25 sm:size-12";
 
 export function PresentationMode({
   assets,
@@ -97,12 +110,12 @@ export function PresentationMode({
 
   if (!asset) return null;
 
-  function handleTouchStart(event: React.TouchEvent) {
+  function handleVideoTouchStart(event: React.TouchEvent) {
     touchStartX.current = event.touches[0]?.clientX ?? null;
     revealChrome();
   }
 
-  function handleTouchEnd(event: React.TouchEvent) {
+  function handleVideoTouchEnd(event: React.TouchEvent) {
     if (touchStartX.current === null) return;
 
     const endX = event.changedTouches[0]?.clientX ?? touchStartX.current;
@@ -120,8 +133,6 @@ export function PresentationMode({
       aria-modal="true"
       aria-label="Presentation mode"
       onMouseMove={revealChrome}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
     >
       <div
         className={cn(
@@ -145,7 +156,7 @@ export function PresentationMode({
                 <span
                   className={cn(
                     "rounded-sm border px-1.5 py-0.5 font-mono text-[0.55rem] uppercase tracking-[0.1em]",
-                    status.badge,
+                    PRESENTATION_STATUS_BADGE[asset.status],
                   )}
                 >
                   {status.label}
@@ -161,9 +172,10 @@ export function PresentationMode({
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex min-h-10 items-center rounded-md border border-white/20 bg-white/10 px-3 font-mono text-[0.62rem] uppercase tracking-[0.1em] text-white backdrop-blur-md transition-colors hover:bg-white/20"
+              aria-label="Close presentation"
+              className="inline-flex size-10 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur-md transition-colors hover:bg-white/20 active:scale-95"
             >
-              Exit
+              <X className="size-[1.125rem]" strokeWidth={2.25} aria-hidden />
             </button>
           </div>
         </div>
@@ -177,8 +189,14 @@ export function PresentationMode({
           goPrev();
           revealChrome();
         }}
-        className="absolute inset-y-0 left-0 z-10 hidden w-[min(18%,7rem)] cursor-w-resize disabled:cursor-default sm:block"
-      />
+        className={cn(
+          SIDE_NAV_BUTTON_CLASS,
+          "left-[max(0.75rem,env(safe-area-inset-left))]",
+          chromeVisible ? "opacity-100" : "opacity-0",
+        )}
+      >
+        <ChevronLeft className="size-6 sm:size-7" strokeWidth={2.25} aria-hidden />
+      </button>
       <button
         type="button"
         aria-label="Next slide"
@@ -187,7 +205,36 @@ export function PresentationMode({
           goNext();
           revealChrome();
         }}
-        className="absolute inset-y-0 right-0 z-10 hidden w-[min(18%,7rem)] cursor-e-resize disabled:cursor-default sm:block"
+        className={cn(
+          SIDE_NAV_BUTTON_CLASS,
+          "right-[max(0.75rem,env(safe-area-inset-right))]",
+          chromeVisible ? "opacity-100" : "opacity-0",
+        )}
+      >
+        <ChevronRight className="size-6 sm:size-7" strokeWidth={2.25} aria-hidden />
+      </button>
+
+      <button
+        type="button"
+        aria-hidden
+        tabIndex={-1}
+        disabled={index === 0}
+        onClick={() => {
+          goPrev();
+          revealChrome();
+        }}
+        className="absolute inset-y-0 left-0 z-10 hidden w-[min(22%,8rem)] cursor-w-resize disabled:cursor-default sm:block"
+      />
+      <button
+        type="button"
+        aria-hidden
+        tabIndex={-1}
+        disabled={index >= assets.length - 1}
+        onClick={() => {
+          goNext();
+          revealChrome();
+        }}
+        className="absolute inset-y-0 right-0 z-10 hidden w-[min(22%,8rem)] cursor-e-resize disabled:cursor-default sm:block"
       />
 
       <div className="flex h-full items-center justify-center px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-14 sm:px-8 sm:pt-16">
@@ -201,22 +248,36 @@ export function PresentationMode({
             className="flex max-h-full max-w-full items-center justify-center"
           >
             {asset.type === "video" ? (
-              <video
-                key={asset.public_url}
-                src={asset.public_url}
-                autoPlay
-                muted
-                loop
-                playsInline
-                className="max-h-[calc(100vh-5rem)] max-w-full object-contain"
-              />
+              <div
+                className="flex max-h-full max-w-full items-center justify-center"
+                onTouchStart={handleVideoTouchStart}
+                onTouchEnd={handleVideoTouchEnd}
+              >
+                <video
+                  key={asset.public_url}
+                  src={asset.public_url}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  className="max-h-[calc(100dvh-5rem)] max-w-full object-contain"
+                />
+              </div>
             ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <PresentationImageViewer
                 src={asset.public_url}
                 alt={asset.name}
-                className="max-h-[calc(100vh-5rem)] max-w-full object-contain"
-                draggable={false}
+                className="h-[calc(100dvh-6.5rem)] w-[min(100%,calc(100vw-1.5rem))] sm:h-[calc(100dvh-7rem)] sm:w-[min(100%,calc(100vw-6rem))]"
+                swipeThresholdPx={SWIPE_THRESHOLD_PX}
+                onSwipePrev={() => {
+                  goPrev();
+                  revealChrome();
+                }}
+                onSwipeNext={() => {
+                  goNext();
+                  revealChrome();
+                }}
+                onInteract={revealChrome}
               />
             )}
           </motion.div>
@@ -229,25 +290,7 @@ export function PresentationMode({
           chromeVisible ? "opacity-100" : "opacity-0",
         )}
       >
-        <div className="pointer-events-auto flex items-center justify-between gap-4">
-          <button
-            type="button"
-            disabled={index === 0}
-            onClick={() => {
-              goPrev();
-              revealChrome();
-            }}
-            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-white/20 bg-white/10 text-white backdrop-blur-md transition-colors hover:bg-white/20 disabled:opacity-35 sm:min-w-[5.5rem] sm:px-4"
-            aria-label="Previous"
-          >
-            <span className="hidden font-mono text-[0.62rem] uppercase tracking-[0.1em] sm:inline">
-              Prev
-            </span>
-            <span className="sm:hidden" aria-hidden>
-              ←
-            </span>
-          </button>
-
+        <div className="pointer-events-auto flex flex-col items-center gap-3">
           <div className="flex items-center gap-1.5">
             {assets.map((slide, slideIndex) => (
               <button
@@ -269,28 +312,10 @@ export function PresentationMode({
             ))}
           </div>
 
-          <button
-            type="button"
-            disabled={index >= assets.length - 1}
-            onClick={() => {
-              goNext();
-              revealChrome();
-            }}
-            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-white/20 bg-white/10 text-white backdrop-blur-md transition-colors hover:bg-white/20 disabled:opacity-35 sm:min-w-[5.5rem] sm:px-4"
-            aria-label="Next"
-          >
-            <span className="hidden font-mono text-[0.62rem] uppercase tracking-[0.1em] sm:inline">
-              Next
-            </span>
-            <span className="sm:hidden" aria-hidden>
-              →
-            </span>
-          </button>
+          <p className="text-center font-mono text-[0.58rem] uppercase tracking-[0.14em] text-white/35 sm:hidden">
+            Pinch or double-tap to zoom · Swipe to navigate · {index + 1} / {assets.length}
+          </p>
         </div>
-
-        <p className="mt-3 text-center font-mono text-[0.58rem] uppercase tracking-[0.14em] text-white/35 sm:hidden">
-          Swipe to navigate · {index + 1} / {assets.length}
-        </p>
       </div>
     </div>
   );

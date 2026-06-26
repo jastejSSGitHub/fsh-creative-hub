@@ -76,7 +76,7 @@ function ThreadPhase({ reduced }: { reduced: boolean }) {
         <AssetThumb />
         <div className="min-w-0 flex-1">
           <p className={workflowTitleClass}>Hero banner v2</p>
-          <p className="font-mono text-[0.5rem] text-hub-espresso/40">
+          <p className="font-mono text-[0.5rem] text-hub-foreground/40">
             Spring Campaign · Asset
           </p>
         </div>
@@ -92,15 +92,15 @@ function ThreadPhase({ reduced }: { reduced: boolean }) {
           <Avatar initials="JS" color="from-[#3A86FF] to-[#8338EC]" />
           <div
             className={cn(
-              "flex-1 bg-hub-espresso/[0.05] px-2.5 py-2",
+              "flex-1 bg-hub-foreground/[0.05] px-2.5 py-2",
               uiInsetClass,
               "rounded-tl-none",
             )}
           >
-            <p className="text-[0.6rem] leading-relaxed text-hub-espresso/75">
+            <p className="text-[0.6rem] leading-relaxed text-hub-foreground/75">
               Can we bump contrast on the CTA? Feels soft on mobile.
             </p>
-            <p className="mt-1 font-mono text-[0.45rem] text-hub-espresso/35">
+            <p className="mt-1 font-mono text-[0.45rem] text-hub-foreground/35">
               Just now
             </p>
           </div>
@@ -112,10 +112,10 @@ function ThreadPhase({ reduced }: { reduced: boolean }) {
           transition={{ delay: 0.9, duration: 0.35 }}
           className="ml-8 flex items-center gap-1.5"
         >
-          <span className="font-mono text-[0.45rem] text-hub-espresso/40">
+          <span className="font-mono text-[0.45rem] text-hub-foreground/40">
             ↳ Reply
           </span>
-          <span className="h-px flex-1 bg-hub-espresso/10" />
+          <span className="h-px flex-1 bg-hub-foreground/10" />
         </motion.div>
       </div>
 
@@ -124,11 +124,11 @@ function ThreadPhase({ reduced }: { reduced: boolean }) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 1.2, duration: 0.35 }}
         className={cn(
-          "flex items-center gap-2 border border-hub-espresso/10 bg-white px-2.5 py-2 shadow-sm",
+          "flex items-center gap-2 border border-hub-foreground/10 bg-hub-surface px-2.5 py-2 shadow-sm",
           uiCardClass,
         )}
       >
-        <span className="text-[0.55rem] text-hub-espresso/35">Add comment…</span>
+        <span className="text-[0.55rem] text-hub-foreground/35">Add comment…</span>
         {!reduced && (
           <motion.span
             animate={{ opacity: [1, 0, 1] }}
@@ -156,8 +156,8 @@ function MentionPhase({ reduced }: { reduced: boolean }) {
       <div className="mt-2 flex-1 space-y-2 overflow-hidden">
         <div className="flex gap-2 opacity-50">
           <Avatar initials="JS" color="from-[#3A86FF] to-[#8338EC]" />
-          <div className={cn("flex-1 bg-hub-espresso/[0.04] px-2.5 py-1.5", uiInsetClass)}>
-            <p className="text-[0.55rem] text-hub-espresso/60">
+          <div className={cn("flex-1 bg-hub-foreground/[0.04] px-2.5 py-1.5", uiInsetClass)}>
+            <p className="text-[0.55rem] text-hub-foreground/60">
               Can we bump contrast on the CTA?
             </p>
           </div>
@@ -172,13 +172,13 @@ function MentionPhase({ reduced }: { reduced: boolean }) {
           <Avatar initials="AK" color="from-[#FF6B6B] to-[#FFE66D]" />
           <div
             className={cn(
-              "flex-1 bg-white px-2.5 py-2 shadow-sm",
+              "flex-1 bg-hub-surface px-2.5 py-2 shadow-sm",
               uiInsetClass,
               "rounded-tl-none",
             )}
           >
-            <p className="text-[0.6rem] leading-relaxed text-hub-espresso/80">
-              <span className="rounded-sm bg-hub-accent/25 px-1 font-semibold text-hub-espresso">
+            <p className="text-[0.6rem] leading-relaxed text-hub-foreground/80">
+              <span className="rounded-sm bg-hub-accent/25 px-1 font-semibold text-hub-foreground">
                 @Preeti
               </span>{" "}
               — needs your sign-off on this copy before we lock.
@@ -191,25 +191,25 @@ function MentionPhase({ reduced }: { reduced: boolean }) {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.85, duration: 0.35 }}
           className={cn(
-            "ml-5 border border-hub-espresso/10 bg-white p-2 shadow-md",
+            "ml-5 border border-hub-foreground/10 bg-hub-surface p-2 shadow-md",
             uiCardClass,
           )}
         >
-          <p className="mb-1.5 font-mono text-[0.45rem] uppercase tracking-wider text-hub-espresso/40">
+          <p className="mb-1.5 font-mono text-[0.45rem] uppercase tracking-wider text-hub-foreground/40">
             Mention
           </p>
           <div
             className={cn(
-              "flex items-center gap-2 bg-hub-espresso/[0.04] px-2 py-1.5",
+              "flex items-center gap-2 bg-hub-foreground/[0.04] px-2 py-1.5",
               uiInsetClass,
             )}
           >
             <Avatar initials="SP" color="from-[#06D6A0] to-[#118AB2]" size="md" />
             <div>
-              <p className="text-[0.6rem] font-semibold text-hub-espresso">
+              <p className="text-[0.6rem] font-semibold text-hub-foreground">
                 Preeti
               </p>
-              <p className="font-mono text-[0.45rem] text-hub-espresso/40">
+              <p className="font-mono text-[0.45rem] text-hub-foreground/40">
                 preeti@fsh.example.email
               </p>
             </div>
@@ -254,7 +254,7 @@ function ResolvePhase({ reduced }: { reduced: boolean }) {
     >
       <div>
         <p className={workflowTitleClass}>Resolve thread</p>
-        <div className={cn("mt-3 border border-hub-espresso/10 bg-white p-3 shadow-sm", uiCardClass)}>
+        <div className={cn("mt-3 border border-hub-foreground/10 bg-hub-surface p-3 shadow-sm", uiCardClass)}>
           <motion.div
             initial={reduced ? false : { opacity: 1, height: "auto" }}
             animate={{ opacity: 0.35, height: 32 }}
@@ -263,7 +263,7 @@ function ResolvePhase({ reduced }: { reduced: boolean }) {
           >
             <div className="flex gap-2">
               <Avatar initials="JS" color="from-[#3A86FF] to-[#8338EC]" />
-              <p className="text-[0.55rem] text-hub-espresso/50 line-clamp-1">
+              <p className="text-[0.55rem] text-hub-foreground/50 line-clamp-1">
                 Can we bump contrast on the CTA?…
               </p>
             </div>
@@ -290,11 +290,11 @@ function ResolvePhase({ reduced }: { reduced: boolean }) {
                 >
                   ✓
                 </motion.span>
-                <p className="text-[0.6rem] font-semibold text-hub-espresso">
+                <p className="text-[0.6rem] font-semibold text-hub-foreground">
                   Resolved
                 </p>
               </div>
-              <p className="font-mono text-[0.45rem] text-hub-espresso/45">
+              <p className="font-mono text-[0.45rem] text-hub-foreground/45">
                 2 replies saved
               </p>
             </div>
@@ -304,7 +304,7 @@ function ResolvePhase({ reduced }: { reduced: boolean }) {
             initial={reduced ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1.3 }}
-            className="mt-2 text-[0.55rem] text-hub-espresso/50"
+            className="mt-2 text-[0.55rem] text-hub-foreground/50"
           >
             Collapsed from view — still in project history.
           </motion.p>

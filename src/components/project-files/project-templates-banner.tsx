@@ -88,9 +88,9 @@ export function ProjectTemplatesBanner({
   const cards = TEMPLATE_CARDS[category];
 
   return (
-    <section className="overflow-hidden rounded-md border border-hub-espresso/10 bg-white/80">
+    <section className="overflow-hidden rounded-md border border-hub-foreground/10 bg-hub-surface/80">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3">
-        <h2 className="font-display text-sm font-bold text-hub-espresso">
+        <h2 className="font-display text-sm font-bold text-hub-foreground">
           Jump in with a template
         </h2>
 
@@ -103,8 +103,8 @@ export function ProjectTemplatesBanner({
               className={cn(
                 "text-[0.8125rem] transition-colors",
                 category === item.id
-                  ? "font-medium text-hub-espresso"
-                  : "text-hub-espresso/45 hover:text-hub-espresso/70",
+                  ? "font-medium text-hub-foreground"
+                  : "text-hub-foreground/45 hover:text-hub-foreground/70",
               )}
             >
               {item.label}
@@ -115,7 +115,7 @@ export function ProjectTemplatesBanner({
             type="button"
             onClick={dismiss}
             aria-label="Dismiss templates"
-            className="flex size-7 items-center justify-center rounded-[4px] text-hub-espresso/40 transition-colors hover:bg-hub-espresso/[0.05] hover:text-hub-espresso/70"
+            className="flex size-7 items-center justify-center rounded-[4px] text-hub-foreground/40 transition-colors hover:bg-hub-foreground/[0.05] hover:text-hub-foreground/70"
           >
             <X className="size-4" aria-hidden />
           </button>
@@ -131,7 +131,7 @@ export function ProjectTemplatesBanner({
               key={card.id}
               type="button"
               onClick={() => onUseTemplate?.(category)}
-              className="group overflow-hidden rounded-md border border-hub-espresso/10 bg-white text-left shadow-sm transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hub-primary/40"
+              className="group overflow-hidden rounded-md border border-hub-foreground/10 bg-hub-surface text-left shadow-sm transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hub-primary/40"
             >
               <div
                 className={cn(
@@ -140,15 +140,15 @@ export function ProjectTemplatesBanner({
                 )}
               >
                 <Icon
-                  className="size-8 text-hub-espresso/25 transition-transform group-hover:scale-105"
+                  className="size-8 text-hub-foreground/25 transition-transform group-hover:scale-105"
                   aria-hidden
                 />
               </div>
-              <div className="flex items-center gap-2 border-t border-hub-espresso/8 px-3 py-2.5">
+              <div className="flex items-center gap-2 border-t border-hub-foreground/8 px-3 py-2.5">
                 <span className="flex size-5 shrink-0 items-center justify-center rounded-[3px] bg-hub-primary/10 text-hub-primary">
                   <Icon className="size-3" aria-hidden />
                 </span>
-                <span className="truncate text-[0.8125rem] font-medium text-hub-espresso">
+                <span className="truncate text-[0.8125rem] font-medium text-hub-foreground">
                   {card.title}
                 </span>
               </div>

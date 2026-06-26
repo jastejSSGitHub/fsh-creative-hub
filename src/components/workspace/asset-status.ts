@@ -5,14 +5,14 @@ export const STATUS_STYLES: Record<
   { stripe: string; label: string; badge: string }
 > = {
   pending: {
-    stripe: "bg-hub-espresso/25",
+    stripe: "bg-hub-foreground/25",
     label: "Pending",
-    badge: "border-hub-espresso/20 bg-hub-espresso/5 text-hub-espresso/70",
+    badge: "border-hub-foreground/20 bg-hub-foreground/5 text-hub-foreground/70",
   },
   approved: {
     stripe: "bg-hub-approved",
     label: "Approved",
-    badge: "border-hub-approved/30 bg-hub-approved/10 text-hub-espresso",
+    badge: "border-hub-approved/30 bg-hub-approved/10 text-hub-foreground",
   },
   rejected: {
     stripe: "bg-hub-rejected",
@@ -22,6 +22,6 @@ export const STATUS_STYLES: Record<
   final: {
     stripe: "bg-hub-final",
     label: "Final",
-    badge: "border-hub-final/50 bg-hub-final/20 text-hub-espresso",
+    badge: "border-hub-final/50 bg-hub-final/20 text-hub-foreground",
   },
 };

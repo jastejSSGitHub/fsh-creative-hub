@@ -1,0 +1,76 @@
+import type { CanvasTheme, StampId, StickyColorId } from "@/lib/canvas/types";
+
+export type { CanvasTheme };
+
+export const CANVAS_BG_PRESETS = [
+  { id: "charcoal", label: "Charcoal", value: "#1a1a1a", mode: "dark" as const },
+  { id: "slate", label: "Slate", value: "#0f1419", mode: "dark" as const },
+  { id: "warm", label: "Warm dark", value: "#1c1917", mode: "dark" as const },
+  { id: "figjam", label: "FigJam light", value: "#f5f5f0", mode: "light" as const },
+  { id: "paper", label: "Soft paper", value: "#faf8f3", mode: "light" as const },
+] as const;
+
+export const DEFAULT_CANVAS_BG = CANVAS_BG_PRESETS[0].value;
+
+export const STICKY_COLORS: Record<
+  StickyColorId,
+  { fill: string; header?: string; label: string }
+> = {
+  yellow: { fill: "#fff9b1", label: "Yellow" },
+  blue: { fill: "#dbeafe", label: "Blue" },
+  green: { fill: "#dcfce7", label: "Green" },
+  pink: { fill: "#fce7f3", label: "Pink" },
+  purple: { fill: "#ede9fe", label: "Purple" },
+  orange: { fill: "#ffedd5", label: "Orange" },
+};
+
+export const STAMP_DEFS: Record<
+  StampId,
+  { emoji: string; label: string; ring: string }
+> = {
+  "thumbs-up": { emoji: "👍", label: "Thumbs up", ring: "#22c55e" },
+  heart: { emoji: "❤️", label: "Heart", ring: "#ef4444" },
+  "plus-one": { emoji: "+1", label: "+1", ring: "#a855f7" },
+  star: { emoji: "⭐", label: "Star", ring: "#eab308" },
+  fire: { emoji: "🔥", label: "Fire", ring: "#f97316" },
+  eyes: { emoji: "👀", label: "Eyes", ring: "#3b82f6" },
+};
+
+export const STICKY_WIDTH = 200;
+export const STICKY_HEIGHT = 200;
+/** Minimum gap between adjacent sticky notes when using + handles. */
+export const STICKY_GAP = 16;
+export const STAMP_SIZE = 56;
+
+export function getCanvasTheme(backgroundColor: string): CanvasTheme {
+  const preset = CANVAS_BG_PRESETS.find((p) => p.value === backgroundColor);
+  const isLight = preset?.mode === "light";
+
+  if (isLight) {
+    return {
+      mode: "light",
+      chromeText: "text-[#1a1a1a]",
+      chromeMuted: "text-[#1a1a1a]/55",
+      glassBorder: "border-black/10",
+      glassBg: "bg-white/85",
+      dotOpacity: 0.62,
+      vignette:
+        "bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.06)_100%)]",
+    };
+  }
+
+  return {
+    mode: "dark",
+    chromeText: "text-white",
+    chromeMuted: "text-white/55",
+    glassBorder: "border-white/10",
+    glassBg: "bg-white/[0.07]",
+    dotOpacity: 0.5,
+    vignette:
+      "bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.18)_100%)]",
+  };
+}
+
+export function isLightCanvasBackground(backgroundColor: string): boolean {
+  return getCanvasTheme(backgroundColor).mode === "light";
+}

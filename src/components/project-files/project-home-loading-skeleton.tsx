@@ -7,10 +7,11 @@ import { NavBackLinkSkeleton } from "@/components/ui/nav-back-link";
 import { SkeletonBone } from "@/components/ui/skeleton-primitives";
 import { readProjectNavigationSnapshot } from "@/lib/projects/project-navigation-snapshot";
 import { hubCardGridClassName } from "@/lib/ui/hub-card-grid";
+import { cn } from "@/lib/utils";
 
 function ProjectFileCardSkeleton() {
   return (
-    <article className="flex flex-col overflow-hidden rounded-md border border-hub-espresso/10 bg-white">
+    <article className="flex flex-col overflow-hidden rounded-md border border-hub-foreground/10 bg-hub-surface">
       <div className="relative aspect-[16/10] overflow-hidden bg-[linear-gradient(135deg,#faf8f3_0%,#f3efe6_55%,#ffffff_100%)]">
         <div className="flex size-full flex-col items-center justify-center gap-2">
           <SkeletonBone className="size-12 rounded-md" />
@@ -18,7 +19,7 @@ function ProjectFileCardSkeleton() {
         </div>
       </div>
 
-      <div className="space-y-2 border-t border-hub-espresso/8 bg-hub-espresso/[0.02] p-3">
+      <div className="space-y-2 border-t border-hub-foreground/8 bg-hub-foreground/[0.02] p-3">
         <div className="flex items-start gap-2">
           <SkeletonBone className="mt-0.5 size-5 shrink-0 rounded" />
           <div className="min-w-0 flex-1 space-y-1.5">
@@ -61,7 +62,7 @@ export function ProjectHomeLoadingSkeleton() {
 
         <div className="flex justify-center justify-self-center px-2">
           {snapshot?.projectName ? (
-            <h1 className="truncate font-display text-2xl font-extrabold tracking-tight text-hub-espresso sm:text-3xl">
+            <h1 className="truncate font-display text-2xl font-extrabold tracking-tight text-hub-foreground sm:text-3xl">
               {snapshot.projectName}
             </h1>
           ) : (
@@ -82,10 +83,13 @@ export function ProjectHomeLoadingSkeleton() {
 
       <SkeletonBone className="h-16 w-full rounded-md" />
 
-      <div className={hubCardGridClassName}>
-        {Array.from({ length: cardCount }).map((_, index) => (
-          <ProjectFileCardSkeleton key={index} />
-        ))}
+      <div className="space-y-0">
+        <SkeletonBone className="h-7 w-20 rounded-sm" aria-hidden />
+        <div className={cn(hubCardGridClassName, "-mt-7")}>
+          {Array.from({ length: cardCount }).map((_, index) => (
+            <ProjectFileCardSkeleton key={index} />
+          ))}
+        </div>
       </div>
     </section>
   );

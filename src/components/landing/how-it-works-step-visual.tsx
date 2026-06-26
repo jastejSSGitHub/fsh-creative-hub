@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
 import { TrimmedLoopVideo } from "@/components/landing/trimmed-loop-video";
+import { loopTransition, springTransition } from "@/lib/motion/transitions";
 import { cn } from "@/lib/utils";
 
 const uiCardClass = "rounded-sm";
@@ -89,7 +90,7 @@ function MediaThumb({
   return (
     <div
       className={cn(
-        "relative overflow-hidden bg-hub-espresso/5 shadow-[0_6px_18px_rgba(11,11,11,0.18)]",
+        "relative overflow-hidden bg-hub-foreground/5 shadow-[0_6px_18px_rgba(11,11,11,0.18)]",
         uiCardClass,
         className,
       )}
@@ -207,7 +208,7 @@ function VisualFrame({
   return (
     <div
       className={cn(
-        "relative aspect-[5/4] min-h-[10.5rem] overflow-hidden rounded-lg border border-hub-espresso/10 bg-gradient-to-b from-white to-hub-paper shadow-[0_10px_36px_rgba(11,11,11,0.07)]",
+        "relative aspect-[5/4] min-h-[10.5rem] overflow-hidden rounded-lg border border-hub-foreground/10 bg-gradient-to-b from-white to-hub-paper shadow-[0_10px_36px_rgba(11,11,11,0.07)]",
         accentClass,
       )}
     >
@@ -273,7 +274,7 @@ function PickProjectVisual({ reduced }: { reduced: boolean }) {
   return (
     <VisualFrame accentClass="from-[#F8F2FF] to-white">
       <div ref={ref} className="flex h-full flex-col p-3.5 sm:p-4">
-        <p className="font-mono text-[0.45rem] uppercase tracking-[0.12em] text-hub-espresso/35">
+        <p className="font-mono text-[0.45rem] uppercase tracking-[0.12em] text-hub-foreground/35">
           Your projects
         </p>
 
@@ -298,11 +299,11 @@ function PickProjectVisual({ reduced }: { reduced: boolean }) {
                     damping: 22,
                   }}
                   className={cn(
-                    "relative border bg-white p-2 shadow-sm",
+                    "relative border bg-hub-surface p-2 shadow-sm",
                     uiCardClass,
                     isSelected
                       ? "border-hub-accent ring-2 ring-hub-accent/45 shadow-[0_8px_24px_rgba(255,201,75,0.28)]"
-                      : "border-hub-espresso/10",
+                      : "border-hub-foreground/10",
                   )}
                 >
                   <div
@@ -312,7 +313,7 @@ function PickProjectVisual({ reduced }: { reduced: boolean }) {
                       uiCardClass,
                     )}
                   />
-                  <p className="mt-1.5 truncate text-[0.5rem] font-semibold text-hub-espresso/80">
+                  <p className="mt-1.5 truncate text-[0.5rem] font-semibold text-hub-foreground/80">
                     {project.name}
                   </p>
                   {isSelected ? (
@@ -341,8 +342,8 @@ function PickProjectVisual({ reduced }: { reduced: boolean }) {
               transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
               className="pointer-events-none absolute z-20"
             >
-              <div className="size-3 rounded-full border-2 border-hub-espresso/70 bg-white shadow-md" />
-              <div className="absolute left-2 top-2 h-3 w-px origin-top rotate-[135deg] bg-hub-espresso/50" />
+              <div className="size-3 rounded-full border-2 border-hub-foreground/70 bg-hub-surface shadow-md" />
+              <div className="absolute left-2 top-2 h-3 w-px origin-top rotate-[135deg] bg-hub-foreground/50" />
             </motion.div>
           ) : null}
         </div>
@@ -369,8 +370,8 @@ function PickProjectVisual({ reduced }: { reduced: boolean }) {
 function DragPointer() {
   return (
     <div className="pointer-events-none absolute -bottom-0.5 -right-0.5 z-10">
-      <div className="size-3 rounded-full border-2 border-hub-espresso/75 bg-white shadow-md" />
-      <div className="absolute left-2 top-2 h-3 w-px origin-top rotate-[135deg] bg-hub-espresso/55" />
+      <div className="size-3 rounded-full border-2 border-hub-foreground/75 bg-hub-surface shadow-md" />
+      <div className="absolute left-2 top-2 h-3 w-px origin-top rotate-[135deg] bg-hub-foreground/55" />
     </div>
   );
 }
@@ -407,7 +408,7 @@ function DropWorkVisual({ reduced }: { reduced: boolean }) {
     <VisualFrame>
       <div ref={ref} className="flex h-full flex-col p-3.5 sm:p-4">
         <div className="flex items-center justify-between">
-          <p className="truncate text-[0.55rem] font-semibold text-hub-espresso">{DROP_PROJECT_NAME}</p>
+          <p className="truncate text-[0.55rem] font-semibold text-hub-foreground">{DROP_PROJECT_NAME}</p>
           <motion.span
             key={landed}
             initial={reduced ? false : { scale: 1.15 }}
@@ -434,7 +435,7 @@ function DropWorkVisual({ reduced }: { reduced: boolean }) {
           }
           transition={{ duration: 0.35 }}
           className={cn(
-            "relative mt-2 flex flex-1 flex-col justify-end border-2 border-dashed border-hub-espresso/12 bg-hub-espresso/[0.02] p-2",
+            "relative mt-2 flex flex-1 flex-col justify-end border-2 border-dashed border-hub-foreground/12 bg-hub-foreground/[0.02] p-2",
             uiCardClass,
           )}
         >
@@ -448,7 +449,7 @@ function DropWorkVisual({ reduced }: { reduced: boolean }) {
                 <div key={asset.id} className="relative aspect-[4/5]">
                   <div
                     className={cn(
-                      "absolute inset-0 border border-dashed border-hub-espresso/15 bg-white/50",
+                      "absolute inset-0 border border-dashed border-hub-foreground/15 bg-hub-surface/50",
                       uiCardClass,
                       inSlot && "border-transparent bg-transparent",
                       isDraggingHere && "border-hub-accent/40 bg-hub-accent/5",
@@ -459,7 +460,11 @@ function DropWorkVisual({ reduced }: { reduced: boolean }) {
                     <motion.div
                       initial={reduced ? false : { scale: 0.92 }}
                       animate={{ scale: pulsing ? [1, 1.08, 1] : 1 }}
-                      transition={{ type: "spring", stiffness: 400, damping: 22 }}
+                      transition={
+                        pulsing
+                          ? { scale: loopTransition({ duration: 0.55, repeat: Infinity }) }
+                          : springTransition({ stiffness: 400, damping: 22 })
+                      }
                       className={cn(
                         "absolute inset-0",
                         pulsing && "ring-2 ring-hub-approved/55",
@@ -506,7 +511,7 @@ function DropWorkVisual({ reduced }: { reduced: boolean }) {
           </div>
 
           {landed === 0 && dragging === null && !reduced ? (
-            <p className="pointer-events-none absolute left-1/2 top-2 -translate-x-1/2 font-mono text-[0.4rem] uppercase tracking-[0.1em] text-hub-espresso/40">
+            <p className="pointer-events-none absolute left-1/2 top-2 -translate-x-1/2 font-mono text-[0.4rem] uppercase tracking-[0.1em] text-hub-foreground/40">
               Drop here
             </p>
           ) : null}
@@ -571,7 +576,7 @@ function ReachConsensusVisual({ reduced }: { reduced: boolean }) {
             won && "ring-2 ring-hub-approved/50",
           )}
         >
-          <div className="relative aspect-[4/5] bg-hub-espresso/5">
+          <div className="relative aspect-[4/5] bg-hub-foreground/5">
             {reduced ? (
               <Image
                 src={CONSENSUS_ASSET_POSTER}
@@ -597,7 +602,7 @@ function ReachConsensusVisual({ reduced }: { reduced: boolean }) {
             transition={{ type: "spring", stiffness: 450, damping: 16 }}
             className="absolute inset-0 flex items-center justify-center bg-hub-approved/25"
           >
-            <span className="rounded-sm border-2 border-hub-approved bg-white px-1.5 py-0.5 font-mono text-[0.45rem] font-bold uppercase tracking-wider text-hub-approved">
+            <span className="rounded-sm border-2 border-hub-approved bg-hub-surface px-1.5 py-0.5 font-mono text-[0.45rem] font-bold uppercase tracking-wider text-hub-approved">
               Approved
             </span>
           </motion.div>
@@ -611,10 +616,10 @@ function ReachConsensusVisual({ reduced }: { reduced: boolean }) {
               <div
                 key={`reaction-${i}`}
                 className={cn(
-                  "flex size-8 items-center justify-center rounded-full border-2 bg-white shadow-[0_3px_10px_rgba(11,11,11,0.14)] transition-all duration-300",
+                  "flex size-8 items-center justify-center rounded-full border-2 bg-hub-surface shadow-[0_3px_10px_rgba(11,11,11,0.14)] transition-all duration-300",
                   visible
-                    ? "scale-100 border-hub-espresso/25 opacity-100 ring-2 ring-hub-accent/30"
-                    : "scale-90 border-dashed border-hub-espresso/30 bg-hub-espresso/[0.04] opacity-50 shadow-none ring-0",
+                    ? "scale-100 border-hub-foreground/25 opacity-100 ring-2 ring-hub-accent/30"
+                    : "scale-90 border-dashed border-hub-foreground/30 bg-hub-foreground/[0.04] opacity-50 shadow-none ring-0",
                 )}
               >
                 {visible ? <ReactionIcon kind={reaction.kind} /> : null}
@@ -624,7 +629,7 @@ function ReachConsensusVisual({ reduced }: { reduced: boolean }) {
         </div>
 
         <div className="mt-3 w-full max-w-[8.5rem]">
-          <div className="h-1.5 overflow-hidden rounded-full bg-hub-espresso/10">
+          <div className="h-1.5 overflow-hidden rounded-full bg-hub-foreground/10">
             <motion.div
               initial={false}
               animate={{ width: `${votes * 25}%` }}
@@ -632,7 +637,7 @@ function ReachConsensusVisual({ reduced }: { reduced: boolean }) {
               className="h-full rounded-full bg-gradient-to-r from-hub-approved to-[#06D6A0]"
             />
           </div>
-          <p className="mt-1 text-center font-mono text-[0.45rem] text-hub-espresso/45">
+          <p className="mt-1 text-center font-mono text-[0.45rem] text-hub-foreground/45">
             {votes}/4 votes
           </p>
         </div>

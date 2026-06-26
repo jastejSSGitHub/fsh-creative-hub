@@ -7,6 +7,7 @@ import {
   WorkflowIllustrationShell,
   workflowTitleClass,
 } from "@/components/landing/workflow-illustration-shell";
+import { loopTransition, springTransition } from "@/lib/motion/transitions";
 import { cn } from "@/lib/utils";
 
 const PHASES = [
@@ -84,7 +85,7 @@ function VoteControls({
         animate={{ scale: leading ? 1.1 : 1 }}
         className={cn(
           "min-w-[1.1rem] text-center font-mono text-[0.55rem] font-extrabold tabular-nums",
-          leading ? "text-hub-espresso" : "text-hub-espresso/55",
+          leading ? "text-hub-foreground" : "text-hub-foreground/55",
         )}
       >
         {net}
@@ -160,8 +161,14 @@ function PostIt({
       }}
       transition={{
         delay,
-        scale: pulseUp ? { duration: 0.45, ease: [0.22, 1, 0.36, 1] } : undefined,
-        default: { type: "spring", stiffness: 280, damping: 20 },
+        opacity: springTransition({ stiffness: 280, damping: 20 }),
+        y: springTransition({ stiffness: 280, damping: 20 }),
+        rotate: springTransition({ stiffness: 280, damping: 20 }),
+        zIndex: { duration: 0 },
+        scale:
+          pulseUp && !reduced
+            ? { duration: 0.45, ease: [0.22, 1, 0.36, 1] }
+            : springTransition({ stiffness: 280, damping: 20 }),
       }}
       className={cn(
         "relative w-[5.5rem] px-2 py-2 shadow-[0_4px_12px_rgba(11,11,11,0.12)]",
@@ -173,8 +180,8 @@ function PostIt({
       )}
     >
       <UpvoteBurst show={!!pulseUp} reduced={reduced} />
-      <div className="absolute -top-1 left-1/2 h-2 w-6 -translate-x-1/2 rounded-sm bg-white/50 shadow-sm" />
-      <p className="mt-1 text-[0.55rem] font-medium leading-snug text-hub-espresso/85">
+      <div className="absolute -top-1 left-1/2 h-2 w-6 -translate-x-1/2 rounded-sm bg-hub-surface/50 shadow-sm" />
+      <p className="mt-1 text-[0.55rem] font-medium leading-snug text-hub-foreground/85">
         {text}
       </p>
       {tally ? (
@@ -227,13 +234,13 @@ function DropPhase({ reduced }: { reduced: boolean }) {
       className="flex h-full flex-col p-4 sm:p-5"
     >
       <p className={workflowTitleClass}>Ideas board</p>
-      <p className="font-mono text-[0.5rem] text-hub-espresso/40">
+      <p className="font-mono text-[0.5rem] text-hub-foreground/40">
         Spring Campaign · Brainstorm
       </p>
 
       <div
         className={cn(
-          "relative mt-3 flex flex-1 items-center justify-center border border-dashed border-hub-espresso/15 bg-hub-espresso/[0.02] p-3",
+          "relative mt-3 flex flex-1 items-center justify-center border border-dashed border-hub-foreground/15 bg-hub-foreground/[0.02] p-3",
           uiCardClass,
         )}
       >
@@ -256,14 +263,14 @@ function DropPhase({ reduced }: { reduced: boolean }) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 1.1, duration: 0.35 }}
         className={cn(
-          "mt-3 flex items-center gap-2 border border-hub-espresso/10 bg-white px-2.5 py-2",
+          "mt-3 flex items-center gap-2 border border-hub-foreground/10 bg-hub-surface px-2.5 py-2",
           uiCardClass,
         )}
       >
-        <span className="flex size-5 items-center justify-center rounded-sm bg-hub-accent text-[0.65rem] font-bold text-hub-espresso">
+        <span className="flex size-5 items-center justify-center rounded-sm bg-hub-accent text-[0.65rem] font-bold text-hub-foreground">
           +
         </span>
-        <span className="text-[0.55rem] text-hub-espresso/50">Add idea…</span>
+        <span className="text-[0.55rem] text-hub-foreground/50">Add idea…</span>
       </motion.div>
     </motion.div>
   );
@@ -327,7 +334,7 @@ function UpvotePhase({ reduced }: { reduced: boolean }) {
         className={cn(
           "relative mt-3 flex flex-1 items-center justify-center p-3",
           uiCardClass,
-          "bg-hub-espresso/[0.02]",
+          "bg-hub-foreground/[0.02]",
         )}
       >
         <div className="flex flex-wrap items-end justify-center gap-2">
@@ -395,7 +402,7 @@ function DecidePhase({ reduced }: { reduced: boolean }) {
           className={cn(
             "relative mt-2 flex flex-col items-center gap-1.5 p-2.5 sm:mt-3 sm:gap-2 sm:p-3",
             uiCardClass,
-            "bg-hub-espresso/[0.02]",
+            "bg-hub-foreground/[0.02]",
           )}
         >
           <MiniConfetti reduced={reduced} active={showConfetti} />

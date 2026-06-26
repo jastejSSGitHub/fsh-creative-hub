@@ -4,13 +4,16 @@ import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 
 import { HubDialog } from "@/components/projects/hub-dialog";
-import { buttonVariants } from "@/components/ui/button";
 import { createProjectAction } from "@/lib/projects/actions";
 import { PROJECTS_PATH } from "@/lib/routes";
+import {
+  hubDialogCancelButtonClassName,
+  hubDialogErrorClassName,
+  hubDialogFieldClassName,
+  hubDialogLabelClassName,
+  hubDialogPrimaryButtonClassName,
+} from "@/lib/ui/hub-dialog-form";
 import { cn } from "@/lib/utils";
-
-const fieldClassName =
-  "w-full rounded-md border border-hub-espresso/15 bg-white px-3.5 text-hub-espresso outline-none ring-hub-accent/40 placeholder:text-hub-espresso/35 focus:ring-2 disabled:opacity-60";
 
 type CreateProjectDialogProps = {
   open: boolean;
@@ -62,16 +65,13 @@ export function CreateProjectDialog({ open, onClose }: CreateProjectDialogProps)
     >
       <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
         {error && (
-          <p className="rounded-lg border border-hub-rejected/30 bg-hub-rejected/10 px-3.5 py-2.5 text-sm text-hub-rejected">
+          <p className={hubDialogErrorClassName}>
             {error}
           </p>
         )}
 
         <div className="space-y-1.5">
-          <label
-            htmlFor="project-name"
-            className="font-mono text-[0.65rem] uppercase tracking-[0.12em] text-hub-espresso/50"
-          >
+          <label htmlFor="project-name" className={hubDialogLabelClassName}>
             Project name
           </label>
           <input
@@ -80,15 +80,12 @@ export function CreateProjectDialog({ open, onClose }: CreateProjectDialogProps)
             required
             disabled={isPending}
             placeholder="Summer Campaign 2026"
-            className={cn(fieldClassName, "min-h-10")}
+            className={hubDialogFieldClassName}
           />
         </div>
 
         <div className="space-y-1.5">
-          <label
-            htmlFor="project-description"
-            className="font-mono text-[0.65rem] uppercase tracking-[0.12em] text-hub-espresso/50"
-          >
+          <label htmlFor="project-description" className={hubDialogLabelClassName}>
             Description (optional)
           </label>
           <textarea
@@ -97,15 +94,12 @@ export function CreateProjectDialog({ open, onClose }: CreateProjectDialogProps)
             rows={3}
             disabled={isPending}
             placeholder="What is this project for?"
-            className={cn(fieldClassName, "resize-none py-2.5")}
+            className={cn(hubDialogFieldClassName, "resize-none py-2")}
           />
         </div>
 
         <div className="space-y-1.5">
-          <label
-            htmlFor="project-cover"
-            className="font-mono text-[0.65rem] uppercase tracking-[0.12em] text-hub-espresso/50"
-          >
+          <label htmlFor="project-cover" className={hubDialogLabelClassName}>
             Cover image (optional)
           </label>
           <input
@@ -114,7 +108,7 @@ export function CreateProjectDialog({ open, onClose }: CreateProjectDialogProps)
             type="file"
             accept="image/jpeg,image/png,image/webp,image/gif"
             disabled={isPending}
-            className="block w-full text-sm text-hub-espresso/70 file:mr-3 file:min-h-9 file:rounded-md file:border-0 file:bg-hub-espresso file:px-4 file:py-2 file:font-mono file:text-[0.65rem] file:uppercase file:tracking-wider file:text-white"
+            className="block w-full text-[0.8125rem] text-hub-foreground/55 file:mr-3 file:min-h-8 file:rounded-[6px] file:border file:border-hub-foreground/12 file:bg-hub-surface file:px-3 file:py-1.5 file:text-[0.8125rem] file:font-medium file:text-hub-foreground file:transition-colors hover:file:bg-hub-foreground/[0.03]"
           />
         </div>
 
@@ -123,20 +117,14 @@ export function CreateProjectDialog({ open, onClose }: CreateProjectDialogProps)
             type="button"
             onClick={handleClose}
             disabled={isPending}
-            className={cn(
-              buttonVariants({ variant: "outline" }),
-              "min-h-10 flex-1 rounded-lg border-hub-espresso/15",
-            )}
+            className={cn(hubDialogCancelButtonClassName, "flex-1")}
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isPending}
-            className={cn(
-              buttonVariants(),
-              "min-h-10 flex-1 rounded-lg bg-hub-espresso text-hub-paper hover:bg-hub-espresso/90",
-            )}
+            className={cn(hubDialogPrimaryButtonClassName, "flex-1")}
           >
             {isPending ? "Creating…" : "Create project"}
           </button>

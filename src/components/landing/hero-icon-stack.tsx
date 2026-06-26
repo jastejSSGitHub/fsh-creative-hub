@@ -132,7 +132,7 @@ export function HeroIconStack({ className }: HeroIconStackProps) {
         <div
           key={icon.id}
           className={cn(
-            "relative -ml-3.5 first:ml-0 flex size-11 items-center justify-center rounded-full border-[2.5px] bg-hub-paper text-hub-espresso shadow-[0_2px_8px_rgba(11,11,11,0.08)] sm:-ml-4 sm:size-12",
+            "relative -ml-3.5 first:ml-0 flex size-11 items-center justify-center rounded-full border-[2.5px] bg-hub-paper text-hub-foreground shadow-[0_2px_8px_rgba(11,11,11,0.08)] sm:-ml-4 sm:size-12",
           )}
           style={{
             borderColor: icon.ring,

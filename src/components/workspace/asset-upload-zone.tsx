@@ -19,7 +19,7 @@ type AssetUploadZoneProps = {
   projectId: string;
   initiativeId: string;
   boardId?: string;
-  onUploaded: () => void;
+  onUploaded: (assetId: string) => void;
 };
 
 export function AssetUploadZone({
@@ -82,11 +82,14 @@ export function AssetUploadZone({
 
       if (!result.ok) {
         setMessage(result.error);
-        return;
+        continue;
+      }
+
+      if (result.id) {
+        onUploaded(result.id);
       }
     }
 
-    onUploaded();
     setMessage(`${list.length} file${list.length === 1 ? "" : "s"} uploaded.`);
   }
 
@@ -120,24 +123,24 @@ export function AssetUploadZone({
           >
             <div
               className={cn(
-                "mb-3 flex size-11 items-center justify-center rounded-2xl bg-hub-espresso/[0.04] transition-all duration-300",
+                "mb-3 flex size-11 items-center justify-center rounded-2xl bg-hub-foreground/[0.04] transition-all duration-300",
                 dragging && "scale-105 bg-hub-final/15",
               )}
             >
               <ImagePlus
                 className={cn(
-                  "size-5 text-hub-espresso/40 transition-colors duration-300",
-                  dragging && "text-hub-espresso/70",
+                  "size-5 text-hub-foreground/40 transition-colors duration-300",
+                  dragging && "text-hub-foreground/70",
                 )}
                 strokeWidth={1.5}
                 aria-hidden
               />
             </div>
 
-            <p className="font-display text-[1.05rem] font-semibold tracking-tight text-hub-espresso">
+            <p className="font-display text-[1.05rem] font-semibold tracking-tight text-hub-foreground">
               Drop images or videos here
             </p>
-            <p className="mt-1 text-[0.8125rem] text-hub-espresso/45">
+            <p className="mt-1 text-[0.8125rem] text-hub-foreground/45">
               JPG, PNG, WebP, GIF, MP4, WebM
             </p>
 
@@ -146,7 +149,7 @@ export function AssetUploadZone({
               disabled={isPending}
               onClick={() => inputRef.current?.click()}
               className={cn(
-                "mt-5 inline-flex min-h-9 items-center gap-1.5 rounded-full border border-hub-espresso/8 bg-white px-4 py-2 text-[0.8125rem] font-medium text-hub-espresso transition-all duration-200",
+                "mt-5 inline-flex min-h-9 items-center gap-1.5 rounded-full border border-hub-foreground/8 bg-hub-surface px-4 py-2 text-[0.8125rem] font-medium text-hub-foreground transition-all duration-200",
                 "hover:bg-hub-paper active:scale-[0.98]",
                 "disabled:pointer-events-none disabled:opacity-50",
               )}
@@ -171,14 +174,14 @@ export function AssetUploadZone({
             />
           </div>
 
-          <div className="flex min-h-[9rem] items-center border-t border-hub-espresso/[0.06] px-2 py-3 md:col-span-1 md:border-l md:border-t-0">
+          <div className="flex min-h-[9rem] items-center border-t border-hub-foreground/[0.06] px-2 py-3 md:col-span-1 md:border-l md:border-t-0">
             <AssetDropIllustration />
           </div>
         </div>
       </div>
 
       {message && (
-        <p className="text-sm text-hub-espresso/60">{message}</p>
+        <p className="text-sm text-hub-foreground/60">{message}</p>
       )}
     </div>
   );

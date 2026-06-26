@@ -10,6 +10,13 @@ import { captureProjectNavigationSnapshot } from "@/lib/projects/project-navigat
 import { projectPath } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
+function projectCoverTitleClass(name: string): string {
+  if (name.length <= 10) return "text-[1.75rem] sm:text-[2rem]";
+  if (name.length <= 18) return "text-2xl sm:text-[1.75rem]";
+  if (name.length <= 28) return "text-xl sm:text-2xl";
+  return "text-lg sm:text-xl";
+}
+
 type ProjectRouter = Pick<ReturnType<typeof useRouter>, "push" | "prefetch">;
 
 export function navigateToProject(
@@ -115,13 +122,13 @@ export function ProjectCard({
         }
       }}
       className={cn(
-        "group relative flex h-full cursor-default select-none flex-col overflow-hidden rounded-md border bg-white shadow-sm transition-[box-shadow,border-color] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hub-primary/50",
+        "group relative flex h-full cursor-default select-none flex-col overflow-hidden rounded-md border bg-hub-surface shadow-sm transition-[box-shadow,border-color] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hub-primary/50",
         selected
           ? "border-hub-accent ring-2 ring-hub-accent/35"
-          : "border-hub-espresso/10",
+          : "border-hub-foreground/10",
       )}
     >
-      <div className="relative aspect-[16/10] overflow-hidden bg-hub-espresso/5">
+      <div className="relative aspect-[16/10] overflow-hidden bg-hub-foreground/5">
         {project.cover_url && !coverError ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -132,13 +139,16 @@ export function ProjectCard({
             draggable={false}
           />
         ) : (
-          <div className="flex size-full items-center justify-center bg-[linear-gradient(135deg,#0b0b0b_0%,#2a2418_55%,#fbf7ee_100%)]">
-            <span
+          <div className="flex size-full items-center justify-center bg-[linear-gradient(135deg,#0b0b0b_0%,#2a2418_55%,#fbf7ee_100%)] px-4 py-3">
+            <p
               aria-hidden
-              className="pointer-events-none font-display text-3xl font-extrabold text-white/90"
+              className={cn(
+                "pointer-events-none line-clamp-2 text-balance text-center font-display font-extrabold leading-[1.05] tracking-tight text-white/90",
+                projectCoverTitleClass(project.name),
+              )}
             >
-              {project.name.slice(0, 1).toUpperCase()}
-            </span>
+              {project.name}
+            </p>
           </div>
         )}
 
@@ -168,19 +178,19 @@ export function ProjectCard({
         )}
       </div>
 
-      <div className="space-y-1 border-t border-hub-espresso/8 bg-hub-espresso/[0.03] p-3">
+      <div className="space-y-1 border-t border-hub-foreground/8 bg-hub-foreground/[0.03] p-3">
         <div className="flex items-start gap-2">
           <div className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded bg-hub-accent/15 text-hub-accent">
             <FolderKanban className="size-3.5" aria-hidden />
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="truncate font-display text-sm font-extrabold tracking-tight text-hub-espresso">
+            <h2 className="truncate font-display text-sm font-extrabold tracking-tight text-hub-foreground">
               {project.name}
             </h2>
-            <p className="mt-0.5 text-xs text-hub-espresso/55">
+            <p className="mt-0.5 text-xs text-hub-foreground/55">
               {formatEditedTime(editedAt)}
             </p>
-            <p className="text-xs text-hub-espresso/45">
+            <p className="text-xs text-hub-foreground/45">
               {project.assetCount} asset{project.assetCount === 1 ? "" : "s"}
             </p>
           </div>

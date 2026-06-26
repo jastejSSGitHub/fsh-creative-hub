@@ -9,7 +9,7 @@ type AssetGridLoadingProps = {
 
 function LoadingCard() {
   return (
-    <div className="flex flex-col overflow-hidden rounded-xl border border-hub-espresso/10 bg-white">
+    <div className="flex flex-col overflow-hidden rounded-xl border border-hub-foreground/10 bg-hub-surface">
       <div className="relative aspect-[4/3] overflow-hidden bg-[linear-gradient(135deg,#faf8f3_0%,#f3efe6_55%,#ffffff_100%)]">
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
           <SkeletonBone className="size-10 rounded-md" />

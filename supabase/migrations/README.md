@@ -24,10 +24,12 @@ In **Authentication → URL configuration**:
 
 | Setting | Local | Production |
 |---|---|---|
-| Site URL | `http://localhost:3010` | Your Vercel URL |
-| Redirect URLs | `http://localhost:3010/auth/callback` | `https://YOUR_VERCEL_URL/auth/callback` |
+| Site URL | `http://localhost:3010` | `https://fsh-creative-hub.vercel.app` |
+| Redirect URLs | `http://localhost:3010/auth/callback` | `https://fsh-creative-hub.vercel.app/auth/callback` |
 
-Also set `NEXT_PUBLIC_SITE_URL` in Vercel env vars to your production URL.
+Add **both** local and production callback URLs to the Redirect URLs list (one per line).
+
+Also set `NEXT_PUBLIC_SITE_URL` in Vercel env vars to `https://fsh-creative-hub.vercel.app` (no trailing slash).
 
 Enable providers under **Authentication → Providers**:
 

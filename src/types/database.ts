@@ -41,7 +41,7 @@ export type HubProjectMember = {
   favorited_at: string | null;
 };
 
-export type HubProjectFileType = "review_board" | "canvas";
+export type HubProjectFileType = "review_board" | "canvas" | "text_document";
 
 export type HubProjectFile = {
   id: string;
@@ -52,6 +52,13 @@ export type HubProjectFile = {
   sort_order: number;
   created_by: string;
   created_at: string;
+};
+
+export type HubProjectFileFavorite = {
+  id: string;
+  user_id: string;
+  file_id: string;
+  favorited_at: string;
 };
 
 export type HubInitiative = {
@@ -135,6 +142,7 @@ export type Database = {
       hub_project_members: { Row: HubProjectMember; Insert: Partial<HubProjectMember> & Pick<HubProjectMember, "project_id" | "user_id" | "role">; Update: Partial<HubProjectMember> };
       hub_initiatives: { Row: HubInitiative; Insert: Partial<HubInitiative> & Pick<HubInitiative, "project_id" | "name">; Update: Partial<HubInitiative> };
       hub_project_files: { Row: HubProjectFile; Insert: Partial<HubProjectFile> & Pick<HubProjectFile, "project_id" | "type" | "name" | "created_by">; Update: Partial<HubProjectFile> };
+      hub_project_file_favorites: { Row: HubProjectFileFavorite; Insert: Partial<HubProjectFileFavorite> & Pick<HubProjectFileFavorite, "user_id" | "file_id">; Update: Partial<HubProjectFileFavorite> };
       hub_assets: { Row: HubAsset; Insert: Partial<HubAsset> & Pick<HubAsset, "initiative_id" | "name" | "type" | "storage_path" | "public_url" | "uploaded_by">; Update: Partial<HubAsset> };
       hub_comments: { Row: HubComment; Insert: Partial<HubComment> & Pick<HubComment, "asset_id" | "author_id" | "body">; Update: Partial<HubComment> };
       hub_votes: { Row: HubVote; Insert: Partial<HubVote> & Pick<HubVote, "asset_id" | "user_id" | "reaction">; Update: Partial<HubVote> };

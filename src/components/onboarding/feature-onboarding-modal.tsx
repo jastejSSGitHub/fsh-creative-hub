@@ -182,8 +182,8 @@ export function FeatureOnboardingModal({
                   className={cn(
                     "rounded-md px-2.5 py-1.5 text-left text-[0.65rem] leading-snug transition-colors sm:text-[0.7rem]",
                     isActive
-                      ? "bg-white/[0.1] text-white"
-                      : "text-white/55 hover:bg-white/[0.05] hover:text-white/80",
+                      ? "bg-hub-surface/[0.1] text-white"
+                      : "text-white/55 hover:bg-hub-surface/[0.05] hover:text-white/80",
                   )}
                 >
                   {feature.navLabel}
@@ -218,7 +218,7 @@ export function FeatureOnboardingModal({
               type="button"
               onClick={dismiss}
               aria-label="Close"
-              className="absolute top-3 right-3 z-10 flex size-7 items-center justify-center rounded-md text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+              className="absolute top-3 right-3 z-10 flex size-7 items-center justify-center rounded-md text-white/70 transition-colors hover:bg-hub-surface/10 hover:text-white"
             >
               <CloseIcon className="size-4" />
             </button>
@@ -270,7 +270,7 @@ export function FeatureOnboardingModal({
               <button
                 type="button"
                 onClick={dismiss}
-                className="rounded-md bg-hub-final px-3 py-1.5 text-[0.65rem] font-medium text-hub-espresso transition-colors hover:bg-hub-final/90 sm:text-[0.7rem]"
+                className="rounded-md bg-hub-final px-3 py-1.5 text-[0.65rem] font-medium text-hub-foreground transition-colors hover:bg-hub-final/90 sm:text-[0.7rem]"
               >
                 Get started
               </button>

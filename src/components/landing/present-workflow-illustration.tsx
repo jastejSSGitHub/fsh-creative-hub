@@ -44,7 +44,7 @@ function PresentPhase({ reduced }: { reduced: boolean }) {
       className="flex h-full flex-col p-4 sm:p-5"
     >
       <p className={workflowTitleClass}>Spring Campaign</p>
-      <p className="font-mono text-[0.5rem] text-hub-espresso/40">
+      <p className="font-mono text-[0.5rem] text-hub-foreground/40">
         8 approved · 3 final picks
       </p>
 
@@ -52,7 +52,7 @@ function PresentPhase({ reduced }: { reduced: boolean }) {
         className={cn(
           "mt-3 grid flex-1 grid-cols-3 gap-1.5 p-2",
           uiCardClass,
-          "border border-hub-espresso/10 bg-white",
+          "border border-hub-foreground/10 bg-hub-surface",
         )}
       >
         {SLIDES.map((slide) => (
@@ -83,7 +83,7 @@ function PresentPhase({ reduced }: { reduced: boolean }) {
           }
           transition={{ delay: 1, duration: 1.2, repeat: Infinity, repeatDelay: 0.8 }}
           className={cn(
-            "inline-flex min-h-8 items-center gap-2 bg-hub-accent px-4 py-2 font-mono text-[0.5rem] font-semibold uppercase tracking-[0.12em] text-hub-espresso",
+            "inline-flex min-h-8 items-center gap-2 bg-hub-accent px-4 py-2 font-mono text-[0.5rem] font-semibold uppercase tracking-[0.12em] text-hub-foreground",
             uiCardClass,
           )}
         >
@@ -200,7 +200,7 @@ function RoomPhase({ reduced }: { reduced: boolean }) {
             initial={reduced ? false : { opacity: 0, scale: 0.6 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.7 + i * 0.15, type: "spring" }}
-            className="flex size-8 items-center justify-center rounded-full border-2 border-hub-espresso bg-hub-paper/90 text-[0.55rem] font-semibold text-hub-espresso"
+            className="flex size-8 items-center justify-center rounded-full border-2 border-hub-foreground bg-hub-paper/90 text-[0.55rem] font-semibold text-hub-foreground"
           >
             {initial}
           </motion.div>

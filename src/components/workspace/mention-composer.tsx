@@ -110,7 +110,7 @@ export function MentionComposer({
     <div className="relative">
       {mentionRange && suggestions.length > 0 && (
         <ul
-          className="absolute bottom-full left-0 z-10 mb-1.5 w-full overflow-hidden rounded-md border border-hub-espresso/10 bg-white shadow-sm"
+          className="absolute bottom-full left-0 z-10 mb-1.5 w-full overflow-hidden rounded-md border border-hub-foreground/10 bg-hub-surface shadow-sm"
           role="listbox"
         >
           {suggestions.map((member, index) => (
@@ -124,18 +124,18 @@ export function MentionComposer({
                 className={cn(
                   "flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors",
                   index === highlightIndex
-                    ? "bg-hub-espresso/5"
-                    : "hover:bg-hub-espresso/[0.03]",
+                    ? "bg-hub-foreground/5"
+                    : "hover:bg-hub-foreground/[0.03]",
                 )}
               >
-                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-hub-espresso/8 font-mono text-[0.55rem] font-semibold text-hub-espresso">
+                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-hub-foreground/8 font-mono text-[0.55rem] font-semibold text-hub-foreground">
                   {member.display_name.slice(0, 2).toUpperCase()}
                 </span>
                 <span className="min-w-0">
-                  <span className="block truncate text-xs font-medium text-hub-espresso">
+                  <span className="block truncate text-xs font-medium text-hub-foreground">
                     {member.display_name}
                   </span>
-                  <span className="block truncate font-mono text-[0.58rem] text-hub-espresso/40">
+                  <span className="block truncate font-mono text-[0.58rem] text-hub-foreground/40">
                     {member.email}
                   </span>
                 </span>
@@ -162,7 +162,7 @@ export function MentionComposer({
         disabled={disabled}
         placeholder={placeholder}
         className={cn(
-          "w-full resize-none rounded-md border border-hub-espresso/12 bg-white px-3 py-2 text-xs text-hub-espresso outline-none placeholder:text-hub-espresso/35 focus:border-hub-espresso/25 focus:ring-1 focus:ring-hub-espresso/10 disabled:opacity-60",
+          "w-full resize-none rounded-md border border-hub-foreground/12 bg-hub-surface px-3 py-2 text-xs text-hub-foreground outline-none placeholder:text-hub-foreground/35 focus:border-hub-foreground/25 focus:ring-1 focus:ring-hub-espresso/10 disabled:opacity-60",
           className,
         )}
       />

@@ -1,15 +1,21 @@
 "use client";
 
-import { ClipboardList, PenTool, Star } from "lucide-react";
+import { ClipboardList, FileText, PenTool, Star } from "lucide-react";
+import { ProjectFileThumbnail } from "@/components/project-files/project-file-thumbnail";
 import { useRouter } from "next/navigation";
 import { useCallback, useRef } from "react";
 
 import { formatEditedTime } from "@/lib/format-edited-time";
 import { MemberAvatar } from "@/components/projects/member-avatar";
 import type { ProjectFileWithMeta } from "@/lib/project-files/queries";
-import { fileTypeLabel } from "@/lib/project-files/queries";
-import { reviewBoardPath } from "@/lib/routes";
+import { parseDocumentConfig } from "@/lib/documents/types";
+import {
+  resolveDocumentCover,
+  resolveDocumentIcon,
+} from "@/lib/documents/defaults";
 import { captureReviewBoardNavigationSnapshot } from "@/lib/projects/review-board-snapshot";
+import { captureTextDocumentNavigationSnapshot } from "@/lib/projects/text-document-snapshot";
+import { reviewBoardPath, canvasPath, textDocumentPath } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
 type ProjectRouter = Pick<ReturnType<typeof useRouter>, "push" | "prefetch">;
@@ -20,18 +26,38 @@ export function navigateToProjectFile(
   file: ProjectFileWithMeta,
   options?: { newTab?: boolean; projectName?: string },
 ) {
-  if (file.type !== "review_board") return;
+  const href =
+    file.type === "review_board"
+      ? reviewBoardPath(projectId, file.id)
+      : file.type === "canvas"
+        ? canvasPath(projectId, file.id)
+        : file.type === "text_document"
+          ? textDocumentPath(projectId, file.id)
+          : null;
 
-  const href = reviewBoardPath(projectId, file.id);
+  if (!href) return;
 
-  captureReviewBoardNavigationSnapshot({
-    projectId,
-    boardId: file.id,
-    projectName: options?.projectName ?? "Project",
-    boardName: file.name,
-    sectionCount: file.section_count,
-    assetCount: file.asset_count,
-  });
+  if (file.type === "review_board") {
+    captureReviewBoardNavigationSnapshot({
+      projectId,
+      boardId: file.id,
+      projectName: options?.projectName ?? "Project",
+      boardName: file.name,
+      sectionCount: file.section_count,
+      assetCount: file.asset_count,
+    });
+  }
+
+  if (file.type === "text_document") {
+    const config = parseDocumentConfig(file.config);
+    captureTextDocumentNavigationSnapshot({
+      projectId,
+      docId: file.id,
+      docName: file.name,
+      icon: resolveDocumentIcon(config.icon),
+      cover: resolveDocumentCover(config.cover),
+    });
+  }
 
   if (options?.newTab) {
     window.open(href, "_blank", "noopener,noreferrer");
@@ -49,8 +75,8 @@ type ProjectFileCardProps = {
   selected?: boolean;
   editorDisplayName?: string;
   editorAvatarUrl?: string | null;
-  isFavorite?: boolean;
   onSelect?: (fileId: string) => void;
+  onFavoriteToggle?: (fileId: string, favorite: boolean) => void;
   onContextMenu: (file: ProjectFileWithMeta, x: number, y: number) => void;
 };
 
@@ -61,16 +87,31 @@ export function ProjectFileCard({
   selected = false,
   editorDisplayName = "Unknown user",
   editorAvatarUrl,
-  isFavorite = true,
   onSelect,
+  onFavoriteToggle,
   onContextMenu,
 }: ProjectFileCardProps) {
   const router = useRouter();
   const clickTimeoutRef = useRef<number | null>(null);
-  const canOpen = file.type === "review_board";
-  const href = canOpen ? reviewBoardPath(projectId, file.id) : null;
+  const canOpen =
+    file.type === "review_board" ||
+    file.type === "canvas" ||
+    file.type === "text_document";
+  const href =
+    file.type === "review_board"
+      ? reviewBoardPath(projectId, file.id)
+      : file.type === "canvas"
+        ? canvasPath(projectId, file.id)
+        : file.type === "text_document"
+          ? textDocumentPath(projectId, file.id)
+          : null;
 
-  const Icon = file.type === "review_board" ? ClipboardList : PenTool;
+  const Icon =
+    file.type === "review_board"
+      ? ClipboardList
+      : file.type === "text_document"
+        ? FileText
+        : PenTool;
   const editedAt = file.created_at;
 
   const prefetchFile = useCallback(() => {
@@ -81,6 +122,12 @@ export function ProjectFileCard({
   function openFile(newTab = false) {
     if (!canOpen) return;
     navigateToProjectFile(router, projectId, file, { newTab, projectName });
+  }
+
+  function handleFavoriteToggle(event: React.MouseEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    onFavoriteToggle?.(file.id, !file.isFavorite);
   }
 
   function showContextMenu(event: React.MouseEvent) {
@@ -147,51 +194,59 @@ export function ProjectFileCard({
         }
       }}
       className={cn(
-        "group flex h-full cursor-default select-none flex-col overflow-hidden rounded-md border bg-white text-left shadow-sm transition-[box-shadow,border-color] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hub-primary/50",
+        "group flex h-full cursor-default select-none flex-col overflow-hidden rounded-md border bg-hub-surface text-left shadow-sm transition-[box-shadow,border-color] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hub-primary/50",
         selected
           ? "border-hub-accent ring-2 ring-hub-accent/35"
-          : "border-hub-espresso/10",
+          : "border-hub-foreground/10",
         !canOpen && "opacity-70",
       )}
     >
-      <div className="relative aspect-[16/10] overflow-hidden bg-hub-espresso/5">
-        <div className="flex size-full flex-col items-center justify-center gap-2 bg-[linear-gradient(135deg,#f8fafc_0%,#f1f5f9_45%,#ffffff_100%)]">
-          <div className="flex size-12 items-center justify-center rounded-md border border-hub-espresso/10 bg-white text-hub-primary shadow-sm">
-            <Icon className="size-6" aria-hidden />
-          </div>
-          <span
-            aria-hidden
-            className="pointer-events-none font-mono text-[0.6rem] uppercase tracking-[0.14em] text-hub-espresso/40"
-          >
-            {fileTypeLabel(file.type)}
-          </span>
-        </div>
+      <div className="relative aspect-[16/10] overflow-hidden bg-hub-foreground/5">
+        <ProjectFileThumbnail type={file.type} fileId={file.id} />
 
-        {isFavorite && (
-          <span
-            className="absolute top-2.5 right-2.5 flex size-8 items-center justify-center rounded-md border border-white/40 bg-white/25 shadow-[0_2px_12px_rgba(0,0,0,0.12)] backdrop-blur-md"
-            aria-label="Favorite"
+        {onFavoriteToggle && (
+          <button
+            type="button"
+            aria-label={file.isFavorite ? "Remove from favorites" : "Add to favorites"}
+            aria-pressed={file.isFavorite}
+            onClick={handleFavoriteToggle}
+            onDoubleClick={(event) => event.stopPropagation()}
+            className={cn(
+              "absolute top-2.5 right-2.5 flex size-8 items-center justify-center rounded-md border shadow-[0_2px_12px_rgba(0,0,0,0.12)] backdrop-blur-md transition-[opacity,border-color,transform,box-shadow,background-color] duration-300 ease-out",
+              file.isFavorite
+                ? "border-white/45 bg-hub-surface/25 opacity-100 scale-100"
+                : "border-white/35 bg-hub-surface/20 opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 group-focus-within:opacity-100 group-focus-within:scale-100 hover:border-white/50 hover:bg-hub-surface/30 active:scale-90",
+            )}
           >
-            <Star className="size-4 fill-hub-favorite stroke-none" aria-hidden />
-          </span>
+            <Star
+              className={cn(
+                "size-4 stroke-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)] transition-[fill,transform] duration-300 ease-out",
+                file.isFavorite ? "fill-hub-favorite scale-100" : "fill-white/75 scale-90",
+              )}
+            />
+          </button>
         )}
       </div>
 
-      <div className="space-y-1 border-t border-hub-espresso/8 bg-hub-espresso/[0.03] p-3">
+      <div className="space-y-1 border-t border-hub-foreground/8 bg-hub-foreground/[0.03] p-3">
         <div className="flex items-start gap-2">
           <div className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded bg-hub-primary/10 text-hub-primary">
             <Icon className="size-3.5" aria-hidden />
           </div>
 
           <div className="min-w-0 flex-1">
-            <h3 className="truncate font-display text-sm font-extrabold tracking-tight text-hub-espresso">
+            <h3 className="truncate font-display text-sm font-extrabold tracking-tight text-hub-foreground">
               {file.name}
             </h3>
-            <p className="mt-0.5 text-xs text-hub-espresso/55">
+            <p className="mt-0.5 text-xs text-hub-foreground/55">
               {formatEditedTime(editedAt)}
             </p>
-            <p className="text-xs text-hub-espresso/45">
-              {file.asset_count} asset{file.asset_count === 1 ? "" : "s"}
+            <p className="text-xs text-hub-foreground/45">
+              {file.type === "canvas"
+                ? "Open canvas"
+                : file.type === "text_document"
+                  ? "Text document"
+                  : `${file.asset_count} asset${file.asset_count === 1 ? "" : "s"}`}
             </p>
           </div>
 

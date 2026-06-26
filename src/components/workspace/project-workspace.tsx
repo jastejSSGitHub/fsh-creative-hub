@@ -1,18 +1,24 @@
 "use client";
 
-import { Play } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { MemberAvatarStack } from "@/components/projects/member-avatar-stack";
 import { InviteMembersDialog } from "@/components/projects/invite-members-dialog";
 import { ProjectInlineTitle } from "@/components/projects/project-inline-title";
 import { AssetCard } from "@/components/workspace/asset-card";
+import { ActivityFeed } from "@/components/workspace/activity-feed";
 import { AssetDetailOverlay } from "@/components/workspace/asset-detail-overlay";
 import { AssetGridLoading } from "@/components/workspace/asset-grid-loading";
 import { AssetUploadZone } from "@/components/workspace/asset-upload-zone";
 import { CreateInitiativeDialog } from "@/components/workspace/create-initiative-dialog";
+import { FireLeaders } from "@/components/workspace/fire-leaders";
+import { IdeasBoard } from "@/components/workspace/ideas-board";
 import { PresentationMode } from "@/components/workspace/presentation-mode";
+import { WorkspaceDetailToolbar } from "@/components/workspace/workspace-detail-toolbar";
+import {
+  WorkspaceViewTabs,
+  type WorkspaceView,
+} from "@/components/workspace/workspace-view-tabs";
 import { buttonVariants } from "@/components/ui/button";
 import { NavBackLink } from "@/components/ui/nav-back-link";
 import { canAdmin, canEdit } from "@/lib/permissions";
@@ -22,9 +28,13 @@ import { captureReviewBoardNavigationSnapshot, readReviewBoardNavigationSnapshot
 import type { ProjectCardData } from "@/lib/projects/queries";
 import { PROJECTS_PATH, reviewBoardPath } from "@/lib/routes";
 import {
+  getAssetDetail,
   getAssetsForInitiative,
+  getIdeasForInitiative,
+  type ActivityWithActor,
   type AssetWithVotes,
   type CommentWithAuthor,
+  type IdeaWithMeta,
   type ProjectMemberWithRole,
 } from "@/lib/workspace/queries";
 import type { HubInitiative, HubProject, HubRole } from "@/types/database";
@@ -48,6 +58,9 @@ type ProjectWorkspaceProps = {
   projectCardForInvite: ProjectCardData | null;
   backHref?: string;
   deferAssetsLoad?: boolean;
+  initialView?: WorkspaceView;
+  initialIdeas?: IdeaWithMeta[];
+  initialActivities?: ActivityWithActor[];
 };
 
 const FILTERS: { id: StatusFilter; label: string }[] = [
@@ -74,8 +87,14 @@ export function ProjectWorkspace({
   projectCardForInvite,
   backHref,
   deferAssetsLoad = false,
+  initialView = "assets",
+  initialIdeas = [],
+  initialActivities = [],
 }: ProjectWorkspaceProps) {
   const router = useRouter();
+  const [workspaceView, setWorkspaceView] = useState<WorkspaceView>(initialView);
+  const [ideas, setIdeas] = useState<IdeaWithMeta[]>(initialIdeas);
+  const [activities, setActivities] = useState<ActivityWithActor[]>(initialActivities);
   const [createInitiativeOpen, setCreateInitiativeOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [presentationOpen, setPresentationOpen] = useState(false);
@@ -108,6 +127,18 @@ export function ProjectWorkspace({
     ),
   );
   const fetchingInitiativeIdsRef = useRef(new Set<string>());
+
+  useEffect(() => {
+    setWorkspaceView(initialView);
+  }, [initialView]);
+
+  useEffect(() => {
+    setIdeas(initialIdeas);
+  }, [initialIdeas]);
+
+  useEffect(() => {
+    setActivities(initialActivities);
+  }, [initialActivities]);
 
   useEffect(() => {
     setOverlayAssetId(openAssetId);
@@ -182,6 +213,21 @@ export function ProjectWorkspace({
     ? assetsByInitiative[activeInitiativeId] ?? []
     : [];
 
+  useEffect(() => {
+    if (!activeInitiativeId || workspaceView !== "ideas") return;
+
+    let cancelled = false;
+    void (async () => {
+      const supabase = createClient();
+      const data = await getIdeasForInitiative(supabase, activeInitiativeId, userId);
+      if (!cancelled) setIdeas(data);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeInitiativeId, workspaceView, userId]);
+
   const filteredAssets = useMemo(() => {
     if (statusFilter === "all") return initiativeAssets;
     return initiativeAssets.filter((asset) => asset.status === statusFilter);
@@ -203,6 +249,7 @@ export function ProjectWorkspace({
     const params = new URLSearchParams();
     if (activeInitiativeId) params.set("initiative", activeInitiativeId);
     if (statusFilter !== "all") params.set("filter", statusFilter);
+    if (workspaceView !== "assets") params.set("view", workspaceView);
     if (includeAssetId) params.set("asset", includeAssetId);
     return params;
   }
@@ -222,6 +269,32 @@ export function ProjectWorkspace({
     setOverlayAssetId(null);
     const params = buildQueryParams(null);
     syncUrl(params);
+  }
+
+  function patchAssetInGrid(updated: AssetWithVotes) {
+    setAssetsByInitiative((prev) => {
+      const sectionAssets = prev[updated.initiative_id];
+      if (!sectionAssets) return prev;
+
+      return {
+        ...prev,
+        [updated.initiative_id]: sectionAssets.map((asset) =>
+          asset.id === updated.id ? updated : asset,
+        ),
+      };
+    });
+  }
+
+  async function handleAssetUploaded(assetId: string) {
+    const supabase = createClient();
+    const asset = await getAssetDetail(supabase, assetId);
+    if (!asset) return;
+
+    loadedInitiativeIdsRef.current.add(asset.initiative_id);
+    setAssetsByInitiative((prev) => ({
+      ...prev,
+      [asset.initiative_id]: [...(prev[asset.initiative_id] ?? []), asset],
+    }));
   }
 
   function setStatusFilterInstant(next: StatusFilter) {
@@ -251,6 +324,14 @@ export function ProjectWorkspace({
       fetchingInitiativeIdsRef.current.delete(initiativeId);
       setInitiativeAssetsLoading(false);
     }
+  }
+
+  function setWorkspaceViewInstant(next: WorkspaceView) {
+    setWorkspaceView(next);
+    const params = buildQueryParams();
+    if (next === "assets") params.delete("view");
+    else params.set("view", next);
+    syncUrl(params);
   }
 
   async function switchInitiative(initiativeId: string) {
@@ -288,95 +369,110 @@ export function ProjectWorkspace({
     };
   }, [initiativeAssets, reviewBoard]);
 
-  const memberPreviews = members.map((m) => ({
-    id: m.id,
-    display_name: m.display_name,
-    avatar_url: m.avatar_url,
-    role: m.role,
-  }));
+  const memberPreviews = useMemo(
+    () =>
+      members.map((m) => ({
+        id: m.id,
+        display_name: m.display_name,
+        avatar_url: m.avatar_url,
+        role: m.role,
+      })),
+    [members],
+  );
 
   const assetCountHint = reviewBoard
     ? readReviewBoardNavigationSnapshot(project.id, reviewBoard.id)?.assetCount
     : undefined;
 
+  const showAssetsChrome = workspaceView === "assets";
+  const showPresent = showAssetsChrome && presentationAssets.length > 0;
+
+  const detailToolbar = useMemo(
+    () => (
+      <WorkspaceDetailToolbar
+        members={memberPreviews}
+        stats={boardStats}
+        showStats={showAssetsChrome && boardStats != null}
+        showInvite={canAdmin(role) && projectCardForInvite != null}
+        showPresent={showPresent}
+        onInvite={() => setInviteOpen(true)}
+        onPresent={() => {
+          setPresentationIndex(0);
+          setPresentationOpen(true);
+        }}
+      />
+    ),
+    [
+      memberPreviews,
+      boardStats,
+      showAssetsChrome,
+      role,
+      projectCardForInvite,
+      showPresent,
+    ],
+  );
+
   return (
     <>
-      <section className="min-w-0 space-y-5 sm:space-y-6">
-        <div className="space-y-3">
+      {reviewBoard && (
+        <header className="sticky top-0 z-40 border-b border-hub-foreground/8 bg-hub-paper/95 backdrop-blur-md">
+          <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-3 py-2 sm:px-6">
             <NavBackLink
               href={backHref ?? PROJECTS_PATH}
-              label={reviewBoard ? project.name : "All Projects"}
+              label={project.name}
+              className="min-w-0 shrink"
             />
+            {detailToolbar}
+          </div>
+        </header>
+      )}
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div className="min-w-0 flex-1 space-y-1">
-                {reviewBoard && (
-                  <p className="font-mono text-[0.65rem] uppercase tracking-[0.14em] text-hub-accent">
-                    Review board
-                  </p>
-                )}
-                {reviewBoard ? (
-                  <h1 className="font-display text-2xl font-extrabold tracking-tight text-hub-espresso sm:text-3xl">
-                    {reviewBoard.name}
-                  </h1>
-                ) : (
-                  <ProjectInlineTitle
-                    projectId={project.id}
-                    name={project.name}
-                    canRename={canAdmin(role)}
-                  />
-                )}
-              </div>
-
-              <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto sm:shrink-0 sm:justify-end sm:gap-3">
-                {boardStats && (
-                  <div className="flex items-center gap-2 rounded-full border border-hub-espresso/10 bg-white px-3 py-1.5 font-mono text-[0.6rem] uppercase tracking-wider text-hub-espresso/55">
-                    <span className="text-hub-approved">{boardStats.approved} approved</span>
-                    <span aria-hidden>·</span>
-                    <span className="text-hub-rejected">{boardStats.rejected} rejected</span>
-                    <span aria-hidden>·</span>
-                    <span>{boardStats.total} total</span>
-                  </div>
-                )}
-                <MemberAvatarStack members={memberPreviews} max={6} />
-                {canAdmin(role) && projectCardForInvite && (
-                  <button
-                    type="button"
-                    onClick={() => setInviteOpen(true)}
-                    className="inline-flex min-h-10 flex-1 items-center justify-center rounded-md border border-transparent bg-hub-primary px-4 text-sm font-medium text-white transition-colors hover:bg-[#1590e8] sm:flex-none"
-                  >
-                    Invite
-                  </button>
-                )}
-                {presentationAssets.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPresentationIndex(0);
-                      setPresentationOpen(true);
-                    }}
-                    className="inline-flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent bg-hub-espresso px-4 text-sm font-medium text-hub-paper transition-colors hover:bg-hub-espresso/90 sm:flex-none"
-                  >
-                    <Play className="size-3.5 fill-current" aria-hidden />
-                    Present
-                  </button>
-                )}
-              </div>
+      <section className="mx-auto min-w-0 max-w-6xl space-y-5 px-3 py-5 sm:space-y-6 sm:px-6 sm:py-6">
+        <div className="space-y-3">
+            <div
+              className={cn(
+                "space-y-1",
+                reviewBoard && "mx-auto max-w-2xl text-center",
+              )}
+            >
+              {reviewBoard && (
+                <p className="font-mono text-[0.65rem] uppercase tracking-[0.14em] text-hub-foreground/50">
+                  Review board
+                </p>
+              )}
+              {reviewBoard ? (
+                <h1 className="font-display text-2xl font-extrabold tracking-tight text-hub-foreground sm:text-3xl">
+                  {reviewBoard.name}
+                </h1>
+              ) : (
+                <ProjectInlineTitle
+                  projectId={project.id}
+                  name={project.name}
+                  canRename={canAdmin(role)}
+                />
+              )}
             </div>
 
             {project.description && (
-              <p className="max-w-2xl text-sm leading-relaxed text-hub-espresso/65 sm:text-base">
+              <p
+                className={cn(
+                  "text-sm leading-relaxed text-hub-foreground/65 sm:text-base",
+                  reviewBoard
+                    ? "mx-auto max-w-2xl text-center"
+                    : "max-w-2xl",
+                )}
+              >
                 {project.description}
               </p>
             )}
           </div>
 
         {initiatives.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-hub-espresso/15 bg-white/70 px-6 py-12 text-center">
-            <p className="font-display text-xl font-extrabold text-hub-espresso">
+          <div className="rounded-xl border border-dashed border-hub-foreground/15 bg-hub-surface/70 px-6 py-12 text-center">
+            <p className="font-display text-xl font-extrabold text-hub-foreground">
               {reviewBoard ? "Add a section to get started" : "Create your first initiative"}
             </p>
-            <p className="mx-auto mt-2 max-w-md text-sm text-hub-espresso/55">
+            <p className="mx-auto mt-2 max-w-md text-sm text-hub-foreground/55">
               {reviewBoard
                 ? "Sections organize your visuals — e.g. Marketing Visuals, Menus, or Video Assets."
                 : "Initiatives group assets — e.g. \"Summer Campaign\" or \"Menu Refresh\"."}
@@ -393,64 +489,76 @@ export function ProjectWorkspace({
           </div>
         ) : (
           <>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
-                <label className="font-mono text-[0.65rem] uppercase tracking-wider text-hub-espresso/45 sm:sr-only">
-                  Section
-                </label>
-                <select
-                  value={activeInitiativeId ?? ""}
-                  onChange={(e) => switchInitiative(e.target.value)}
-                  onFocus={() => {
-                    if (activeInitiativeId) void ensureInitiativeAssets(activeInitiativeId);
-                  }}
-                  className="min-h-10 w-full rounded-md border border-hub-espresso/15 bg-white px-3.5 text-sm sm:max-w-xs lg:hidden"
-                >
-                  {initiatives.map((i) => (
-                    <option key={i.id} value={i.id}>
-                      {i.name}
-                    </option>
-                  ))}
-                </select>
-                <div className="hidden flex-wrap gap-1 lg:flex">
-                  {initiatives.map((i) => (
-                    <button
-                      key={i.id}
-                      type="button"
-                      onClick={() => switchInitiative(i.id)}
-                      onMouseEnter={() => void ensureInitiativeAssets(i.id)}
-                      onFocus={() => void ensureInitiativeAssets(i.id)}
-                      className={cn(
-                        "min-h-10 rounded-md border px-4 text-sm font-medium transition-colors",
-                        i.id === activeInitiativeId
-                          ? "border-hub-espresso bg-hub-espresso text-hub-paper"
-                          : "border-hub-espresso/15 bg-white text-hub-espresso hover:bg-hub-espresso/5",
-                      )}
-                    >
-                      {i.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {canEdit(role) && (
-                <button
-                  type="button"
-                  onClick={() => setCreateInitiativeOpen(true)}
-                  className="inline-flex min-h-10 w-full items-center justify-center rounded-md border border-hub-accent/60 bg-hub-accent px-4 text-sm font-medium text-hub-espresso transition-colors hover:bg-[#f5be3a] sm:w-auto"
-                >
-                  + Section
-                </button>
-              )}
+            <div className="flex justify-center px-1">
+              <WorkspaceViewTabs
+                view={workspaceView}
+                onChange={setWorkspaceViewInstant}
+                ideaCount={ideas.length}
+                activityCount={activities.length}
+                variant="prominent"
+              />
             </div>
 
-            {activeInitiativeId && (
+            {showAssetsChrome && (
+              <div className="flex flex-col gap-3 border-b border-hub-foreground/8 pb-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
+                  <label className="font-mono text-[0.65rem] uppercase tracking-wider text-hub-foreground/45 sm:sr-only">
+                    Section
+                  </label>
+                  <select
+                    value={activeInitiativeId ?? ""}
+                    onChange={(e) => switchInitiative(e.target.value)}
+                    onFocus={() => {
+                      if (activeInitiativeId) void ensureInitiativeAssets(activeInitiativeId);
+                    }}
+                    className="min-h-10 w-full rounded-md border border-hub-foreground/15 bg-hub-surface px-3.5 text-sm sm:max-w-xs lg:hidden"
+                  >
+                    {initiatives.map((i) => (
+                      <option key={i.id} value={i.id}>
+                        {i.name}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="hidden flex-wrap gap-1 lg:flex">
+                    {initiatives.map((i) => (
+                      <button
+                        key={i.id}
+                        type="button"
+                        onClick={() => switchInitiative(i.id)}
+                        onMouseEnter={() => void ensureInitiativeAssets(i.id)}
+                        onFocus={() => void ensureInitiativeAssets(i.id)}
+                        className={cn(
+                          "min-h-10 rounded-md border px-4 text-sm font-medium transition-colors",
+                          i.id === activeInitiativeId
+                            ? "border-hub-foreground bg-hub-espresso text-hub-paper"
+                            : "border-hub-foreground/15 bg-hub-surface text-hub-foreground hover:bg-hub-foreground/5",
+                        )}
+                      >
+                        {i.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {canEdit(role) && (
+                  <button
+                    type="button"
+                    onClick={() => setCreateInitiativeOpen(true)}
+                    className="inline-flex min-h-10 w-full items-center justify-center rounded-md border border-hub-foreground/15 bg-hub-surface px-4 text-sm font-medium text-hub-foreground transition-colors hover:bg-hub-foreground/[0.04] sm:w-auto"
+                  >
+                    + Section
+                  </button>
+                )}
+              </div>
+            )}
+
+            {activeInitiativeId && workspaceView === "assets" && (
               <div className="space-y-5">
                 {canEdit(role) && (
                   <AssetUploadZone
                     projectId={project.id}
                     boardId={reviewBoard?.id}
                     initiativeId={activeInitiativeId}
-                    onUploaded={() => router.refresh()}
+                    onUploaded={handleAssetUploaded}
                   />
                 )}
 
@@ -464,8 +572,8 @@ export function ProjectWorkspace({
                       className={cn(
                         "min-h-9 shrink-0 rounded-md border px-3 text-xs font-medium uppercase tracking-wider",
                         statusFilter === f.id
-                          ? "border-hub-espresso bg-hub-espresso text-hub-paper"
-                          : "border-hub-espresso/15 bg-white text-hub-espresso/60",
+                          ? "border-hub-foreground bg-hub-espresso text-hub-paper"
+                          : "border-hub-foreground/15 bg-hub-surface text-hub-foreground/60",
                       )}
                     >
                       {f.label}
@@ -474,23 +582,25 @@ export function ProjectWorkspace({
                   </div>
                 </div>
 
+                <FireLeaders assets={initiativeAssets} onOpen={openAssetOverlay} />
+
                 {initiativeAssetsLoading && initiativeAssets.length === 0 ? (
                   <AssetGridLoading assetCountHint={assetCountHint} />
                 ) : initiativeAssets.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-hub-espresso/15 px-6 py-12 text-center">
-                    <p className="font-display text-lg font-bold text-hub-espresso">
+                  <div className="rounded-xl border border-dashed border-hub-foreground/15 px-6 py-12 text-center">
+                    <p className="font-display text-lg font-bold text-hub-foreground">
                       Drop your first asset
                     </p>
-                    <p className="mt-2 text-sm text-hub-espresso/55">
+                    <p className="mt-2 text-sm text-hub-foreground/55">
                       {activeInitiative?.name ?? "This section"} is ready for uploads.
                     </p>
                   </div>
                 ) : filteredAssets.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-hub-espresso/15 px-6 py-12 text-center">
-                    <p className="font-display text-lg font-bold text-hub-espresso">
+                  <div className="rounded-xl border border-dashed border-hub-foreground/15 px-6 py-12 text-center">
+                    <p className="font-display text-lg font-bold text-hub-foreground">
                       No {statusFilter} assets
                     </p>
-                    <p className="mt-2 text-sm text-hub-espresso/55">
+                    <p className="mt-2 text-sm text-hub-foreground/55">
                       Try another filter or upload new work to this section.
                     </p>
                   </div>
@@ -513,11 +623,11 @@ export function ProjectWorkspace({
                           {fixes.length > 0 && (
                             <div className="space-y-4 pt-2">
                               <div className="flex items-center gap-3">
-                                <div className="h-px flex-1 bg-hub-espresso/10" />
-                                <p className="font-mono text-[0.65rem] uppercase tracking-wider text-hub-espresso/45">
+                                <div className="h-px flex-1 bg-hub-foreground/10" />
+                                <p className="font-mono text-[0.65rem] uppercase tracking-wider text-hub-foreground/45">
                                   Fix needed
                                 </p>
-                                <div className="h-px flex-1 bg-hub-espresso/10" />
+                                <div className="h-px flex-1 bg-hub-foreground/10" />
                               </div>
                               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
                                 {fixes.map((asset) => (
@@ -536,6 +646,20 @@ export function ProjectWorkspace({
                   </>
                 )}
               </div>
+            )}
+
+            {activeInitiativeId && workspaceView === "ideas" && (
+              <IdeasBoard
+                ideas={ideas}
+                initiativeId={activeInitiativeId}
+                projectId={project.id}
+                role={role}
+                userId={userId}
+              />
+            )}
+
+            {workspaceView === "activity" && (
+              <ActivityFeed activities={activities} projectId={project.id} />
             )}
           </>
         )}
@@ -566,6 +690,7 @@ export function ProjectWorkspace({
           role={role}
           userId={userId}
           onClose={closeAssetOverlay}
+          onAssetChange={patchAssetInGrid}
         />
       )}
 

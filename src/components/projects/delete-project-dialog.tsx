@@ -9,7 +9,7 @@ import { deleteProjectAction } from "@/lib/projects/actions";
 import { cn } from "@/lib/utils";
 
 const fieldClassName =
-  "w-full rounded-md border border-hub-espresso/15 bg-white px-3.5 text-hub-espresso outline-none ring-hub-rejected/30 placeholder:text-hub-espresso/35 focus:ring-2 disabled:opacity-60";
+  "w-full rounded-md border border-hub-foreground/15 bg-hub-surface px-3.5 text-hub-foreground outline-none ring-hub-rejected/30 placeholder:text-hub-foreground/35 focus:ring-2 disabled:opacity-60";
 
 type DeleteProjectDialogProps = {
   open: boolean;
@@ -112,9 +112,9 @@ export function DeleteProjectDialog({
         event.preventDefault();
         handleClose();
       }}
-      className="fixed inset-0 m-auto h-fit max-h-[calc(100dvh-2rem)] w-[min(100vw-2rem,28rem)] overflow-hidden rounded-xl border border-hub-espresso/10 bg-hub-paper p-0 text-hub-espresso shadow-2xl backdrop:bg-hub-espresso/50 open:flex open:flex-col"
+      className="fixed inset-0 m-auto h-fit max-h-[calc(100dvh-2rem)] w-[min(100vw-2rem,28rem)] overflow-hidden rounded-xl border border-hub-foreground/10 bg-hub-paper p-0 text-hub-foreground shadow-2xl backdrop:bg-hub-foreground/50 open:flex open:flex-col"
     >
-      <div className="flex items-start gap-3 border-b border-hub-espresso/10 px-5 py-4">
+      <div className="flex items-start gap-3 border-b border-hub-foreground/10 px-5 py-4">
         <h2 className="min-w-0 flex-1 text-[0.9375rem] font-semibold leading-snug tracking-tight">
           Confirm deletion of {projectName}
         </h2>
@@ -123,7 +123,7 @@ export function DeleteProjectDialog({
           onClick={handleClose}
           disabled={isPending}
           aria-label="Close"
-          className="flex size-6 shrink-0 items-center justify-center rounded-md text-hub-espresso/40 transition-colors hover:bg-hub-espresso/5 hover:text-hub-espresso/70 disabled:opacity-50"
+          className="flex size-6 shrink-0 items-center justify-center rounded-md text-hub-foreground/40 transition-colors hover:bg-hub-foreground/5 hover:text-hub-foreground/70 disabled:opacity-50"
         >
           <X className="size-3.5" strokeWidth={2} />
         </button>
@@ -133,7 +133,7 @@ export function DeleteProjectDialog({
         <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-hub-rejected/15">
           <AlertTriangle className="size-4 text-hub-rejected" aria-hidden />
         </div>
-        <p className="pt-1 text-sm font-semibold text-hub-espresso">
+        <p className="pt-1 text-sm font-semibold text-hub-foreground">
           This action cannot be undone.
         </p>
       </div>
@@ -146,8 +146,8 @@ export function DeleteProjectDialog({
         )}
 
         <div className="space-y-2">
-          <p className="text-sm text-hub-espresso/60">
-            Type <span className="font-semibold text-hub-espresso">{projectName}</span>{" "}
+          <p className="text-sm text-hub-foreground/60">
+            Type <span className="font-semibold text-hub-foreground">{projectName}</span>{" "}
             to confirm.
           </p>
           <input

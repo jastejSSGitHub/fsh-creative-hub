@@ -24,7 +24,7 @@ export function ConsensusBar({
     return (
       <div
         className={cn(
-          "w-full rounded-full bg-hub-espresso/10",
+          "w-full rounded-full bg-hub-foreground/10",
           height,
           className,
         )}
@@ -57,7 +57,7 @@ export function ConsensusBar({
         ))}
       </div>
       {size === "md" && (
-        <p className="font-mono text-[0.6rem] uppercase tracking-wider text-hub-espresso/45">
+        <p className="font-mono text-[0.6rem] uppercase tracking-wider text-hub-foreground/45">
           {total} reaction{total === 1 ? "" : "s"}
         </p>
       )}

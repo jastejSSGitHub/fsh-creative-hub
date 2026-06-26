@@ -59,7 +59,7 @@ export function HeroSection({ isLoggedIn }: HeroSectionProps) {
   const reduced = !!prefersReducedMotion;
 
   return (
-    <section className="relative min-h-[100svh] overflow-hidden bg-hub-paper text-hub-espresso">
+    <section className="relative min-h-[100svh] overflow-hidden bg-hub-paper text-hub-foreground">
       <FloatingWall reduced={reduced} />
       <GrainOverlay />
 
@@ -73,7 +73,7 @@ export function HeroSection({ isLoggedIn }: HeroSectionProps) {
         </motion.div>
 
         <motion.p
-          className="mb-6 font-mono text-[0.65rem] uppercase tracking-[0.22em] text-hub-espresso/45"
+          className="mb-6 font-mono text-[0.65rem] uppercase tracking-[0.22em] text-hub-foreground/45"
           initial={reduced ? false : { opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
@@ -95,7 +95,7 @@ export function HeroSection({ isLoggedIn }: HeroSectionProps) {
         </motion.h1>
 
         <motion.p
-          className="mt-8 max-w-xl text-base leading-relaxed text-hub-espresso/60 sm:mt-10 sm:text-lg"
+          className="mt-8 max-w-xl text-base leading-relaxed text-hub-foreground/60 sm:mt-10 sm:text-lg"
           initial={reduced ? false : { opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}

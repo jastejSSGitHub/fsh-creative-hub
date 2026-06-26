@@ -15,7 +15,7 @@ export function CommentsEmptyState() {
         <motion.div
           animate={{ y: [0, -4, 0] }}
           transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
-          className="flex size-12 items-center justify-center rounded-xl border border-hub-espresso/10 bg-white shadow-sm"
+          className="flex size-12 items-center justify-center rounded-xl border border-hub-foreground/10 bg-hub-surface shadow-sm"
         >
           <MessageSquarePlus className="size-5 text-hub-accent" aria-hidden />
         </motion.div>
@@ -31,7 +31,7 @@ export function CommentsEmptyState() {
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.12, duration: 0.4 }}
-        className="mt-3 font-display text-sm font-bold text-hub-espresso"
+        className="mt-3 font-display text-sm font-bold text-hub-foreground"
       >
         Add a comment
       </motion.p>
@@ -39,7 +39,7 @@ export function CommentsEmptyState() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.22, duration: 0.4 }}
-        className="mt-1 max-w-[12rem] text-xs leading-relaxed text-hub-espresso/50"
+        className="mt-1 max-w-[12rem] text-xs leading-relaxed text-hub-foreground/50"
       >
         Share feedback or type @ to mention a teammate
       </motion.p>

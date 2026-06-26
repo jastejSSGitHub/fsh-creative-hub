@@ -42,7 +42,7 @@ export function AuthTransitionIllustration({
       />
 
       <motion.div
-        className="absolute inset-0 rounded-[1.5rem] border border-dashed border-hub-espresso/10"
+        className="absolute inset-0 rounded-[1.5rem] border border-dashed border-hub-foreground/10"
         animate={isReduced ? undefined : { rotate: 360 }}
         transition={
           isReduced
@@ -51,15 +51,15 @@ export function AuthTransitionIllustration({
         }
       />
 
-      <div className="relative z-10 flex h-[4.25rem] w-[4.25rem] items-center justify-center rounded-xl border border-hub-espresso/10 bg-white shadow-[0_12px_32px_rgba(26,15,8,0.1)]">
+      <div className="relative z-10 flex h-[4.25rem] w-[4.25rem] items-center justify-center rounded-xl border border-hub-foreground/10 bg-hub-surface shadow-[0_12px_32px_rgba(26,15,8,0.1)]">
         <div className="absolute left-2.5 top-2.5 flex gap-1">
-          <span className="size-1.5 rounded-full bg-hub-espresso/12" />
-          <span className="size-1.5 rounded-full bg-hub-espresso/12" />
-          <span className="size-1.5 rounded-full bg-hub-espresso/12" />
+          <span className="size-1.5 rounded-full bg-hub-foreground/12" />
+          <span className="size-1.5 rounded-full bg-hub-foreground/12" />
+          <span className="size-1.5 rounded-full bg-hub-foreground/12" />
         </div>
 
         <motion.div
-          className="mt-3 h-1.5 w-10 rounded-full bg-hub-espresso/10"
+          className="mt-3 h-1.5 w-10 rounded-full bg-hub-foreground/10"
           animate={
             isReduced
               ? undefined

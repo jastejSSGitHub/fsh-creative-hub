@@ -67,7 +67,7 @@ function FilePreview({
       <>
         <div className={cn("absolute inset-0 bg-gradient-to-br", gradient)} />
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="flex size-6 items-center justify-center rounded-full bg-white/95 shadow-[0_2px_8px_rgba(0,0,0,0.12)]">
+          <div className="flex size-6 items-center justify-center rounded-full bg-hub-surface/95 shadow-[0_2px_8px_rgba(0,0,0,0.12)]">
             <svg viewBox="0 0 10 12" className="ml-0.5 size-2.5 fill-hub-espresso/80">
               <path d="M0 0v12l10-6L0 0z" />
             </svg>
@@ -77,7 +77,7 @@ function FilePreview({
           {[0.35, 0.65, 0.45, 0.85, 0.55].map((h, i) => (
             <div
               key={i}
-              className="flex-1 rounded-full bg-white/45"
+              className="flex-1 rounded-full bg-hub-surface/45"
               style={{ height: `${h * 10}px` }}
             />
           ))}
@@ -89,9 +89,9 @@ function FilePreview({
   return (
     <>
       <div className={cn("absolute inset-0 bg-gradient-to-br", gradient)} />
-      <div className="absolute bottom-3 left-3 right-3 h-2 rounded-full bg-white/35" />
-      <div className="absolute bottom-6 left-3 h-1.5 w-7 rounded-full bg-white/45" />
-      <div className="absolute right-3 top-3 size-2.5 rounded-full bg-white/55" />
+      <div className="absolute bottom-3 left-3 right-3 h-2 rounded-full bg-hub-surface/35" />
+      <div className="absolute bottom-6 left-3 h-1.5 w-7 rounded-full bg-hub-surface/45" />
+      <div className="absolute right-3 top-3 size-2.5 rounded-full bg-hub-surface/55" />
     </>
   );
 }
@@ -138,7 +138,7 @@ export function AssetDropIllustration() {
             }}
             className="relative w-[5.75rem]"
           >
-            <div className="relative overflow-hidden rounded-[0.9rem] bg-white">
+            <div className="relative overflow-hidden rounded-[0.9rem] bg-hub-surface">
               <div className="relative aspect-[4/3] overflow-hidden">
                 <FilePreview
                   preview={activeFile.preview}
@@ -146,10 +146,10 @@ export function AssetDropIllustration() {
                 />
               </div>
               <div className="flex items-center justify-between px-2 py-1.5">
-                <span className="text-[0.55rem] font-semibold tracking-wide text-hub-espresso/75">
+                <span className="text-[0.55rem] font-semibold tracking-wide text-hub-foreground/75">
                   {activeFile.label}
                 </span>
-                <span className="text-[0.5rem] text-hub-espresso/35">
+                <span className="text-[0.5rem] text-hub-foreground/35">
                   {activeFile.ext}
                 </span>
               </div>

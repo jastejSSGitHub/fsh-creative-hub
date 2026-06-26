@@ -8,7 +8,7 @@ import { renameProjectAction } from "@/lib/projects/actions";
 import { cn } from "@/lib/utils";
 
 const fieldClassName =
-  "w-full rounded-md border border-hub-espresso/15 bg-white px-3.5 text-hub-espresso outline-none ring-hub-accent/40 placeholder:text-hub-espresso/35 focus:ring-2 disabled:opacity-60";
+  "w-full rounded-md border border-hub-foreground/15 bg-hub-surface px-3.5 text-hub-foreground outline-none ring-hub-accent/40 placeholder:text-hub-foreground/35 focus:ring-2 disabled:opacity-60";
 
 type RenameProjectDialogProps = {
   open: boolean;
@@ -74,7 +74,7 @@ export function RenameProjectDialog({
         <div className="space-y-1.5">
           <label
             htmlFor="rename-project-name"
-            className="font-mono text-[0.65rem] uppercase tracking-[0.12em] text-hub-espresso/50"
+            className="font-mono text-[0.65rem] uppercase tracking-[0.12em] text-hub-foreground/50"
           >
             Project name
           </label>
@@ -95,7 +95,7 @@ export function RenameProjectDialog({
             disabled={isPending}
             className={cn(
               buttonVariants({ variant: "outline" }),
-              "min-h-10 flex-1 rounded-lg border-hub-espresso/15",
+              "min-h-10 flex-1 rounded-lg border-hub-foreground/15",
             )}
           >
             Cancel

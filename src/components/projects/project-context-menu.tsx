@@ -85,14 +85,14 @@ export function ProjectContextMenu({
   return createPortal(
     <div
       ref={menuRef}
-      className="fixed z-50 min-w-[12rem] overflow-hidden rounded-lg border border-hub-espresso/10 bg-white py-1 shadow-xl"
+      className="fixed z-50 min-w-[12rem] overflow-hidden rounded-lg border border-hub-foreground/10 bg-hub-surface py-1 shadow-xl"
       style={{ left: x, top: y }}
       role="menu"
     >
       {items.map((item) => (
         <div key={item.id}>
           {item.separatorBefore && (
-            <div className="my-1 border-t border-hub-espresso/10" role="separator" />
+            <div className="my-1 border-t border-hub-foreground/10" role="separator" />
           )}
           <button
             type="button"
@@ -107,7 +107,7 @@ export function ProjectContextMenu({
               "flex w-full items-center px-3 py-2 text-left text-sm transition-colors",
               item.destructive
                 ? "text-hub-rejected hover:bg-hub-rejected/10"
-                : "text-hub-espresso hover:bg-hub-espresso/5",
+                : "text-hub-foreground hover:bg-hub-foreground/5",
               item.disabled && "cursor-not-allowed opacity-45",
             )}
           >

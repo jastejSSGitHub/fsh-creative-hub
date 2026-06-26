@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { FeatureOnboardingModal } from "@/components/onboarding/feature-onboarding-modal";
-import { hasSeenFeatureOnboarding } from "@/lib/onboarding/storage";
+import { shouldShowFeatureOnboarding } from "@/lib/onboarding/storage";
 
 const ONBOARDING_DELAY_MS = 2000;
 
@@ -15,10 +15,10 @@ export function FeatureOnboardingHost({ userId }: FeatureOnboardingHostProps) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    if (hasSeenFeatureOnboarding(userId)) return;
+    if (!shouldShowFeatureOnboarding(userId)) return;
 
     const timer = window.setTimeout(() => {
-      if (!hasSeenFeatureOnboarding(userId)) {
+      if (shouldShowFeatureOnboarding(userId)) {
         setOpen(true);
       }
     }, ONBOARDING_DELAY_MS);

@@ -56,9 +56,9 @@ const LOGIN_SLIDES = [
     body: "Drop ideas on a shared board. Upvote the best. Let the room decide.",
     panelClassName:
       "bg-gradient-to-br from-[#E9A319] via-[#F4A261] to-[#FF6B6B]",
-    textClassName: "text-hub-espresso",
-    kickerClassName: "text-hub-espresso/55",
-    bodyClassName: "text-hub-espresso/70",
+    textClassName: "text-hub-foreground",
+    kickerClassName: "text-hub-foreground/55",
+    bodyClassName: "text-hub-foreground/70",
     visual: "ideas" as const,
   },
   {
@@ -257,7 +257,7 @@ export function LoginShowcase() {
 
       <FloatingOrb
         reduced={reduced}
-        className="left-[10%] top-[15%] size-64 bg-white/20"
+        className="left-[10%] top-[15%] size-64 bg-hub-surface/20"
       />
       <FloatingOrb
         reduced={reduced}

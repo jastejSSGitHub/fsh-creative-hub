@@ -27,7 +27,7 @@ const STEPS = [
 
 export function HowItWorks() {
   return (
-    <section className="border-t border-hub-espresso/8 bg-hub-paper px-5 py-20 sm:px-8 sm:py-28">
+    <section className="border-t border-hub-foreground/8 bg-hub-paper px-5 py-20 sm:px-8 sm:py-28">
       <div className="mx-auto max-w-6xl">
         <div className="grid gap-12 md:grid-cols-3 md:gap-8 lg:gap-12">
           {STEPS.map((step, index) => (
@@ -35,7 +35,7 @@ export function HowItWorks() {
               <div className="space-y-4">
                 <SectionErrorBoundary
                   fallback={
-                    <div className="flex aspect-[5/4] min-h-[10.5rem] items-center justify-center rounded-lg border border-dashed border-hub-espresso/15 bg-white/80" />
+                    <div className="flex aspect-[5/4] min-h-[10.5rem] items-center justify-center rounded-lg border border-dashed border-hub-foreground/15 bg-hub-surface/80" />
                   }
                 >
                   <HowItWorksStepVisual step={step.visual} />
@@ -44,10 +44,10 @@ export function HowItWorks() {
                 <p className="font-mono text-sm tracking-[0.08em] text-hub-accent">
                   {step.number}
                 </p>
-                <h3 className="font-display text-2xl font-extrabold tracking-tight text-hub-espresso sm:text-3xl">
+                <h3 className="font-display text-2xl font-extrabold tracking-tight text-hub-foreground sm:text-3xl">
                   {step.title}
                 </h3>
-                <p className="text-base leading-relaxed text-hub-espresso/60">
+                <p className="text-base leading-relaxed text-hub-foreground/60">
                   {step.body}
                 </p>
               </div>

@@ -81,8 +81,8 @@ export function ReactionPicker({
                   className={cn(
                     "relative flex min-h-11 w-full items-center justify-center rounded-md border text-xl transition-colors",
                     selected
-                      ? "border-hub-espresso bg-hub-espresso/10 ring-2 ring-hub-espresso/15"
-                      : "border-hub-espresso/15 bg-white hover:bg-hub-espresso/5",
+                      ? "border-hub-foreground bg-hub-foreground/10 ring-2 ring-hub-espresso/15"
+                      : "border-hub-foreground/15 bg-hub-surface hover:bg-hub-foreground/5",
                     disabled && "cursor-not-allowed opacity-50",
                   )}
                   aria-pressed={selected}
@@ -127,7 +127,7 @@ export function ReactionPicker({
       </div>
 
       {userReaction && (
-        <p className="mt-2 font-mono text-[0.6rem] uppercase tracking-wider text-hub-espresso/45">
+        <p className="mt-2 font-mono text-[0.6rem] uppercase tracking-wider text-hub-foreground/45">
           Your reaction: {REACTION_META[userReaction].emoji} {REACTION_META[userReaction].label} · tap again to remove
         </p>
       )}

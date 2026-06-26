@@ -1,7 +1,6 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
 import { MentionComposer } from "@/components/workspace/mention-composer";
@@ -19,7 +18,6 @@ import {
 import { UndoToast } from "@/components/ui/undo-toast";
 import { buttonVariants } from "@/components/ui/button";
 import { parseMentionIds } from "@/lib/mentions/utils";
-import { buildConsensusCounts } from "@/lib/assets/consensus";
 import { canAdmin, canEdit } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -34,6 +32,7 @@ import {
   updateAssetStatusAction,
 } from "@/lib/workspace/actions";
 import {
+  getAssetDetail,
   getCommentsForAsset,
   getUserReaction,
   type CommentWithAuthor,
@@ -49,6 +48,7 @@ type AssetDetailOverlayProps = {
   role: HubRole;
   userId: string;
   onClose: () => void;
+  onAssetChange?: (asset: AssetWithVotes) => void;
 };
 
 const DELETE_UNDO_MS = 5000;
@@ -65,8 +65,8 @@ export function AssetDetailOverlay({
   role,
   userId,
   onClose,
+  onAssetChange,
 }: AssetDetailOverlayProps) {
-  const router = useRouter();
   const [asset, setAsset] = useState(initialAsset);
   const [comments, setComments] = useState(initialComments);
   const [commentsLoading, setCommentsLoading] = useState(true);
@@ -78,6 +78,8 @@ export function AssetDetailOverlay({
   const [deleteToastVisible, setDeleteToastVisible] = useState(false);
   const pendingDeleteRef = useRef<PendingCommentDelete | null>(null);
   const voteSyncBlockedRef = useRef(false);
+  const onAssetChangeRef = useRef(onAssetChange);
+  onAssetChangeRef.current = onAssetChange;
 
   const userReaction = getUserReaction(asset.votes, userId);
   const statusStyle = STATUS_STYLES[asset.status];
@@ -89,15 +91,26 @@ export function AssetDetailOverlay({
     setMediaLoaded(false);
   }, [initialAsset.id]);
 
-  useEffect(() => {
-    if (voteSyncBlockedRef.current) return;
-    setAsset(initialAsset);
-  }, [initialAsset]);
+  const loadComments = useCallback(async () => {
+    const supabase = createClient();
+    const data = await getCommentsForAsset(supabase, initialAsset.id);
+    setComments(data);
+  }, [initialAsset.id]);
+
+  const syncAssetFromServer = useCallback(async () => {
+    const supabase = createClient();
+    const next = await getAssetDetail(supabase, asset.id);
+    if (!next) return;
+
+    voteSyncBlockedRef.current = false;
+    setAsset(next);
+    onAssetChangeRef.current?.(next);
+  }, [asset.id]);
 
   useEffect(() => {
     let cancelled = false;
 
-    async function loadComments() {
+    async function loadInitialComments() {
       setCommentsLoading(true);
       try {
         const supabase = createClient();
@@ -112,7 +125,7 @@ export function AssetDetailOverlay({
       }
     }
 
-    void loadComments();
+    void loadInitialComments();
 
     return () => {
       cancelled = true;
@@ -126,29 +139,38 @@ export function AssetDetailOverlay({
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "hub_votes", filter: `asset_id=eq.${asset.id}` },
-        () => router.refresh(),
+        () => {
+          if (voteSyncBlockedRef.current) return;
+          void syncAssetFromServer();
+        },
       )
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "hub_comments", filter: `asset_id=eq.${asset.id}` },
-        () => router.refresh(),
+        () => {
+          void loadComments();
+        },
       )
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "hub_comments", filter: `asset_id=eq.${asset.id}` },
-        () => router.refresh(),
+        () => {
+          void loadComments();
+        },
       )
       .on(
         "postgres_changes",
         { event: "DELETE", schema: "public", table: "hub_comments", filter: `asset_id=eq.${asset.id}` },
-        () => router.refresh(),
+        () => {
+          void loadComments();
+        },
       )
       .subscribe();
 
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [asset.id, router]);
+  }, [asset.id, loadComments, syncAssetFromServer]);
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -181,27 +203,6 @@ export function AssetDetailOverlay({
     };
   }, []);
 
-  function refresh() {
-    router.refresh();
-  }
-
-  async function reloadVotes() {
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from("hub_votes")
-      .select("*")
-      .eq("asset_id", asset.id);
-
-    if (error) return;
-
-    const votes = data ?? [];
-    setAsset((prev) => ({
-      ...prev,
-      votes,
-      consensus: buildConsensusCounts(votes.map((vote) => vote.reaction)),
-    }));
-  }
-
   const commitPendingDelete = useCallback(async (options?: { keepToast?: boolean }) => {
     const pending = pendingDeleteRef.current;
     if (!pending) return;
@@ -220,9 +221,7 @@ export function AssetDetailOverlay({
       setError(result.error);
       return;
     }
-
-    router.refresh();
-  }, [router]);
+  }, []);
 
   function queueCommentDelete(comment: CommentWithAuthor) {
     void commitPendingDelete({ keepToast: true });
@@ -262,17 +261,19 @@ export function AssetDetailOverlay({
         return;
       }
 
-      await reloadVotes();
-      voteSyncBlockedRef.current = false;
-      refresh();
+      await syncAssetFromServer();
     });
   }
 
   function handleStatus(status: "approved" | "rejected" | "final" | "pending") {
     startTransition(async () => {
       const result = await updateAssetStatusAction(asset.id, status);
-      if (!result.ok) setError(result.error);
-      else refresh();
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+
+      await syncAssetFromServer();
     });
   }
 
@@ -293,32 +294,26 @@ export function AssetDetailOverlay({
       }
       setBody("");
       setReplyTo(null);
-      const supabase = createClient();
-      const data = await getCommentsForAsset(supabase, asset.id);
-      setComments(data);
-      refresh();
+      await loadComments();
     });
   }
 
   function toggleResolve(commentId: string, resolved: boolean) {
     startTransition(async () => {
       await resolveCommentAction(commentId, resolved);
-      const supabase = createClient();
-      const data = await getCommentsForAsset(supabase, asset.id);
-      setComments(data);
-      refresh();
+      await loadComments();
     });
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-hub-espresso/90 p-0 sm:p-4 animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 flex flex-col bg-hub-foreground/90 p-0 sm:p-4 animate-in fade-in duration-150">
       <div className="mx-auto flex h-full w-full max-w-6xl flex-col overflow-hidden rounded-none bg-hub-paper shadow-2xl sm:rounded-xl animate-in zoom-in-95 duration-200">
-        <header className="flex items-center justify-between border-b border-hub-espresso/10 px-4 py-3 sm:px-6">
+        <header className="flex items-center justify-between border-b border-hub-foreground/10 px-4 py-3 sm:px-6">
           <div className="min-w-0 pr-4">
-            <p className="font-mono text-[0.6rem] uppercase tracking-wider text-hub-espresso/45">
+            <p className="font-mono text-[0.6rem] uppercase tracking-wider text-hub-foreground/45">
               {asset.tag} · {statusStyle.label}
             </p>
-            <h2 className="truncate font-display text-xl font-extrabold text-hub-espresso sm:text-2xl">
+            <h2 className="truncate font-display text-xl font-extrabold text-hub-foreground sm:text-2xl">
               {asset.name}
             </h2>
           </div>
@@ -326,7 +321,7 @@ export function AssetDetailOverlay({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="flex size-10 shrink-0 items-center justify-center rounded-md border border-hub-espresso/15 text-hub-espresso/60 transition-colors hover:bg-hub-espresso/5 hover:text-hub-espresso"
+            className="flex size-10 shrink-0 items-center justify-center rounded-md border border-hub-foreground/15 text-hub-foreground/60 transition-colors hover:bg-hub-foreground/5 hover:text-hub-foreground"
           >
             <X className="size-4" strokeWidth={2} />
           </button>
@@ -335,7 +330,7 @@ export function AssetDetailOverlay({
         <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
           <div className="relative flex min-h-[40vh] flex-1 items-center justify-center bg-hub-espresso p-4 lg:min-h-0">
             {!mediaLoaded && (
-              <div className="absolute inset-4 animate-pulse rounded-md bg-white/10" />
+              <div className="absolute inset-4 animate-pulse rounded-md bg-hub-surface/10" />
             )}
             {asset.type === "video" ? (
               <video
@@ -361,7 +356,7 @@ export function AssetDetailOverlay({
             )}
           </div>
 
-          <aside className="flex w-full shrink-0 flex-col overflow-hidden border-t border-hub-espresso/10 lg:w-[22rem] lg:border-t-0 lg:border-l">
+          <aside className="flex w-full shrink-0 flex-col overflow-hidden border-t border-hub-foreground/10 lg:w-[22rem] lg:border-t-0 lg:border-l">
             <div className="overflow-y-auto overflow-x-hidden p-4 sm:p-6">
               <div className="space-y-5">
                 {error && (
@@ -393,7 +388,7 @@ export function AssetDetailOverlay({
                         type="button"
                         disabled={isPending}
                         onClick={() => handleStatus("final")}
-                        className={cn(buttonVariants({ size: "sm" }), "min-h-10 rounded-md bg-hub-final text-hub-espresso")}
+                        className={cn(buttonVariants({ size: "sm" }), "min-h-10 rounded-md bg-hub-final text-hub-foreground")}
                       >
                         Final pick
                       </button>
@@ -402,7 +397,7 @@ export function AssetDetailOverlay({
                 )}
 
                 <div className="space-y-2">
-                  <p className="font-mono text-[0.65rem] uppercase tracking-wider text-hub-espresso/45">
+                  <p className="font-mono text-[0.65rem] uppercase tracking-wider text-hub-foreground/45">
                     Reactions
                   </p>
                   <ReactionPicker
@@ -414,7 +409,7 @@ export function AssetDetailOverlay({
                 </div>
 
                 <div className="space-y-3">
-                  <p className="font-mono text-[0.65rem] uppercase tracking-wider text-hub-espresso/45">
+                  <p className="font-mono text-[0.65rem] uppercase tracking-wider text-hub-foreground/45">
                     Comments
                   </p>
                   <div className="max-h-48 overflow-y-auto overflow-x-hidden pr-1">
@@ -440,7 +435,7 @@ export function AssetDetailOverlay({
                   </div>
                   <div className="space-y-2">
                     {replyTo && (
-                      <p className="text-xs text-hub-espresso/50">
+                      <p className="text-xs text-hub-foreground/50">
                         Replying to thread ·{" "}
                         <button type="button" className="underline" onClick={() => setReplyTo(null)}>
                           cancel
@@ -505,7 +500,7 @@ function CommentBlock({
 
   if (comment.resolved) {
     return (
-      <div className="flex items-start justify-between gap-2 rounded-md border border-hub-espresso/10 bg-hub-espresso/5 px-3 py-2 text-xs text-hub-espresso/50">
+      <div className="flex items-start justify-between gap-2 rounded-md border border-hub-foreground/10 bg-hub-foreground/5 px-3 py-2 text-xs text-hub-foreground/50">
         <p>
           Resolved thread ·{" "}
           <button type="button" className="underline" onClick={() => onResolve(false)}>
@@ -520,15 +515,15 @@ function CommentBlock({
   }
 
   return (
-    <div className="rounded-md border border-hub-espresso/10 bg-white px-3 py-2">
+    <div className="rounded-md border border-hub-foreground/10 bg-hub-surface px-3 py-2">
       <div className="flex items-start justify-between gap-2">
-        <p className="text-xs font-medium text-hub-espresso">{comment.author.display_name}</p>
+        <p className="text-xs font-medium text-hub-foreground">{comment.author.display_name}</p>
         {isOwner && (
           <CommentOptionsMenu onDelete={() => onDelete(comment)} />
         )}
       </div>
-      <p className="mt-1 text-sm text-hub-espresso/80">{comment.body}</p>
-      <div className="mt-2 flex gap-3 text-xs text-hub-espresso/45">
+      <p className="mt-1 text-sm text-hub-foreground/80">{comment.body}</p>
+      <div className="mt-2 flex gap-3 text-xs text-hub-foreground/45">
         <button type="button" className="underline" onClick={onReply}>
           Reply
         </button>
@@ -539,7 +534,7 @@ function CommentBlock({
         )}
       </div>
       {comment.replies.length > 0 && (
-        <div className="mt-2 space-y-2 border-l-2 border-hub-espresso/10 pl-3">
+        <div className="mt-2 space-y-2 border-l-2 border-hub-foreground/10 pl-3">
           {comment.replies.map((reply) => (
             <CommentReply
               key={reply.id}
@@ -568,12 +563,12 @@ function CommentReply({
   return (
     <div>
       <div className="flex items-start justify-between gap-2">
-        <p className="text-xs font-medium text-hub-espresso">{reply.author.display_name}</p>
+        <p className="text-xs font-medium text-hub-foreground">{reply.author.display_name}</p>
         {isOwner && (
           <CommentOptionsMenu onDelete={() => onDelete(reply)} />
         )}
       </div>
-      <p className="text-sm text-hub-espresso/75">{reply.body}</p>
+      <p className="text-sm text-hub-foreground/75">{reply.body}</p>
     </div>
   );
 }

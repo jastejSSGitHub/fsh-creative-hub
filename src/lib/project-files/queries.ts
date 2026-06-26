@@ -6,11 +6,14 @@ export type ProjectFileWithMeta = HubProjectFile & {
   section_count: number;
   asset_count: number;
   approved_count: number;
+  isFavorite: boolean;
+  favoritedAt: string | null;
 };
 
 export async function getProjectFiles(
   supabase: SupabaseClient,
   projectId: string,
+  userId?: string,
 ): Promise<ProjectFileWithMeta[]> {
   const { data: files, error } = await supabase
     .from("hub_project_files")
@@ -49,6 +52,22 @@ export async function getProjectFiles(
     assets = data ?? [];
   }
 
+  let favoriteByFileId = new Map<string, string>();
+  if (userId && fileIds.length) {
+    const { data: favorites } = await supabase
+      .from("hub_project_file_favorites")
+      .select("file_id, favorited_at")
+      .eq("user_id", userId)
+      .in("file_id", fileIds);
+
+    favoriteByFileId = new Map(
+      (favorites ?? []).map((favorite) => [
+        favorite.file_id as string,
+        favorite.favorited_at as string,
+      ]),
+    );
+  }
+
   return (files as HubProjectFile[]).map((file) => {
     const sectionIds = initiativesByBoard.get(file.id) ?? [];
     const fileAssets = assets.filter((a) => sectionIds.includes(a.initiative_id));
@@ -58,6 +77,8 @@ export async function getProjectFiles(
       section_count: sectionIds.length,
       asset_count: fileAssets.length,
       approved_count: fileAssets.filter((a) => a.status === "approved" || a.status === "final").length,
+      isFavorite: favoriteByFileId.has(file.id),
+      favoritedAt: favoriteByFileId.get(file.id) ?? null,
     };
   });
 }
@@ -84,6 +105,8 @@ export function fileTypeLabel(type: HubProjectFileType): string {
       return "Review board";
     case "canvas":
       return "Canvas";
+    case "text_document":
+      return "Text document";
     default:
       return type;
   }

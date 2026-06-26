@@ -10,8 +10,8 @@ export default function LoginPage() {
         <LoginShowcase />
       </div>
 
-      <div className="flex items-center justify-center bg-hub-paper px-5 py-16 lg:border-l lg:border-hub-espresso/8 lg:px-10 xl:px-16">
-        <Suspense fallback={<p className="text-hub-espresso/50">Loading…</p>}>
+      <div className="flex items-center justify-center bg-hub-paper px-5 py-16 lg:border-l lg:border-hub-foreground/8 lg:px-10 xl:px-16">
+        <Suspense fallback={<p className="text-hub-foreground/50">Loading…</p>}>
           <LoginForm />
         </Suspense>
       </div>

@@ -5,5 +5,5 @@ export default function ForYouLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <HubShell>{children}</HubShell>;
+  return <HubShell variant="inbox">{children}</HubShell>;
 }

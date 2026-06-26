@@ -24,10 +24,10 @@ export function InternalProof() {
             ))}
           </div>
 
-          <p className="mt-8 font-display text-2xl font-extrabold tracking-tight text-hub-espresso sm:text-3xl">
+          <p className="mt-8 font-display text-2xl font-extrabold tracking-tight text-hub-foreground sm:text-3xl">
             Built by the FSH design team.
           </p>
-          <p className="mt-3 font-mono text-[0.7rem] uppercase tracking-[0.18em] text-hub-espresso/45">
+          <p className="mt-3 font-mono text-[0.7rem] uppercase tracking-[0.18em] text-hub-foreground/45">
             For the FSH design team.
           </p>
         </div>

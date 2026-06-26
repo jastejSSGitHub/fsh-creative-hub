@@ -43,14 +43,14 @@ export function CommentOptionsMenu({ onDelete, className }: CommentOptionsMenuPr
         aria-expanded={open}
         aria-haspopup="menu"
         onClick={() => setOpen((value) => !value)}
-        className="flex size-7 items-center justify-center rounded-md text-hub-espresso/45 transition-colors hover:bg-hub-espresso/5 hover:text-hub-espresso/70"
+        className="flex size-7 items-center justify-center rounded-md text-hub-foreground/45 transition-colors hover:bg-hub-foreground/5 hover:text-hub-foreground/70"
       >
         <MoreHorizontal className="size-4" strokeWidth={2} />
       </button>
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-full z-20 mt-1 min-w-[7.5rem] overflow-hidden rounded-md border border-hub-espresso/10 bg-white py-1 shadow-lg"
+          className="absolute right-0 top-full z-20 mt-1 min-w-[7.5rem] overflow-hidden rounded-md border border-hub-foreground/10 bg-hub-surface py-1 shadow-lg"
         >
           <button
             type="button"

@@ -13,16 +13,18 @@ export function memberInitials(name: string): string {
 type MemberAvatarProps = {
   displayName: string;
   avatarUrl?: string | null;
-  variant?: "primary" | "muted" | "stack";
+  variant?: "primary" | "muted" | "stack" | "stackInverse";
   size?: "xs" | "sm" | "md";
   className?: string;
 };
 
 const variantClasses = {
   primary: "bg-hub-primary font-semibold text-white",
-  muted: "bg-hub-espresso/8 font-mono font-semibold text-hub-espresso",
+  muted: "bg-hub-foreground/8 font-mono font-semibold text-hub-foreground",
   stack:
-    "border-2 border-white bg-hub-espresso/10 font-mono font-semibold text-hub-espresso",
+    "border-2 border-white bg-hub-foreground/10 font-mono font-semibold text-hub-foreground",
+  stackInverse:
+    "border-2 border-white/25 bg-white/15 font-mono font-semibold text-white",
 };
 
 const sizeClasses = {

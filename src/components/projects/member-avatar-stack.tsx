@@ -6,19 +6,22 @@ type MemberAvatarStackProps = {
   members: ProjectMemberPreview[];
   max?: number;
   className?: string;
+  /** Light avatars for dark surfaces (e.g. hub header). */
+  inverse?: boolean;
 };
 
 export function MemberAvatarStack({
   members,
   max = 4,
   className,
+  inverse = false,
 }: MemberAvatarStackProps) {
   const visible = members.slice(0, max);
   const overflow = members.length - visible.length;
 
   if (members.length === 0) {
     return (
-      <span className={cn("font-mono text-[0.65rem] text-hub-espresso/40", className)}>
+      <span className={cn("font-mono text-[0.65rem] text-hub-foreground/40", className)}>
         No members
       </span>
     );
@@ -32,14 +35,19 @@ export function MemberAvatarStack({
             <MemberAvatar
               displayName={member.display_name}
               avatarUrl={member.avatar_url}
-              variant="stack"
+              variant={inverse ? "stackInverse" : "stack"}
               size="sm"
             />
           </span>
         ))}
       </div>
       {overflow > 0 && (
-        <span className="ml-2 font-mono text-[0.65rem] text-hub-espresso/50">
+        <span
+          className={cn(
+            "ml-2 font-mono text-[0.65rem]",
+            inverse ? "text-white/50" : "text-hub-foreground/50",
+          )}
+        >
           +{overflow}
         </span>
       )}

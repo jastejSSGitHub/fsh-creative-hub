@@ -5,7 +5,8 @@ import { getProjectFile } from "@/lib/project-files/queries";
 import { LOGIN_PATH, projectPath } from "@/lib/routes";
 import { getProjectMembership, type ProjectCardData } from "@/lib/projects/queries";
 import { createClient } from "@/lib/supabase/server";
-import { getCommentsForAsset, getInitiatives, getProjectMembers } from "@/lib/workspace/queries";
+import { getCommentsForAsset, getActivityForProject, getIdeasForInitiative, getInitiatives, getProjectMembers } from "@/lib/workspace/queries";
+import type { WorkspaceView } from "@/components/workspace/workspace-view-tabs";
 import type { AssetStatus, HubProject } from "@/types/database";
 
 type ReviewBoardPageProps = {
@@ -14,6 +15,7 @@ type ReviewBoardPageProps = {
     initiative?: string;
     filter?: string;
     asset?: string;
+    view?: string;
   }>;
 };
 
@@ -87,9 +89,16 @@ export default async function ReviewBoardPage({
 
   const openAssetId = query.asset ?? null;
 
-  const openAssetComments = openAssetId
-    ? await getCommentsForAsset(supabase, openAssetId)
-    : [];
+  const initialView: WorkspaceView =
+    query.view === "ideas" || query.view === "activity" ? query.view : "assets";
+
+  const [openAssetComments, initialIdeas, initialActivities] = await Promise.all([
+    openAssetId ? getCommentsForAsset(supabase, openAssetId) : Promise.resolve([]),
+    selectedInitiativeId
+      ? getIdeasForInitiative(supabase, selectedInitiativeId, user.id)
+      : Promise.resolve([]),
+    getActivityForProject(supabase, projectId),
+  ]);
 
   const projectCardForInvite = buildInviteProjectCard(project, role, members);
 
@@ -109,6 +118,9 @@ export default async function ReviewBoardPage({
       openAssetComments={openAssetComments}
       projectCardForInvite={projectCardForInvite}
       backHref={projectPath(projectId)}
+      initialView={initialView}
+      initialIdeas={initialIdeas}
+      initialActivities={initialActivities}
     />
   );
 }

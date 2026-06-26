@@ -41,7 +41,7 @@ export function PrimaryCta({
         href={href}
         onClick={handleClick}
         className={cn(
-          "group inline-flex min-h-11 min-w-[11rem] items-center justify-center rounded-full border border-hub-espresso/15 bg-hub-accent px-8 font-mono text-xs font-semibold uppercase tracking-[0.12em] text-hub-espresso shadow-[0_6px_24px_rgba(255,184,0,0.45),0_2px_0_#e5a500] transition-[background-color,box-shadow,transform] hover:bg-[#ffd15f] hover:shadow-[0_8px_28px_rgba(255,184,0,0.55),0_2px_0_#d99a00] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-hub-espresso",
+          "group inline-flex min-h-11 min-w-[11rem] items-center justify-center rounded-full border border-hub-foreground/15 bg-hub-accent px-8 font-mono text-xs font-semibold uppercase tracking-[0.12em] text-hub-foreground shadow-[0_6px_24px_rgba(255,184,0,0.45),0_2px_0_#e5a500] transition-[background-color,box-shadow,transform] hover:bg-[#ffd15f] hover:shadow-[0_8px_28px_rgba(255,184,0,0.55),0_2px_0_#d99a00] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-hub-espresso",
           size === "large" && "min-h-[3.25rem] px-10 text-sm",
           className,
         )}

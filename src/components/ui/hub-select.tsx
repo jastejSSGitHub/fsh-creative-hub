@@ -116,9 +116,9 @@ export function HubSelect<T extends string = string>({
         className={cn(
           "relative inline-flex items-center text-[0.8125rem] outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-60",
           variant === "field" &&
-            "min-h-8 rounded-[6px] border border-hub-espresso/12 bg-white py-0 pr-6 pl-2.5 text-hub-espresso focus-visible:border-[#18a0fb]/50 focus-visible:ring-1 focus-visible:ring-[#18a0fb]/40",
+            "min-h-8 rounded-[6px] border border-hub-foreground/12 bg-hub-surface py-0 pr-6 pl-2.5 text-hub-foreground focus-visible:border-[#18a0fb]/50 focus-visible:ring-1 focus-visible:ring-[#18a0fb]/40",
           variant === "inline" &&
-            "gap-0.5 bg-transparent py-0 pr-3 pl-0 text-hub-espresso/45 hover:text-hub-espresso/70 focus-visible:text-hub-espresso/70",
+            "gap-0.5 bg-transparent py-0 pr-3 pl-0 text-hub-foreground/45 hover:text-hub-foreground/70 focus-visible:text-hub-foreground/70",
           open && variant === "field" && "border-[#18a0fb]/50 ring-1 ring-[#18a0fb]/40",
           className,
         )}
@@ -126,7 +126,7 @@ export function HubSelect<T extends string = string>({
         <span className="truncate">{formatLabel(selected?.label ?? "")}</span>
         <ChevronRight
           className={cn(
-            "pointer-events-none absolute text-hub-espresso/40 transition-transform duration-150",
+            "pointer-events-none absolute text-hub-foreground/40 transition-transform duration-150",
             variant === "field"
               ? "top-1/2 right-2 size-3.5 -translate-y-1/2 rotate-90"
               : "top-1/2 right-0 size-3 -translate-y-1/2",
@@ -141,7 +141,7 @@ export function HubSelect<T extends string = string>({
           role="listbox"
           aria-label={ariaLabel}
           className={cn(
-            "absolute z-50 min-w-full overflow-hidden rounded-[6px] border border-hub-espresso/12 bg-white py-1 shadow-xl",
+            "absolute z-50 min-w-full overflow-hidden rounded-[6px] border border-hub-foreground/12 bg-hub-surface py-1 shadow-xl",
             variant === "inline" ? "right-0" : menuAlign === "right" ? "right-0" : "left-0",
             placement === "below" ? "top-full mt-1" : "bottom-full mb-1",
           )}
@@ -157,10 +157,10 @@ export function HubSelect<T extends string = string>({
                 aria-selected={isSelected}
                 onClick={() => selectOption(option.value)}
                 className={cn(
-                  "flex w-full items-center px-2.5 py-1.5 text-left text-[0.8125rem] text-hub-espresso transition-colors",
+                  "flex w-full items-center px-2.5 py-1.5 text-left text-[0.8125rem] text-hub-foreground transition-colors",
                   isSelected
                     ? "bg-[#18a0fb]/10 font-medium"
-                    : "hover:bg-hub-espresso/[0.04]",
+                    : "hover:bg-hub-foreground/[0.04]",
                 )}
               >
                 {formatLabel(option.label)}

@@ -59,7 +59,7 @@ export function CustomCursor() {
           y: hovering ? -24 : -6,
         }}
         transition={{ type: "spring", stiffness: 400, damping: 28 }}
-        className="rounded-full border border-white bg-white/20"
+        className="rounded-full border border-white bg-hub-surface/20"
       />
     </motion.div>
   );

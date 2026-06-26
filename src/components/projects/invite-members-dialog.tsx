@@ -221,14 +221,14 @@ export function InviteMembersDialog({
             </p>
           )}
           {message && (
-            <p className="rounded-[6px] border border-hub-approved/30 bg-hub-approved/10 px-3 py-2 text-xs text-hub-espresso">
+            <p className="rounded-[6px] border border-hub-approved/30 bg-hub-approved/10 px-3 py-2 text-xs text-hub-foreground">
               {message}
             </p>
           )}
 
           {pendingAdminAction && (
-            <div className="rounded-[6px] border border-hub-espresso/12 bg-white px-3 py-3">
-              <p className="text-[0.8125rem] leading-relaxed text-hub-espresso">
+            <div className="rounded-[6px] border border-hub-foreground/12 bg-hub-surface px-3 py-3">
+              <p className="text-[0.8125rem] leading-relaxed text-hub-foreground">
                 {pendingAdminAction.kind === "invite" ? (
                   <>
                     Are you sure you want to make{" "}
@@ -252,7 +252,7 @@ export function InviteMembersDialog({
                   type="button"
                   onClick={() => setPendingAdminAction(null)}
                   disabled={isPending}
-                  className="rounded-[6px] px-2.5 py-1.5 text-[0.8125rem] text-hub-espresso/70 transition-colors hover:bg-hub-espresso/[0.05] disabled:opacity-60"
+                  className="rounded-[6px] px-2.5 py-1.5 text-[0.8125rem] text-hub-foreground/70 transition-colors hover:bg-hub-foreground/[0.05] disabled:opacity-60"
                 >
                   Cancel
                 </button>
@@ -278,7 +278,7 @@ export function InviteMembersDialog({
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isPending}
                 placeholder={`name@${inviteEmailDomain()}`}
-                className="min-h-8 min-w-0 flex-1 rounded-[6px] border border-hub-espresso/12 bg-white px-2.5 text-[0.8125rem] text-hub-espresso outline-none ring-[#18a0fb]/40 placeholder:text-hub-espresso/40 focus:border-[#18a0fb]/50 focus:ring-1 disabled:opacity-60"
+                className="min-h-8 min-w-0 flex-1 rounded-[6px] border border-hub-foreground/12 bg-hub-surface px-2.5 text-[0.8125rem] text-hub-foreground outline-none ring-[#18a0fb]/40 placeholder:text-hub-foreground/40 focus:border-[#18a0fb]/50 focus:ring-1 disabled:opacity-60"
               />
 
               <HubSelect
@@ -293,7 +293,7 @@ export function InviteMembersDialog({
               <button
                 type="submit"
                 disabled={isPending}
-                className="shrink-0 rounded-[6px] bg-hub-espresso/[0.08] px-3 text-[0.8125rem] font-medium text-hub-espresso transition-colors hover:bg-hub-espresso/[0.12] disabled:opacity-60"
+                className="shrink-0 rounded-[6px] bg-hub-foreground/[0.08] px-3 text-[0.8125rem] font-medium text-hub-foreground transition-colors hover:bg-hub-foreground/[0.12] disabled:opacity-60"
               >
                 {isPending ? "Inviting…" : "Invite"}
               </button>
@@ -301,7 +301,7 @@ export function InviteMembersDialog({
           </form>
 
           <div className="space-y-1.5">
-            <p className="text-[0.6875rem] font-medium text-hub-espresso/45">
+            <p className="text-[0.6875rem] font-medium text-hub-foreground/45">
               Who has access
             </p>
             <ul className="max-h-56 space-y-0.5 overflow-y-auto">
@@ -311,7 +311,7 @@ export function InviteMembersDialog({
                 return (
                   <li
                     key={member.id}
-                    className="group flex items-center gap-2.5 rounded-[6px] py-1.5 pr-1 transition-colors hover:bg-hub-espresso/[0.04]"
+                    className="group flex items-center gap-2.5 rounded-[6px] py-1.5 pr-1 transition-colors hover:bg-hub-foreground/[0.04]"
                   >
                     <MemberAvatar
                       displayName={member.display_name}
@@ -321,7 +321,7 @@ export function InviteMembersDialog({
                       className="bg-[#18a0fb]"
                     />
 
-                    <p className="min-w-0 flex-1 truncate text-[0.8125rem] text-hub-espresso">
+                    <p className="min-w-0 flex-1 truncate text-[0.8125rem] text-hub-foreground">
                       {member.display_name}
                       {isSelf ? " (you)" : ""}
                     </p>
@@ -339,7 +339,7 @@ export function InviteMembersDialog({
                       )}
 
                       {isSelf ? (
-                        <span className="w-full pr-3 text-right text-[0.8125rem] text-hub-espresso/45">
+                        <span className="w-full pr-3 text-right text-[0.8125rem] text-hub-foreground/45">
                           {roleDisplay(member.role)}
                         </span>
                       ) : (

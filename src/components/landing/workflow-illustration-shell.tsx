@@ -21,7 +21,7 @@ export function WorkflowPhaseIndicator({
           key={i}
           className={cn(
             "h-1 rounded-full transition-colors",
-            activeIndex === i ? "w-6 bg-hub-accent" : "w-3 bg-hub-espresso/15",
+            activeIndex === i ? "w-6 bg-hub-accent" : "w-3 bg-hub-foreground/15",
           )}
           layout
         />
@@ -46,16 +46,16 @@ export function WorkflowIllustrationShell({
   return (
     <div
       aria-hidden
-      className="relative overflow-visible rounded-lg border border-hub-espresso/10 bg-gradient-to-b from-white to-hub-paper shadow-[0_16px_48px_rgba(11,11,11,0.06)]"
+      className="relative overflow-visible rounded-lg border border-hub-foreground/10 bg-gradient-to-b from-white to-hub-paper shadow-[0_16px_48px_rgba(11,11,11,0.06)]"
     >
-      <div className="flex items-center justify-between border-b border-hub-espresso/8 bg-hub-espresso/[0.02] px-4 py-2.5">
+      <div className="flex items-center justify-between border-b border-hub-foreground/8 bg-hub-foreground/[0.02] px-4 py-2.5">
         <div className="flex items-center gap-2">
           <div className="flex gap-1">
-            <span className="size-2 rounded-full bg-hub-espresso/15" />
-            <span className="size-2 rounded-full bg-hub-espresso/15" />
-            <span className="size-2 rounded-full bg-hub-espresso/15" />
+            <span className="size-2 rounded-full bg-hub-foreground/15" />
+            <span className="size-2 rounded-full bg-hub-foreground/15" />
+            <span className="size-2 rounded-full bg-hub-foreground/15" />
           </div>
-          <span className="font-mono text-[0.5rem] uppercase tracking-[0.14em] text-hub-espresso/35">
+          <span className="font-mono text-[0.5rem] uppercase tracking-[0.14em] text-hub-foreground/35">
             FSH Creative Hub
           </span>
         </div>
@@ -69,8 +69,8 @@ export function WorkflowIllustrationShell({
         {children}
       </div>
 
-      <div className="relative z-0 border-t border-hub-espresso/8 bg-gradient-to-b from-white to-hub-paper px-4 py-2">
-        <p className="font-mono text-[0.5rem] uppercase tracking-[0.14em] text-hub-espresso/40">
+      <div className="relative z-0 border-t border-hub-foreground/8 bg-gradient-to-b from-white to-hub-paper px-4 py-2">
+        <p className="font-mono text-[0.5rem] uppercase tracking-[0.14em] text-hub-foreground/40">
           {phaseLabel}
         </p>
       </div>
@@ -79,4 +79,4 @@ export function WorkflowIllustrationShell({
 }
 
 export const workflowTitleClass =
-  "text-[0.7rem] font-semibold text-hub-espresso";
+  "text-[0.7rem] font-semibold text-hub-foreground";
