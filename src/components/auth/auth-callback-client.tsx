@@ -8,8 +8,6 @@ import { ensureHubProfileClient } from "@/lib/auth/ensure-profile-client";
 import { LOGIN_PATH, PROJECTS_PATH } from "@/lib/routes";
 import { createClient } from "@/lib/supabase/client";
 
-const COMPLETING_LABEL = "Completing sign-in…";
-
 export function AuthCallbackClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -20,7 +18,7 @@ export function AuthCallbackClient() {
     if (startedRef.current) return;
     startedRef.current = true;
 
-    beginAuthTransition(COMPLETING_LABEL);
+    beginAuthTransition("complete-sign-in");
 
     const code = searchParams.get("code");
     const next = searchParams.get("next")?.startsWith("/")
@@ -57,12 +55,7 @@ export function AuthCallbackClient() {
     }
 
     void completeSignIn(code);
-  }, [
-    beginAuthTransition,
-    endAuthTransition,
-    router,
-    searchParams,
-  ]);
+  }, [beginAuthTransition, endAuthTransition, router, searchParams]);
 
   return null;
 }

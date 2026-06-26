@@ -27,7 +27,7 @@ export function PrimaryCta({
 
   function handleClick(event: React.MouseEvent<HTMLAnchorElement>) {
     event.preventDefault();
-    beginAuthTransition(isLoggedIn ? "Opening hub…" : "Loading…");
+    beginAuthTransition(isLoggedIn ? "open-hub" : "enter-hub");
     router.push(href);
   }
 

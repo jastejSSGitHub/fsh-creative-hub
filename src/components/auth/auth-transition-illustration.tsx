@@ -14,7 +14,8 @@ const TILES = [
 
 export function AuthTransitionIllustration({
   reduced = false,
-}: AuthTransitionIllustrationProps) {
+  stageIndex = 0,
+}: AuthTransitionIllustrationProps & { stageIndex?: number }) {
   const prefersReducedMotion = useReducedMotion();
   const isReduced = reduced || !!prefersReducedMotion;
 
@@ -71,12 +72,16 @@ export function AuthTransitionIllustration({
           }
         />
 
-        {TILES.map((tile, index) =>
-          isReduced ? (
+        {TILES.map((tile, index) => {
+          const isActive = index === stageIndex % TILES.length;
+
+          return isReduced ? (
             <span
               key={index}
-              className={`absolute size-3 rounded-sm ${tile.className}`}
-              style={{ transform: `translate(${tile.x * 0.35}px, ${tile.y * 0.35}px)` }}
+              className={`absolute size-3 rounded-sm ${tile.className} ${isActive ? "scale-110" : "opacity-60"}`}
+              style={{
+                transform: `translate(${tile.x * 0.35}px, ${tile.y * 0.35}px)`,
+              }}
             />
           ) : (
             <motion.span
@@ -84,20 +89,24 @@ export function AuthTransitionIllustration({
               className={`absolute size-3 rounded-sm shadow-sm ${tile.className}`}
               initial={{ opacity: 0, scale: 0.6, x: tile.x * 1.6, y: tile.y * 1.6 }}
               animate={{
-                opacity: [0.4, 1, 0.4],
-                scale: [0.85, 1, 0.85],
-                x: [tile.x * 1.6, tile.x * 0.35, tile.x * 1.6],
-                y: [tile.y * 1.6, tile.y * 0.35, tile.y * 1.6],
+                opacity: isActive ? [0.7, 1, 0.7] : [0.25, 0.45, 0.25],
+                scale: isActive ? [0.95, 1.15, 0.95] : [0.75, 0.85, 0.75],
+                x: isActive
+                  ? [tile.x * 1.2, tile.x * 0.2, tile.x * 1.2]
+                  : [tile.x * 1.6, tile.x * 0.5, tile.x * 1.6],
+                y: isActive
+                  ? [tile.y * 1.2, tile.y * 0.2, tile.y * 1.2]
+                  : [tile.y * 1.6, tile.y * 0.5, tile.y * 1.6],
               }}
               transition={{
-                duration: 2.2,
+                duration: isActive ? 1.8 : 2.4,
                 repeat: Infinity,
                 delay: tile.delay,
                 ease: "easeInOut",
               }}
             />
-          ),
-        )}
+          );
+        })}
       </div>
     </div>
   );

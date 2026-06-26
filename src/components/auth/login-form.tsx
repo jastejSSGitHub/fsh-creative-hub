@@ -74,10 +74,6 @@ function GoogleColorBar({ className }: { className?: string }) {
   );
 }
 
-const SIGNING_IN_LABEL = "Signing in…";
-const CREATING_ACCOUNT_LABEL = "Creating your account…";
-const SENDING_LINK_LABEL = "Sending sign-in link…";
-
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -104,7 +100,7 @@ export function LoginForm() {
     setIsSuccess(false);
     setIsPending(true);
     setSignInMode("password");
-    beginAuthTransition(SIGNING_IN_LABEL);
+    beginAuthTransition("sign-in");
 
     try {
       const supabase = createClient();
@@ -140,7 +136,7 @@ export function LoginForm() {
     setIsSuccess(false);
     setIsPending(true);
     setSignInMode("register");
-    beginAuthTransition(CREATING_ACCOUNT_LABEL);
+    beginAuthTransition("create-account");
 
     try {
       const supabase = createClient();
@@ -184,7 +180,7 @@ export function LoginForm() {
     setIsSuccess(false);
     setIsPending(true);
     setSignInMode("magic");
-    beginAuthTransition(SENDING_LINK_LABEL);
+    beginAuthTransition("send-magic-link");
 
     try {
       const supabase = createClient();
@@ -221,7 +217,7 @@ export function LoginForm() {
     setIsSuccess(false);
     setIsPending(true);
     setSignInMode("google");
-    beginAuthTransition(SIGNING_IN_LABEL);
+    beginAuthTransition("sign-in");
 
     try {
       const supabase = createClient();
@@ -251,7 +247,7 @@ export function LoginForm() {
     setMessage(null);
     setIsSuccess(false);
     setIsPending(true);
-    beginAuthTransition(SIGNING_IN_LABEL);
+    beginAuthTransition("sign-in");
     window.location.assign(DEV_BYPASS_PATH);
   }
 

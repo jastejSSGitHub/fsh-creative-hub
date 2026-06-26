@@ -17,10 +17,14 @@ import {
   persistAuthTransition,
   readAuthTransition,
 } from "@/lib/auth/transition-storage";
+import type { AuthTransitionKind } from "@/lib/auth/transition-stages";
 import { LOGIN_PATH, PROJECTS_PATH } from "@/lib/routes";
 
 type AuthTransitionContextValue = {
-  beginAuthTransition: (label: string, options?: { persist?: boolean }) => void;
+  beginAuthTransition: (
+    kind: AuthTransitionKind,
+    options?: { persist?: boolean },
+  ) => void;
   endAuthTransition: () => void;
   isAuthTransitioning: boolean;
 };
@@ -39,32 +43,37 @@ function isHubDestination(pathname: string) {
 
 export function AuthTransitionProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const [label, setLabel] = useState<string | null>(null);
+  const [kind, setKind] = useState<AuthTransitionKind | null>(null);
+  const [startedAt, setStartedAt] = useState<number | null>(null);
 
   const beginAuthTransition = useCallback(
-    (nextLabel: string, options?: { persist?: boolean }) => {
-      setLabel(nextLabel);
+    (nextKind: AuthTransitionKind, options?: { persist?: boolean }) => {
+      const now = Date.now();
+      setKind(nextKind);
+      setStartedAt(now);
       if (options?.persist !== false) {
-        persistAuthTransition(nextLabel);
+        persistAuthTransition(nextKind);
       }
     },
     [],
   );
 
   const endAuthTransition = useCallback(() => {
-    setLabel(null);
+    setKind(null);
+    setStartedAt(null);
     clearAuthTransition();
   }, []);
 
   useEffect(() => {
     const stored = readAuthTransition();
-    if (stored?.label) {
-      setLabel(stored.label);
+    if (stored?.kind) {
+      setKind(stored.kind);
+      setStartedAt(stored.startedAt);
     }
   }, []);
 
   useEffect(() => {
-    if (!label) return;
+    if (!kind) return;
 
     if (pathname === LOGIN_PATH) {
       const params =
@@ -76,7 +85,7 @@ export function AuthTransitionProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      if (label === "Loading…") {
+      if (kind === "enter-hub") {
         const timer = window.setTimeout(() => {
           endAuthTransition();
         }, 160);
@@ -90,21 +99,25 @@ export function AuthTransitionProvider({ children }: { children: ReactNode }) {
       }, 480);
       return () => window.clearTimeout(timer);
     }
-  }, [endAuthTransition, label, pathname]);
+  }, [endAuthTransition, kind, pathname]);
 
   const value = useMemo(
     () => ({
       beginAuthTransition,
       endAuthTransition,
-      isAuthTransitioning: label !== null,
+      isAuthTransitioning: kind !== null,
     }),
-    [beginAuthTransition, endAuthTransition, label],
+    [beginAuthTransition, endAuthTransition, kind],
   );
 
   return (
     <AuthTransitionContext.Provider value={value}>
       {children}
-      <AuthTransitionOverlay visible={label !== null} label={label ?? ""} />
+      <AuthTransitionOverlay
+        visible={kind !== null}
+        kind={kind}
+        startedAt={startedAt}
+      />
     </AuthTransitionContext.Provider>
   );
 }
