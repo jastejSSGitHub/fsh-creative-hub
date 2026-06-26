@@ -63,13 +63,13 @@ export function HeroSection({ isLoggedIn }: HeroSectionProps) {
       <FloatingWall reduced={reduced} />
       <GrainOverlay />
 
-      <div className="relative z-20 mx-auto flex min-h-[100svh] max-w-5xl flex-col items-center justify-center px-5 py-28 text-center sm:px-8 sm:py-32">
+      <div className="relative z-20 mx-auto flex min-h-[100svh] max-w-5xl flex-col items-center justify-start px-5 pb-20 pt-12 text-center sm:px-8 sm:pb-24 sm:pt-14 lg:pt-16">
         <motion.div
           initial={reduced ? false : { opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         >
-          <HeroIconStack className="mb-10 sm:mb-12" />
+          <HeroIconStack className="mb-8 sm:mb-10" />
         </motion.div>
 
         <motion.p

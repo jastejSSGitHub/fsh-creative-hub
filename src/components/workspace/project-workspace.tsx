@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { MemberAvatarStack } from "@/components/projects/member-avatar-stack";
 import { InviteMembersDialog } from "@/components/projects/invite-members-dialog";
@@ -108,6 +108,10 @@ export function ProjectWorkspace({
     return id ? { [id]: assets } : {};
   });
   const [initiativeAssetsLoading, setInitiativeAssetsLoading] = useState(false);
+  const loadedInitiativeIdsRef = useRef(
+    new Set(Object.keys(initialAssetsByInitiative ?? {})),
+  );
+  const fetchingInitiativeIdsRef = useRef(new Set<string>());
 
   useEffect(() => {
     setOverlayAssetId(openAssetId);
@@ -124,11 +128,15 @@ export function ProjectWorkspace({
   useEffect(() => {
     if (initialAssetsByInitiative) {
       setAssetsByInitiative(initialAssetsByInitiative);
+      loadedInitiativeIdsRef.current = new Set(
+        Object.keys(initialAssetsByInitiative),
+      );
       return;
     }
 
     const id = selectedInitiativeId ?? initiatives[0]?.id;
     if (id) {
+      loadedInitiativeIdsRef.current.add(id);
       setAssetsByInitiative((prev) => ({ ...prev, [id]: assets }));
     }
   }, [selectedInitiativeId, initiatives, assets, initialAssetsByInitiative]);
@@ -201,14 +209,22 @@ export function ProjectWorkspace({
   }
 
   async function ensureInitiativeAssets(initiativeId: string) {
-    if (assetsByInitiative[initiativeId]) return;
+    if (
+      loadedInitiativeIdsRef.current.has(initiativeId) ||
+      fetchingInitiativeIdsRef.current.has(initiativeId)
+    ) {
+      return;
+    }
 
+    fetchingInitiativeIdsRef.current.add(initiativeId);
     setInitiativeAssetsLoading(true);
     try {
       const supabase = createClient();
       const data = await getAssetsForInitiative(supabase, initiativeId, "all");
+      loadedInitiativeIdsRef.current.add(initiativeId);
       setAssetsByInitiative((prev) => ({ ...prev, [initiativeId]: data }));
     } finally {
+      fetchingInitiativeIdsRef.current.delete(initiativeId);
       setInitiativeAssetsLoading(false);
     }
   }
@@ -222,7 +238,7 @@ export function ProjectWorkspace({
     params.delete("asset");
     syncUrl(params);
 
-    if (assetsByInitiative[initiativeId]) return;
+    if (loadedInitiativeIdsRef.current.has(initiativeId)) return;
 
     await ensureInitiativeAssets(initiativeId);
   }
@@ -398,6 +414,8 @@ export function ProjectWorkspace({
                       key={i.id}
                       type="button"
                       onClick={() => switchInitiative(i.id)}
+                      onMouseEnter={() => void ensureInitiativeAssets(i.id)}
+                      onFocus={() => void ensureInitiativeAssets(i.id)}
                       className={cn(
                         "min-h-10 rounded-md border px-4 text-sm font-medium transition-colors",
                         i.id === activeInitiativeId
@@ -475,7 +493,7 @@ export function ProjectWorkspace({
                   </div>
                 </div>
 
-                {initiativeAssetsLoading ? (
+                {initiativeAssetsLoading && initiativeAssets.length === 0 ? (
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
                     {Array.from({ length: 6 }).map((_, index) => (
                       <div

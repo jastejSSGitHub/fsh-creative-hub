@@ -1,15 +1,17 @@
+import type { AuthTransitionKind } from "@/lib/auth/transition-stages";
+
 const AUTH_TRANSITION_KEY = "fsh-hub-auth-transition";
 
 export type StoredAuthTransition = {
-  label: string;
+  kind: AuthTransitionKind;
   startedAt: number;
 };
 
-export function persistAuthTransition(label: string) {
+export function persistAuthTransition(kind: AuthTransitionKind) {
   if (typeof window === "undefined") return;
 
   const payload: StoredAuthTransition = {
-    label,
+    kind,
     startedAt: Date.now(),
   };
   sessionStorage.setItem(AUTH_TRANSITION_KEY, JSON.stringify(payload));
@@ -22,7 +24,12 @@ export function readAuthTransition(): StoredAuthTransition | null {
   if (!raw) return null;
 
   try {
-    return JSON.parse(raw) as StoredAuthTransition;
+    const parsed = JSON.parse(raw) as StoredAuthTransition;
+    if (!parsed.kind || typeof parsed.startedAt !== "number") {
+      sessionStorage.removeItem(AUTH_TRANSITION_KEY);
+      return null;
+    }
+    return parsed;
   } catch {
     sessionStorage.removeItem(AUTH_TRANSITION_KEY);
     return null;
