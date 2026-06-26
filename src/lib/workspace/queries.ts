@@ -153,7 +153,9 @@ export async function getAssetsForInitiatives(
   supabase: SupabaseClient,
   initiativeIds: string[],
 ): Promise<Record<string, AssetWithVotes[]>> {
-  const empty = Object.fromEntries(initiativeIds.map((id) => [id, []]));
+  const empty: Record<string, AssetWithVotes[]> = Object.fromEntries(
+    initiativeIds.map((id) => [id, [] as AssetWithVotes[]]),
+  );
   if (!initiativeIds.length) return empty;
 
   const { data: assets, error } = await supabase
@@ -178,7 +180,7 @@ export async function getAssetsForInitiatives(
     votes as HubVote[] | null,
   );
 
-  const grouped = { ...empty };
+  const grouped: Record<string, AssetWithVotes[]> = { ...empty };
   for (const asset of assetsWithVotes) {
     grouped[asset.initiative_id]?.push(asset);
   }
