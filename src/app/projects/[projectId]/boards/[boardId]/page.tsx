@@ -7,7 +7,7 @@ import { getProjectMembership, type ProjectCardData } from "@/lib/projects/queri
 import { createClient } from "@/lib/supabase/server";
 import {
   getActivityForProject,
-  getAssetsForInitiative,
+  getAssetsForInitiatives,
   getCommentsForAsset,
   getIdeasForInitiative,
   getInitiatives,
@@ -98,20 +98,25 @@ export default async function ReviewBoardPage({
 
   const openAssetId = query.asset ?? null;
 
-  const [assets, ideas, activities, openAssetComments] = await Promise.all([
-    selectedInitiativeId
-      ? getAssetsForInitiative(supabase, selectedInitiativeId, "all")
-      : Promise.resolve([]),
-    selectedInitiativeId && view === "ideas"
-      ? getIdeasForInitiative(supabase, selectedInitiativeId, user.id)
-      : Promise.resolve([]),
-    view === "activity"
-      ? getActivityForProject(supabase, projectId)
-      : Promise.resolve([]),
-    openAssetId
-      ? getCommentsForAsset(supabase, openAssetId)
-      : Promise.resolve([]),
-  ]);
+  const initiativeIds = initiatives.map((initiative) => initiative.id);
+
+  const [assetsByInitiative, ideas, activities, openAssetComments] =
+    await Promise.all([
+      getAssetsForInitiatives(supabase, initiativeIds),
+      selectedInitiativeId && view === "ideas"
+        ? getIdeasForInitiative(supabase, selectedInitiativeId, user.id)
+        : Promise.resolve([]),
+      view === "activity"
+        ? getActivityForProject(supabase, projectId)
+        : Promise.resolve([]),
+      openAssetId
+        ? getCommentsForAsset(supabase, openAssetId)
+        : Promise.resolve([]),
+    ]);
+
+  const assets = selectedInitiativeId
+    ? assetsByInitiative[selectedInitiativeId] ?? []
+    : [];
 
   const projectCardForInvite = buildInviteProjectCard(project, role, members);
 
@@ -124,6 +129,7 @@ export default async function ReviewBoardPage({
       initiatives={initiatives}
       members={members}
       assets={assets}
+      assetsByInitiative={assetsByInitiative}
       ideas={ideas}
       activities={activities}
       selectedInitiativeId={selectedInitiativeId}

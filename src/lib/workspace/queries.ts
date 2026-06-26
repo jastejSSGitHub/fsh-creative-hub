@@ -98,6 +98,27 @@ export async function getProjectMembers(
     .sort((a, b) => a.display_name.localeCompare(b.display_name));
 }
 
+function attachVotesToAssets(
+  assets: HubAsset[],
+  votes: HubVote[] | null | undefined,
+): AssetWithVotes[] {
+  const votesByAsset = new Map<string, HubVote[]>();
+  for (const vote of votes ?? []) {
+    const list = votesByAsset.get(vote.asset_id) ?? [];
+    list.push(vote);
+    votesByAsset.set(vote.asset_id, list);
+  }
+
+  return assets.map((asset) => {
+    const assetVotes = votesByAsset.get(asset.id) ?? [];
+    return {
+      ...asset,
+      votes: assetVotes,
+      consensus: buildConsensusCounts(assetVotes.map((v) => v.reaction)),
+    };
+  });
+}
+
 export async function getAssetsForInitiative(
   supabase: SupabaseClient,
   initiativeId: string,
@@ -125,21 +146,44 @@ export async function getAssetsForInitiative(
     .select("*")
     .in("asset_id", assetIds);
 
-  const votesByAsset = new Map<string, HubVote[]>();
-  for (const vote of votes ?? []) {
-    const list = votesByAsset.get(vote.asset_id) ?? [];
-    list.push(vote as HubVote);
-    votesByAsset.set(vote.asset_id, list);
+  return attachVotesToAssets(assets as HubAsset[], votes as HubVote[] | null);
+}
+
+export async function getAssetsForInitiatives(
+  supabase: SupabaseClient,
+  initiativeIds: string[],
+): Promise<Record<string, AssetWithVotes[]>> {
+  const empty = Object.fromEntries(initiativeIds.map((id) => [id, []]));
+  if (!initiativeIds.length) return empty;
+
+  const { data: assets, error } = await supabase
+    .from("hub_assets")
+    .select("*")
+    .in("initiative_id", initiativeIds)
+    .is("variant_of", null)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  if (!assets?.length) return empty;
+
+  const assetIds = assets.map((a) => a.id);
+  const { data: votes } = await supabase
+    .from("hub_votes")
+    .select("*")
+    .in("asset_id", assetIds);
+
+  const assetsWithVotes = attachVotesToAssets(
+    assets as HubAsset[],
+    votes as HubVote[] | null,
+  );
+
+  const grouped = { ...empty };
+  for (const asset of assetsWithVotes) {
+    grouped[asset.initiative_id]?.push(asset);
   }
 
-  return (assets as HubAsset[]).map((asset) => {
-    const assetVotes = votesByAsset.get(asset.id) ?? [];
-    return {
-      ...asset,
-      votes: assetVotes,
-      consensus: buildConsensusCounts(assetVotes.map((v) => v.reaction)),
-    };
-  });
+  return grouped;
 }
 
 export async function getAssetDetail(

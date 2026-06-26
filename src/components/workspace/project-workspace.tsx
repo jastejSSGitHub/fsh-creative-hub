@@ -42,6 +42,7 @@ type ProjectWorkspaceProps = {
   initiatives: HubInitiative[];
   members: ProjectMemberWithRole[];
   assets: AssetWithVotes[];
+  assetsByInitiative?: Record<string, AssetWithVotes[]>;
   ideas: IdeaWithMeta[];
   activities: ActivityWithActor[];
   selectedInitiativeId: string | null;
@@ -75,6 +76,7 @@ export function ProjectWorkspace({
   initiatives,
   members,
   assets,
+  assetsByInitiative: initialAssetsByInitiative,
   ideas,
   activities,
   selectedInitiativeId,
@@ -98,6 +100,10 @@ export function ProjectWorkspace({
   const [assetsByInitiative, setAssetsByInitiative] = useState<
     Record<string, AssetWithVotes[]>
   >(() => {
+    if (initialAssetsByInitiative) {
+      return initialAssetsByInitiative;
+    }
+
     const id = selectedInitiativeId ?? initiatives[0]?.id;
     return id ? { [id]: assets } : {};
   });
@@ -116,11 +122,16 @@ export function ProjectWorkspace({
   }, [selectedInitiativeId, initiatives]);
 
   useEffect(() => {
+    if (initialAssetsByInitiative) {
+      setAssetsByInitiative(initialAssetsByInitiative);
+      return;
+    }
+
     const id = selectedInitiativeId ?? initiatives[0]?.id;
     if (id) {
       setAssetsByInitiative((prev) => ({ ...prev, [id]: assets }));
     }
-  }, [selectedInitiativeId, initiatives, assets]);
+  }, [selectedInitiativeId, initiatives, assets, initialAssetsByInitiative]);
 
   useEffect(() => {
     router.prefetch(PROJECTS_PATH);
@@ -189,6 +200,19 @@ export function ProjectWorkspace({
     syncUrl(params);
   }
 
+  async function ensureInitiativeAssets(initiativeId: string) {
+    if (assetsByInitiative[initiativeId]) return;
+
+    setInitiativeAssetsLoading(true);
+    try {
+      const supabase = createClient();
+      const data = await getAssetsForInitiative(supabase, initiativeId, "all");
+      setAssetsByInitiative((prev) => ({ ...prev, [initiativeId]: data }));
+    } finally {
+      setInitiativeAssetsLoading(false);
+    }
+  }
+
   async function switchInitiative(initiativeId: string) {
     setLocalInitiativeId(initiativeId);
     setOverlayAssetId(null);
@@ -200,14 +224,7 @@ export function ProjectWorkspace({
 
     if (assetsByInitiative[initiativeId]) return;
 
-    setInitiativeAssetsLoading(true);
-    try {
-      const supabase = createClient();
-      const data = await getAssetsForInitiative(supabase, initiativeId, "all");
-      setAssetsByInitiative((prev) => ({ ...prev, [initiativeId]: data }));
-    } finally {
-      setInitiativeAssetsLoading(false);
-    }
+    await ensureInitiativeAssets(initiativeId);
   }
 
   function setQuery(updates: Record<string, string | null>) {
@@ -364,6 +381,9 @@ export function ProjectWorkspace({
                 <select
                   value={activeInitiativeId ?? ""}
                   onChange={(e) => switchInitiative(e.target.value)}
+                  onFocus={() => {
+                    if (activeInitiativeId) void ensureInitiativeAssets(activeInitiativeId);
+                  }}
                   className="min-h-10 w-full rounded-md border border-hub-espresso/15 bg-white px-3.5 text-sm sm:max-w-xs lg:hidden"
                 >
                   {initiatives.map((i) => (
