@@ -16,6 +16,7 @@
   --color-hub-approved: var(--hub-approved);
   --color-hub-rejected: var(--hub-rejected);
   --color-hub-final: var(--hub-final);
+  --color-hub-accent: var(--hub-accent);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -56,7 +57,8 @@
 
 :root {
   --hub-paper: #fbf7ee;
-  --hub-espresso: #1a0f08;
+  --hub-espresso: #0b0b0b;
+  --hub-accent: #ffc94b;
   --hub-approved: #22c55e;
   --hub-rejected: #ef4444;
   --hub-final: #ffc94b;
@@ -143,5 +145,104 @@
 @layer utilities {
   .font-display {
     font-family: var(--font-bricolage), ui-sans-serif, sans-serif;
+  }
+
+  .grain-overlay {
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 128px 128px;
+    opacity: 0.045;
+    mix-blend-mode: overlay;
+  }
+
+  .grain-overlay-animated {
+    animation: grain-shift 8s steps(10) infinite;
+  }
+
+  @keyframes grain-shift {
+    0%,
+    100% {
+      transform: translate(0, 0);
+    }
+    10% {
+      transform: translate(-2%, -3%);
+    }
+    20% {
+      transform: translate(3%, 1%);
+    }
+    30% {
+      transform: translate(-1%, 4%);
+    }
+    40% {
+      transform: translate(4%, -2%);
+    }
+    50% {
+      transform: translate(-3%, 2%);
+    }
+    60% {
+      transform: translate(2%, -4%);
+    }
+    70% {
+      transform: translate(-4%, 1%);
+    }
+    80% {
+      transform: translate(1%, 3%);
+    }
+    90% {
+      transform: translate(3%, -1%);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .grain-overlay-animated {
+      animation: none;
+    }
+  }
+
+  html.landing-scroll {
+    --landing-scrollbar-thumb: color-mix(
+      in srgb,
+      var(--hub-espresso) 22%,
+      var(--hub-paper)
+    );
+    --landing-scrollbar-thumb-hover: color-mix(
+      in srgb,
+      var(--hub-espresso) 38%,
+      var(--hub-paper)
+    );
+    --landing-scrollbar-thumb-active: color-mix(
+      in srgb,
+      var(--hub-accent) 70%,
+      var(--hub-espresso)
+    );
+    scrollbar-width: thin;
+    scrollbar-color: var(--landing-scrollbar-thumb) transparent;
+  }
+
+  html.landing-scroll::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  html.landing-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  html.landing-scroll::-webkit-scrollbar-thumb {
+    background-color: var(--landing-scrollbar-thumb);
+    border-radius: 999px;
+  }
+
+  html.landing-scroll::-webkit-scrollbar-thumb:hover {
+    background-color: var(--landing-scrollbar-thumb-hover);
+  }
+
+  html.landing-scroll::-webkit-scrollbar-thumb:active {
+    background-color: var(--landing-scrollbar-thumb-active);
+  }
+
+  html.landing-scroll::-webkit-scrollbar-corner {
+    background: transparent;
   }
 }
