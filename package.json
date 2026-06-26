@@ -7,7 +7,9 @@
     "dev:3000": "next dev -p 3000",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "validate": "npm run typecheck && npm run build",
     "migrate:blenz": "node scripts/migrate-blenz.mjs",
     "seed:presentation-demo": "node scripts/seed-presentation-demo.mjs"
   },
