@@ -22,6 +22,9 @@ const PROJECTS_LOOM_URL =
 const APPROVAL_REJECTION_LOOM_URL =
   "https://www.loom.com/share/df5b9086b5cc482282ac29e74b1462cd";
 
+const FEEDBACK_LOOM_URL =
+  "https://www.loom.com/share/62c18127fea541b6a81e465a4080a20d";
+
 const PLACEHOLDER_LOOM_URL = PROJECTS_LOOM_URL;
 
 const FEATURES: ReadonlyArray<{
@@ -73,7 +76,7 @@ const FEATURES: ReadonlyArray<{
     index: 2,
     media: null,
     tutorial: {
-      loomUrl: PLACEHOLDER_LOOM_URL,
+      loomUrl: FEEDBACK_LOOM_URL,
       modalTitle: "Feedback that sticks",
     },
   },
