@@ -330,7 +330,7 @@ export function AssetDetailOverlay({
         <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
           <div className="relative flex min-h-[40vh] flex-1 items-center justify-center bg-hub-espresso p-4 lg:min-h-0">
             {!mediaLoaded && (
-              <div className="absolute inset-4 animate-pulse rounded-md bg-hub-surface/10" />
+              <div className="absolute inset-4 animate-pulse rounded-md bg-hub-skeleton-strong" />
             )}
             {asset.type === "video" ? (
               <video

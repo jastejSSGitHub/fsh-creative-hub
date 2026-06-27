@@ -2,11 +2,11 @@
 
 import { FolderKanban, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import { formatEditedTime } from "@/lib/format-edited-time";
 import type { ProjectCardData } from "@/lib/projects/queries";
-import { captureProjectNavigationSnapshot } from "@/lib/projects/project-navigation-snapshot";
+import { dispatchProjectNavigationBegin } from "@/lib/projects/project-navigation-events";
 import { projectPath } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
@@ -26,17 +26,17 @@ export function navigateToProject(
 ) {
   const href = projectPath(projectId);
 
+  if (options?.newTab) {
+    window.open(href, "_blank", "noopener,noreferrer");
+    return;
+  }
+
   if (options?.projectName) {
-    captureProjectNavigationSnapshot({
+    dispatchProjectNavigationBegin({
       projectId,
       projectName: options.projectName,
       fileCount: options.fileCount,
     });
-  }
-
-  if (options?.newTab) {
-    window.open(href, "_blank", "noopener,noreferrer");
-    return;
   }
 
   router.prefetch(href);
@@ -63,6 +63,7 @@ export function ProjectCard({
   showFavoriteStar = true,
 }: ProjectCardProps) {
   const router = useRouter();
+  const clickTimeoutRef = useRef<number | null>(null);
   const [coverError, setCoverError] = useState(false);
   const editedAt = project.lastActivityAt ?? project.updated_at ?? project.created_at;
   const href = projectPath(project.id);
@@ -86,7 +87,29 @@ export function ProjectCard({
     onFavoriteToggle?.(project.id, !project.isFavorite);
   }
 
+  function showContextMenu(clientX: number, clientY: number) {
+    onSelect(project.id);
+    prefetchProject();
+    onContextMenu(project, clientX, clientY);
+  }
+
+  function handleClick(event: React.MouseEvent) {
+    if (clickTimeoutRef.current) {
+      window.clearTimeout(clickTimeoutRef.current);
+    }
+
+    clickTimeoutRef.current = window.setTimeout(() => {
+      showContextMenu(event.clientX, event.clientY);
+      clickTimeoutRef.current = null;
+    }, 200);
+  }
+
   function handleDoubleClick(event: React.MouseEvent) {
+    if (clickTimeoutRef.current) {
+      window.clearTimeout(clickTimeoutRef.current);
+      clickTimeoutRef.current = null;
+    }
+
     event.preventDefault();
     openProject();
   }
@@ -96,18 +119,17 @@ export function ProjectCard({
       role="button"
       tabIndex={0}
       aria-pressed={selected}
-      onClick={() => {
-        onSelect(project.id);
-        prefetchProject();
-      }}
+      onClick={handleClick}
       onDoubleClick={handleDoubleClick}
       onMouseEnter={prefetchProject}
       onFocus={prefetchProject}
       onContextMenu={(event) => {
         event.preventDefault();
-        onSelect(project.id);
-        prefetchProject();
-        onContextMenu(project, event.clientX, event.clientY);
+        if (clickTimeoutRef.current) {
+          window.clearTimeout(clickTimeoutRef.current);
+          clickTimeoutRef.current = null;
+        }
+        showContextMenu(event.clientX, event.clientY);
       }}
       onAuxClick={(event) => {
         if (event.button === 1) {
@@ -119,6 +141,11 @@ export function ProjectCard({
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
           onSelect(project.id);
+        }
+        if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) {
+          event.preventDefault();
+          const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+          showContextMenu(rect.left + rect.width / 2, rect.top + rect.height / 2);
         }
       }}
       className={cn(

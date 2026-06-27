@@ -201,7 +201,10 @@ export function ProjectsPageClient({
         label: "Open",
         onSelect: () => {
           rememberSnapshotBeforeNavigate();
-          navigateToProject(router, project.id);
+          navigateToProject(router, project.id, {
+            projectName: project.name,
+            fileCount: project.assetCount,
+          });
         },
       },
       {

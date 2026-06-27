@@ -91,7 +91,7 @@ export function HubProfileMenu({
   }
 
   return (
-    <div ref={menuRef} className="relative shrink-0">
+    <div ref={menuRef} className={cn("relative shrink-0", open && "z-[60]")}>
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
@@ -137,7 +137,7 @@ export function HubProfileMenu({
       {open && (
         <div
           role="menu"
-          className="absolute top-[calc(100%+8px)] right-0 z-50 w-64 overflow-hidden rounded-xl border border-hub-foreground/10 bg-hub-surface shadow-[0_20px_60px_rgba(0,0,0,0.35)]"
+          className="absolute top-[calc(100%+8px)] right-0 z-[70] w-64 overflow-hidden rounded-xl border border-hub-foreground/10 bg-hub-surface shadow-[0_20px_60px_rgba(0,0,0,0.35)]"
         >
           <div className="border-b border-hub-foreground/8 px-4 py-3">
             <div className="flex items-center gap-2.5">

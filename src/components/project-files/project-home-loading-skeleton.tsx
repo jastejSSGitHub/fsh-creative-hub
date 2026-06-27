@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { useMemo } from "react";
 
 import { NavBackLinkSkeleton } from "@/components/ui/nav-back-link";
-import { SkeletonBone } from "@/components/ui/skeleton-primitives";
+import { SkeletonBone, SkeletonMediaSurface } from "@/components/ui/skeleton-primitives";
 import { readProjectNavigationSnapshot } from "@/lib/projects/project-navigation-snapshot";
 import { hubCardGridClassName } from "@/lib/ui/hub-card-grid";
 import { cn } from "@/lib/utils";
@@ -12,12 +12,12 @@ import { cn } from "@/lib/utils";
 function ProjectFileCardSkeleton() {
   return (
     <article className="flex flex-col overflow-hidden rounded-md border border-hub-foreground/10 bg-hub-surface">
-      <div className="relative aspect-[16/10] overflow-hidden bg-[linear-gradient(135deg,#faf8f3_0%,#f3efe6_55%,#ffffff_100%)]">
+      <SkeletonMediaSurface className="aspect-[16/10]">
         <div className="flex size-full flex-col items-center justify-center gap-2">
           <SkeletonBone className="size-12 rounded-md" />
           <SkeletonBone className="h-2.5 w-16 rounded-sm" />
         </div>
-      </div>
+      </SkeletonMediaSurface>
 
       <div className="space-y-2 border-t border-hub-foreground/8 bg-hub-foreground/[0.02] p-3">
         <div className="flex items-start gap-2">

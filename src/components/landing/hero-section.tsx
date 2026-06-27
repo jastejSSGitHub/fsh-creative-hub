@@ -4,7 +4,7 @@ import { motion, useReducedMotion } from "framer-motion";
 
 import { CapabilityVideoTile } from "@/components/landing/capability-video-tile";
 import { GrainOverlay } from "@/components/landing/grain-overlay";
-import { HeroIconStack } from "@/components/landing/hero-icon-stack";
+import { HeroFrameStack } from "@/components/landing/hero-frame-stack";
 import { HeroVerbPill } from "@/components/landing/hero-verb-pill";
 import { HERO_CAPABILITY_VIDEOS } from "@/components/landing/hero-videos";
 import { PrimaryCta } from "@/components/landing/primary-cta";
@@ -70,7 +70,7 @@ export function HeroSection({ isLoggedIn }: HeroSectionProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           >
-            <HeroIconStack className="mb-6 sm:mb-8" />
+            <HeroFrameStack className="mb-6 sm:mb-8" />
           </motion.div>
 
           <motion.p

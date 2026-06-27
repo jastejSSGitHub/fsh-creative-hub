@@ -7,11 +7,11 @@ type ProjectCreationIllustrationProps = {
   stageIndex?: number;
 };
 
-const TILES = [
-  { className: "bg-gradient-to-br from-[#2667CC] to-[#48CAE4]", x: -20, y: -12, delay: 0 },
-  { className: "bg-gradient-to-br from-[#E85D4C] to-[#F4A261]", x: 18, y: -8, delay: 0.1 },
-  { className: "bg-gradient-to-br from-[#2A9D8F] to-[#52B788]", x: -4, y: 18, delay: 0.2 },
-  { className: "bg-gradient-to-br from-[#7B2CBF] to-[#C77DFF]", x: 14, y: 14, delay: 0.3 },
+const ASSET_COLORS = [
+  "bg-hub-primary",
+  "bg-hub-accent",
+  "bg-hub-approved",
+  "bg-[#E85D4C]",
 ] as const;
 
 export function ProjectCreationIllustration({
@@ -20,123 +20,133 @@ export function ProjectCreationIllustration({
 }: ProjectCreationIllustrationProps) {
   const prefersReducedMotion = useReducedMotion();
   const isReduced = reduced || !!prefersReducedMotion;
+  const activeIndex = stageIndex % ASSET_COLORS.length;
 
   return (
     <div
       className="relative mx-auto flex h-[7.5rem] w-[7.5rem] items-center justify-center"
       aria-hidden
     >
+      {/* Soft warm glow behind the folder */}
       <motion.div
-        className="absolute inset-1 rounded-[1.35rem] border border-hub-accent/20 bg-gradient-to-br from-hub-accent/10 via-white to-hub-final/10"
+        className="absolute inset-3 rounded-3xl bg-hub-accent/20"
         animate={
           isReduced
             ? undefined
-            : {
-                scale: [1, 1.05, 1],
-                opacity: [0.7, 1, 0.7],
-              }
+            : { scale: [1, 1.08, 1], opacity: [0.35, 0.55, 0.35] }
         }
         transition={
           isReduced
             ? undefined
-            : { duration: 2.2, repeat: Infinity, ease: "easeInOut" }
+            : { duration: 2.4, repeat: Infinity, ease: "easeInOut" }
         }
       />
 
-      <motion.div
-        className="absolute inset-0 rounded-[1.5rem] border border-dashed border-hub-foreground/10"
-        animate={isReduced ? undefined : { rotate: -360 }}
-        transition={
-          isReduced
-            ? undefined
-            : { duration: 20, repeat: Infinity, ease: "linear" }
-        }
-      />
+      {/* Folder body */}
+      <div className="relative z-10 w-[5.25rem]">
+        {/* Folder tab */}
+        <div className="relative z-10 h-3.5 w-[2.25rem] rounded-t-lg border-2 border-b-0 border-hub-primary bg-hub-primary/15" />
 
-      <div className="relative z-10 flex h-[4.5rem] w-[4.5rem] flex-col items-center justify-end rounded-xl border border-hub-foreground/10 bg-hub-surface px-3 pb-3 shadow-[0_12px_32px_rgba(26,15,8,0.1)]">
-        <div className="absolute left-2.5 top-2.5 flex gap-1">
-          <span className="size-1.5 rounded-full bg-hub-foreground/12" />
-          <span className="size-1.5 rounded-full bg-hub-foreground/12" />
-          <span className="size-1.5 rounded-full bg-hub-foreground/12" />
+        {/* Folder pocket */}
+        <div className="relative -mt-0.5 overflow-hidden rounded-xl rounded-tl-sm border-2 border-hub-primary bg-hub-primary/10 px-2.5 pb-2.5 pt-2">
+          {/* Asset thumbnails landing inside the folder */}
+          <div className="flex items-end justify-center gap-1.5">
+            {ASSET_COLORS.map((color, index) => {
+              const isActive = index === activeIndex;
+
+              return (
+                <motion.span
+                  key={index}
+                  className={`block h-5 w-4 rounded-sm ${color} shadow-sm`}
+                  initial={false}
+                  animate={
+                    isReduced
+                      ? { y: 0, opacity: index <= activeIndex ? 1 : 0.25, scale: 1 }
+                      : isActive
+                        ? {
+                            y: [10, 0, 0],
+                            opacity: [0, 1, 1],
+                            scale: [0.7, 1, 1],
+                          }
+                        : {
+                            y: 0,
+                            opacity: index < activeIndex ? 1 : 0.2,
+                            scale: index < activeIndex ? 1 : 0.85,
+                          }
+                  }
+                  transition={
+                    isReduced
+                      ? { duration: 0.01 }
+                      : isActive
+                        ? {
+                            duration: 0.55,
+                            ease: [0.22, 1, 0.36, 1],
+                          }
+                        : { duration: 0.3 }
+                  }
+                />
+              );
+            })}
+          </div>
         </div>
 
+        {/* Document dropping into the folder — loops continuously */}
         <motion.div
-          className="mb-2 h-2 w-14 rounded-full bg-hub-foreground/8"
+          className="pointer-events-none absolute left-1/2 top-0 z-20 -translate-x-1/2"
           animate={
             isReduced
-              ? undefined
-              : { width: ["3.5rem", "4rem", "3.5rem"], opacity: [0.5, 0.85, 0.5] }
+              ? { y: -6, opacity: 0.9 }
+              : {
+                  y: [-22, 2, 2, -22],
+                  opacity: [0, 1, 1, 0],
+                  rotate: [-6, 0, 0, -6],
+                }
           }
           transition={
             isReduced
-              ? undefined
-              : { duration: 1.5, repeat: Infinity, ease: "easeInOut" }
+              ? { duration: 0.01 }
+              : {
+                  duration: 2.4,
+                  repeat: Infinity,
+                  ease: [0.22, 1, 0.36, 1],
+                  times: [0, 0.45, 0.7, 1],
+                }
           }
-        />
-
-        <div className="grid w-full grid-cols-2 gap-1.5">
-          {[0, 1, 2, 3].map((index) => {
-            const tile = TILES[index];
-            const isActive = index === stageIndex % TILES.length;
-
-            return (
-              <motion.span
-                key={index}
-                className={`block h-3 rounded-[4px] ${tile.className}`}
-                animate={
-                  isReduced
-                    ? undefined
-                    : isActive
-                      ? { scale: [1, 1.12, 1], opacity: [0.85, 1, 0.85] }
-                      : { scale: 1, opacity: 0.55 }
-                }
-                transition={
-                  isReduced
-                    ? undefined
-                    : {
-                        duration: 1.1,
-                        repeat: isActive ? Infinity : 0,
-                        ease: "easeInOut",
-                        delay: tile.delay,
-                      }
-                }
-              />
-            );
-          })}
-        </div>
+        >
+          <div className="relative h-7 w-5 rounded-sm border-2 border-hub-primary bg-hub-surface shadow-[0_4px_12px_rgba(24,160,251,0.25)]">
+            <div className="absolute right-0 top-0 size-2 rounded-bl-sm bg-hub-accent" />
+            <div className="mt-3 space-y-1 px-1">
+              <div className="h-0.5 w-full rounded-full bg-hub-primary/40" />
+              <div className="h-0.5 w-2/3 rounded-full bg-hub-primary/25" />
+            </div>
+          </div>
+        </motion.div>
       </div>
 
-      {TILES.map((tile, index) => {
-        const isActive = index === stageIndex % TILES.length;
-
-        return (
+      {/* Bouncing dots — clear "loading" cue */}
+      <div className="absolute -bottom-1 left-1/2 flex -translate-x-1/2 gap-1">
+        {[0, 1, 2].map((index) => (
           <motion.span
-            key={`orbit-${index}`}
-            className={`absolute size-3 rounded-md ${tile.className} shadow-sm`}
-            style={{ left: "50%", top: "50%" }}
+            key={index}
+            className="size-1.5 rounded-full bg-hub-primary"
             animate={
               isReduced
-                ? { x: tile.x, y: tile.y, opacity: isActive ? 0.9 : 0.35 }
-                : {
-                    x: [tile.x, tile.x + 3, tile.x],
-                    y: [tile.y, tile.y - 4, tile.y],
-                    opacity: isActive ? [0.7, 1, 0.7] : 0.25,
-                    rotate: [0, 8, 0],
-                  }
+                ? { opacity: 0.6, y: 0 }
+                : { y: [0, -4, 0], opacity: [0.35, 1, 0.35] }
             }
             transition={
               isReduced
                 ? { duration: 0.01 }
                 : {
-                    duration: 1.8,
+                    duration: 0.9,
                     repeat: Infinity,
                     ease: "easeInOut",
-                    delay: tile.delay,
+                    delay: index * 0.15,
                   }
             }
           />
-        );
-      })}
+        ))}
+      </div>
     </div>
   );
 }

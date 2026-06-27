@@ -3,7 +3,7 @@ import {
   type ProjectCardSnapshot,
   type ProjectsPageSnapshot,
 } from "@/lib/projects/snapshot";
-import { SkeletonBone } from "@/components/ui/skeleton-primitives";
+import { SkeletonBone, SkeletonMediaSurface } from "@/components/ui/skeleton-primitives";
 import { cn } from "@/lib/utils";
 
 const TITLE_WIDTH_CLASS: Record<ProjectCardSnapshot["titleWidth"], string> = {
@@ -15,19 +15,19 @@ const TITLE_WIDTH_CLASS: Record<ProjectCardSnapshot["titleWidth"], string> = {
 function ProjectCardSkeleton({ card }: { card: ProjectCardSnapshot }) {
   return (
     <article className="flex flex-col overflow-hidden rounded-xl border border-hub-foreground/10 bg-hub-surface">
-      <div className="relative aspect-[16/10] overflow-hidden bg-[linear-gradient(135deg,#faf8f3_0%,#f3efe6_55%,#ffffff_100%)]">
+      <SkeletonMediaSurface className="aspect-[16/10]">
         {card.hasCover ? (
-          <SkeletonBone className="size-full rounded-none bg-hub-foreground/[0.05]" />
+          <SkeletonBone className="size-full rounded-none bg-hub-skeleton-muted" />
         ) : (
           <div className="flex size-full items-center justify-center">
             <SkeletonBone className="size-10 rounded-md" />
           </div>
         )}
-      </div>
+      </SkeletonMediaSurface>
 
       <div className="space-y-1 border-t border-hub-foreground/8 bg-hub-foreground/[0.03] p-3">
         <div className="flex items-start gap-2">
-          <SkeletonBone className="mt-0.5 size-5 shrink-0 rounded bg-hub-foreground/[0.1]" />
+          <SkeletonBone className="mt-0.5 size-5 shrink-0 rounded bg-hub-skeleton-strong" />
           <div className="min-w-0 flex-1 space-y-1.5">
             <SkeletonBone className={cn("h-4", TITLE_WIDTH_CLASS[card.titleWidth])} />
             <SkeletonBone className="h-3 w-28" />
@@ -89,7 +89,7 @@ export function ProjectsPageSkeletonView({
             <SkeletonBone className="h-4 w-20" />
           </div>
           <div className="rounded-md px-3 py-1.5">
-            <SkeletonBone className="h-4 w-12 bg-hub-foreground/[0.05]" />
+            <SkeletonBone className="h-4 w-12" />
           </div>
         </div>
       </div>

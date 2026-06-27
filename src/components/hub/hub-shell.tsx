@@ -6,6 +6,7 @@ import { HubMain } from "@/components/hub/hub-main";
 import { DevToolsHost } from "@/components/dev-tools/dev-tools-host";
 import { FeatureOnboardingHost } from "@/components/onboarding/feature-onboarding-host";
 import { DevToolsProvider } from "@/lib/dev-tools/dev-tools-context";
+import { ProjectNavigationProvider } from "@/components/projects/project-navigation-provider";
 import { getForYouCount } from "@/lib/inbox/queries";
 import { LOGIN_PATH } from "@/lib/routes";
 import { createClient } from "@/lib/supabase/server";
@@ -47,7 +48,8 @@ export async function HubShell({ children, variant = "default" }: HubShellProps)
   return (
     <HubDetailToolbarProvider>
       <DevToolsProvider isHubAdmin={displayProfile?.is_hub_admin ?? false}>
-        <div className="flex min-h-full flex-col overflow-x-clip bg-hub-paper">
+        <ProjectNavigationProvider>
+          <div className="flex min-h-full flex-col overflow-x-clip bg-hub-paper">
           <HubHeader
             forYouCount={forYouCount}
             displayName={displayName}
@@ -63,7 +65,8 @@ export async function HubShell({ children, variant = "default" }: HubShellProps)
 
           <FeatureOnboardingHost userId={user.id} />
           <DevToolsHost />
-        </div>
+          </div>
+        </ProjectNavigationProvider>
       </DevToolsProvider>
     </HubDetailToolbarProvider>
   );

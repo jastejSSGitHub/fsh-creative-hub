@@ -59,7 +59,7 @@ function SectionTabsSkeleton({ sectionCount }: { sectionCount: number }) {
               className={cn(
                 "h-4 rounded-sm",
                 tabWidths[index] ?? "w-20",
-                index === 0 && "bg-hub-foreground/[0.08]",
+                index === 0 && "bg-hub-skeleton-strong",
               )}
             />
           </div>
@@ -110,10 +110,10 @@ export function ReviewBoardLoadingSkeleton() {
           <SectionTabsSkeleton sectionCount={snapshot?.sectionCount ?? 2} />
 
           <div className="space-y-5">
-            <SkeletonBone className="h-28 w-full rounded-xl border border-dashed border-hub-foreground/12 bg-hub-foreground/[0.03]" />
+            <SkeletonBone className="h-28 w-full rounded-xl border border-dashed border-hub-foreground/12 bg-hub-skeleton-panel" />
 
             <div className="flex flex-wrap gap-2">
-              <SkeletonBone className="h-9 w-12 rounded-md bg-hub-foreground/[0.08]" />
+              <SkeletonBone className="h-9 w-12 rounded-md bg-hub-skeleton-strong" />
               {["Pending", "Approved", "Rejected", "Final"].map((label) => (
                 <SkeletonBone key={label} className="h-9 w-20 rounded-md" />
               ))}

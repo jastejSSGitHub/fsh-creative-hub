@@ -73,7 +73,7 @@ export function NavBackLinkSkeleton({ className }: { className?: string }) {
       aria-hidden
     >
       <span className="size-3.5 animate-pulse rounded-sm bg-hub-primary/12" />
-      <span className="h-3.5 w-20 animate-pulse rounded-md bg-hub-foreground/[0.08]" />
+      <span className="h-3.5 w-20 animate-pulse rounded-md bg-hub-skeleton-strong" />
     </div>
   );
 }

@@ -2,26 +2,26 @@
 
 import { HubStagedLoadingOverlay } from "@/components/projects/hub-staged-loading-overlay";
 import {
-  PROJECT_CREATION_STAGE_MS,
-  PROJECT_CREATION_STAGES,
-} from "@/lib/projects/creation-stages";
+  PROJECT_OPENING_STAGE_MS,
+  PROJECT_OPENING_STAGES,
+} from "@/lib/projects/navigation-stages";
 
-type ProjectCreationOverlayProps = {
+type ProjectOpeningOverlayProps = {
   visible: boolean;
   projectName?: string;
   startedAt: number | null;
 };
 
-export function ProjectCreationOverlay({
+export function ProjectOpeningOverlay({
   visible,
   projectName,
   startedAt,
-}: ProjectCreationOverlayProps) {
+}: ProjectOpeningOverlayProps) {
   return (
     <HubStagedLoadingOverlay
       visible={visible}
-      stages={PROJECT_CREATION_STAGES}
-      stageMs={PROJECT_CREATION_STAGE_MS}
+      stages={PROJECT_OPENING_STAGES}
+      stageMs={PROJECT_OPENING_STAGE_MS}
       subtitle={projectName}
       startedAt={startedAt}
     />

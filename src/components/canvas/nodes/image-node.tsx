@@ -121,7 +121,7 @@ export function ImageNodeView({
     >
       {(isUploading || !imageReady) && (
         <div
-          className="canvas-image-upload-skeleton absolute inset-0 flex flex-col items-center justify-center overflow-hidden bg-[#ececec]"
+          className="canvas-image-upload-skeleton absolute inset-0 flex flex-col items-center justify-center overflow-hidden bg-hub-skeleton-panel"
           aria-hidden={!isUploading}
         >
           <div className="hub-shimmer absolute inset-0 opacity-70" />

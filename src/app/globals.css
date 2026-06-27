@@ -23,6 +23,12 @@
   --color-hub-accent: var(--hub-accent);
   --color-hub-favorite: var(--hub-favorite);
   --color-hub-primary: var(--hub-primary);
+  --color-hub-thumb-ink: #1a1410;
+  --color-hub-thumb-surface: #ffffff;
+  --color-hub-skeleton: var(--hub-skeleton);
+  --color-hub-skeleton-strong: var(--hub-skeleton-strong);
+  --color-hub-skeleton-muted: var(--hub-skeleton-muted);
+  --color-hub-skeleton-panel: var(--hub-skeleton-panel);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -75,6 +81,11 @@
   --hub-approved: #22c55e;
   --hub-rejected: #ef4444;
   --hub-final: #ffc94b;
+  --hub-skeleton: color-mix(in srgb, var(--hub-espresso) 7%, transparent);
+  --hub-skeleton-strong: color-mix(in srgb, var(--hub-espresso) 11%, transparent);
+  --hub-skeleton-muted: color-mix(in srgb, var(--hub-espresso) 4%, transparent);
+  --hub-skeleton-panel: color-mix(in srgb, var(--hub-espresso) 3%, transparent);
+  --hub-skeleton-media: linear-gradient(135deg, #faf8f3 0%, #f3efe6 55%, #ffffff 100%);
   --background: var(--hub-paper);
   --foreground: var(--hub-espresso);
   --card: oklch(1 0 0);
@@ -116,6 +127,11 @@
   --hub-surface: #1e1e1e;
   --hub-surface-muted: #161616;
   --hub-surface-subtle: #141414;
+  --hub-skeleton: #2c2c2c;
+  --hub-skeleton-strong: #383838;
+  --hub-skeleton-muted: #222222;
+  --hub-skeleton-panel: #1a1a1a;
+  --hub-skeleton-media: linear-gradient(135deg, #141414 0%, #1c1c1c 55%, #242424 100%);
   --background: var(--hub-paper);
   --foreground: var(--hub-foreground);
   --card: var(--hub-surface);
@@ -281,6 +297,15 @@
     .hub-scan-line {
       animation: none;
     }
+  }
+
+  /* File thumbnails always sit on light pastel gradients — keep ink/surface fixed in dark mode. */
+  .hub-file-thumb {
+    color-scheme: only light;
+  }
+
+  .hub-skeleton-media {
+    background: var(--hub-skeleton-media);
   }
 
   .hub-file-thumb-shimmer {

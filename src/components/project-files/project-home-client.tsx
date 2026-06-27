@@ -24,6 +24,7 @@ import {
   shouldShowFeatureOnboarding,
 } from "@/lib/onboarding/storage";
 import { DEV_TOOLS_SIMULATE_CHANGED } from "@/lib/dev-tools/events";
+import { dispatchProjectNavigationEnd } from "@/lib/projects/project-navigation-events";
 import type { ProjectFileWithMeta } from "@/lib/project-files/queries";
 import type { ProjectCardData } from "@/lib/projects/queries";
 import type { HubProject, HubRole } from "@/types/database";
@@ -113,6 +114,10 @@ export function ProjectHomeClient({
     setShowOnboarding(false);
     setResumeToastOpen(false);
   }, [currentUserId, project.id, resetOnboardingUiState]);
+
+  useEffect(() => {
+    dispatchProjectNavigationEnd();
+  }, []);
 
   useEffect(() => {
     function handleSimulateChanged(event: Event) {

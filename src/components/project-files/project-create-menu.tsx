@@ -25,6 +25,8 @@ type ProjectCreateMenuProps = {
   createButtonRef?: React.RefObject<HTMLButtonElement | null>;
   rootRef?: React.RefObject<HTMLDivElement | null>;
   lockOutsideClose?: boolean;
+  /** Raises above onboarding dim overlay (z-44). Off during normal use so hub header menus stay on top. */
+  elevated?: boolean;
 };
 
 export function ProjectCreateMenu({
@@ -38,6 +40,7 @@ export function ProjectCreateMenu({
   createButtonRef,
   rootRef,
   lockOutsideClose = false,
+  elevated = false,
 }: ProjectCreateMenuProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = openProp ?? internalOpen;
@@ -106,7 +109,7 @@ export function ProjectCreateMenu({
   if (!canCreate) return null;
 
   return (
-    <div ref={assignRootRef} className="relative z-[46]">
+    <div ref={assignRootRef} className={cn("relative", elevated && "z-[46]")}>
       <button
         ref={createButtonRef}
         type="button"

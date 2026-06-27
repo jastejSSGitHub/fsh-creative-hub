@@ -392,6 +392,7 @@ export function ProjectHome({
             onOpenChange={onCreateMenuOpenChange}
             rootRef={createMenuRootRef}
             lockOutsideClose={createMenuLockOutsideClose}
+            elevated={createMenuLockOutsideClose}
           />
 
           <button
