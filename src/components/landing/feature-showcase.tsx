@@ -25,7 +25,8 @@ const APPROVAL_REJECTION_LOOM_URL =
 const FEEDBACK_LOOM_URL =
   "https://www.loom.com/share/62c18127fea541b6a81e465a4080a20d";
 
-const PLACEHOLDER_LOOM_URL = PROJECTS_LOOM_URL;
+const BRAINSTORM_LOOM_URL =
+  "https://www.loom.com/share/fe6cf863af764ba4b5d9feb0b12790c6";
 
 const FEATURES: ReadonlyArray<{
   kicker: string;
@@ -89,7 +90,7 @@ const FEATURES: ReadonlyArray<{
     index: 3,
     media: null,
     tutorial: {
-      loomUrl: PLACEHOLDER_LOOM_URL,
+      loomUrl: BRAINSTORM_LOOM_URL,
       modalTitle: "Brainstorm out loud",
     },
   },
