@@ -3,7 +3,7 @@
 import { LayoutGroup, motion, useReducedMotion } from "framer-motion";
 import { Star } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type RefObject } from "react";
 
 import { ProjectCreateMenu } from "@/components/project-files/project-create-menu";
 import {
@@ -68,6 +68,15 @@ type ProjectHomeProps = {
   onCreateCanvas: () => void;
   onCreateTextDocument: () => void;
   onShare: () => void;
+  createMenuOpen?: boolean;
+  onCreateMenuOpenChange?: (open: boolean) => void;
+  createMenuRootRef?: RefObject<HTMLDivElement | null>;
+  createMenuLockOutsideClose?: boolean;
+  shareButtonRef?: RefObject<HTMLButtonElement | null>;
+  templatesBannerRef?: RefObject<HTMLElement | null>;
+  templatesForceVisible?: boolean;
+  favoriteButtonRef?: RefObject<HTMLButtonElement | null>;
+  favoriteForceVisible?: boolean;
 };
 
 function sortFiles(
@@ -111,11 +120,15 @@ type AnimatedFileCardProps = {
   onSelect: (fileId: string) => void;
   onFavoriteToggle: (fileId: string, favorite: boolean) => void;
   onContextMenu: (file: ProjectFileWithMeta, x: number, y: number) => void;
+  favoriteButtonRef?: RefObject<HTMLButtonElement | null>;
+  forceFavoriteVisible?: boolean;
 };
 
 function AnimatedFileCard({
   file,
   animateLayout,
+  favoriteButtonRef,
+  forceFavoriteVisible,
   ...cardProps
 }: AnimatedFileCardProps) {
   return (
@@ -125,7 +138,12 @@ function AnimatedFileCard({
       transition={FILE_LAYOUT_TRANSITION}
       className="h-full"
     >
-      <ProjectFileCard file={file} {...cardProps} />
+      <ProjectFileCard
+        file={file}
+        favoriteButtonRef={favoriteButtonRef}
+        forceFavoriteVisible={forceFavoriteVisible}
+        {...cardProps}
+      />
     </motion.div>
   );
 }
@@ -140,6 +158,15 @@ export function ProjectHome({
   onCreateCanvas,
   onCreateTextDocument,
   onShare,
+  createMenuOpen,
+  onCreateMenuOpenChange,
+  createMenuRootRef,
+  createMenuLockOutsideClose = false,
+  shareButtonRef,
+  templatesBannerRef,
+  templatesForceVisible = false,
+  favoriteButtonRef,
+  favoriteForceVisible = false,
 }: ProjectHomeProps) {
   const router = useRouter();
   const reduceMotion = useReducedMotion();
@@ -242,7 +269,7 @@ export function ProjectHome({
     ];
   }
 
-  function renderAnimatedFileCard(file: ProjectFileWithMeta) {
+  function renderAnimatedFileCard(file: ProjectFileWithMeta, isOnboardingTarget: boolean) {
     return (
       <AnimatedFileCard
         key={file.id}
@@ -258,6 +285,8 @@ export function ProjectHome({
         onContextMenu={(target, x, y) =>
           setContextMenu({ file: target, x, y })
         }
+        favoriteButtonRef={isOnboardingTarget ? favoriteButtonRef : undefined}
+        forceFavoriteVisible={isOnboardingTarget && favoriteForceVisible}
       />
     );
   }
@@ -266,6 +295,7 @@ export function ProjectHome({
     const sectionMotion = animateLayout
       ? SECTION_TRANSITION
       : { duration: 0 };
+    const onboardingTargetId = filteredFiles[0]?.id ?? null;
 
     return (
       <LayoutGroup id={`project-files-${project.id}`}>
@@ -292,7 +322,9 @@ export function ProjectHome({
               transition={FILE_LAYOUT_TRANSITION}
               className={cn(hubCardGridClassName, hasFavorites && "mt-3")}
             >
-              {favoriteFiles.map(renderAnimatedFileCard)}
+              {favoriteFiles.map((file) =>
+                renderAnimatedFileCard(file, file.id === onboardingTargetId),
+              )}
             </motion.div>
           </motion.div>
 
@@ -318,7 +350,9 @@ export function ProjectHome({
               transition={FILE_LAYOUT_TRANSITION}
               className={cn(hubCardGridClassName, hasFavorites && "mt-3")}
             >
-              {regularFiles.map(renderAnimatedFileCard)}
+              {regularFiles.map((file) =>
+                renderAnimatedFileCard(file, file.id === onboardingTargetId),
+              )}
             </motion.div>
           </motion.div>
         </motion.div>
@@ -354,9 +388,14 @@ export function ProjectHome({
             onCreateReviewBoard={onCreateReviewBoard}
             onCreateCanvas={onCreateCanvas}
             onCreateTextDocument={onCreateTextDocument}
+            open={createMenuOpen}
+            onOpenChange={onCreateMenuOpenChange}
+            rootRef={createMenuRootRef}
+            lockOutsideClose={createMenuLockOutsideClose}
           />
 
           <button
+            ref={shareButtonRef}
             type="button"
             onClick={onShare}
             className="inline-flex min-h-9 items-center rounded-[6px] border border-hub-foreground/12 bg-hub-surface px-3.5 text-[0.8125rem] font-medium text-hub-foreground transition-colors hover:bg-hub-foreground/[0.03]"
@@ -397,6 +436,8 @@ export function ProjectHome({
       <ProjectTemplatesBanner
         projectId={project.id}
         onUseTemplate={() => onCreateReviewBoard()}
+        forceVisible={templatesForceVisible}
+        bannerRef={templatesBannerRef}
       />
 
       {filteredFiles.length === 0 ? (

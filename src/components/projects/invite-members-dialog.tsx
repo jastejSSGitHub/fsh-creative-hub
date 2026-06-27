@@ -26,6 +26,9 @@ type InviteMembersDialogProps = {
   project: ProjectCardData | null;
   currentUserId: string;
   onClose: () => void;
+  panelRef?: React.RefObject<HTMLDialogElement | null>;
+  onShareOnboardingPause?: () => void;
+  blockBackdropClose?: boolean;
 };
 
 const ROLES: HubRole[] = ["admin", "editor", "viewer"];
@@ -43,6 +46,9 @@ export function InviteMembersDialog({
   project,
   currentUserId,
   onClose,
+  panelRef,
+  onShareOnboardingPause,
+  blockBackdropClose = false,
 }: InviteMembersDialogProps) {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -57,6 +63,7 @@ export function InviteMembersDialog({
 
   function handleClose() {
     if (isPending) return;
+    if (blockBackdropClose) return;
     setEmail("");
     setRole("editor");
     setError(null);
@@ -199,6 +206,10 @@ export function InviteMembersDialog({
     <HubDialog
       open={open}
       onClose={handleClose}
+      panelRef={panelRef}
+      onBackdropAttempt={
+        blockBackdropClose ? onShareOnboardingPause : undefined
+      }
       title={project ? `Members · ${project.name}` : "Members"}
       headerAction={
         project ? (

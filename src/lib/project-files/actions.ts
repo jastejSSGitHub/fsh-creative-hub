@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { toUserFacingError } from "@/lib/errors/user-facing";
 import {
   initiativeNameForSection,
   type SectionPresetId,
@@ -75,7 +76,13 @@ export async function createReviewBoardAction(
       .single();
 
     if (boardError || !board) {
-      return { ok: false, error: boardError?.message ?? "Could not create review board." };
+      return {
+        ok: false,
+        error: toUserFacingError(
+          boardError?.message,
+          "We couldn't create that review board. Please try again.",
+        ),
+      };
     }
 
     const initiativeRows = input.sections.map((section, index) => ({
@@ -91,7 +98,13 @@ export async function createReviewBoardAction(
       .select("id");
 
     if (initiativeError || !initiatives?.length) {
-      return { ok: false, error: initiativeError?.message ?? "Could not create sections." };
+      return {
+        ok: false,
+        error: toUserFacingError(
+          initiativeError?.message,
+          "We couldn't create the board sections. Please try again.",
+        ),
+      };
     }
 
     await logActivity(supabase, {
@@ -114,7 +127,7 @@ export async function createReviewBoardAction(
   } catch (error) {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "Something went wrong.",
+      error: toUserFacingError(error, "We couldn't create that review board. Please try again."),
     };
   }
 }
@@ -147,7 +160,10 @@ export async function createCanvasAction(
       .single();
 
     if (error || !canvas) {
-      return { ok: false, error: error?.message ?? "Could not create canvas." };
+      return {
+        ok: false,
+        error: toUserFacingError(error?.message, "We couldn't create that canvas. Please try again."),
+      };
     }
 
     await logActivity(supabase, {
@@ -166,7 +182,7 @@ export async function createCanvasAction(
   } catch (error) {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "Something went wrong.",
+      error: toUserFacingError(error, "We couldn't create that canvas. Please try again."),
     };
   }
 }
@@ -196,7 +212,10 @@ export async function createTextDocumentAction(
       .single();
 
     if (error || !doc) {
-      return { ok: false, error: error?.message ?? "Could not create document." };
+      return {
+        ok: false,
+        error: toUserFacingError(error?.message, "We couldn't create that document. Please try again."),
+      };
     }
 
     await logActivity(supabase, {
@@ -215,7 +234,7 @@ export async function createTextDocumentAction(
   } catch (error) {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "Something went wrong.",
+      error: toUserFacingError(error, "We couldn't create that document. Please try again."),
     };
   }
 }
@@ -255,7 +274,10 @@ export async function updateTextDocumentAction(
       .eq("type", "text_document");
 
     if (error) {
-      return { ok: false, error: error.message };
+      return {
+        ok: false,
+        error: toUserFacingError(error.message, "We couldn't save that document. Please try again."),
+      };
     }
 
     revalidatePath(projectPath(input.projectId));
@@ -265,7 +287,7 @@ export async function updateTextDocumentAction(
   } catch (error) {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "Something went wrong.",
+      error: toUserFacingError(error, "We couldn't save that document. Please try again."),
     };
   }
 }
@@ -294,7 +316,10 @@ export async function renameProjectFileAction(
       .eq("type", input.fileType);
 
     if (error) {
-      return { ok: false, error: error.message };
+      return {
+        ok: false,
+        error: toUserFacingError(error.message, "We couldn't rename that file. Please try again."),
+      };
     }
 
     revalidatePath(projectPath(input.projectId));
@@ -311,7 +336,7 @@ export async function renameProjectFileAction(
   } catch (error) {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "Could not rename file.",
+      error: toUserFacingError(error, "We couldn't rename that file. Please try again."),
     };
   }
 }
@@ -362,7 +387,10 @@ export async function toggleProjectFileFavoriteAction(
       );
 
       if (error) {
-        return { ok: false, error: error.message };
+        return {
+          ok: false,
+          error: toUserFacingError(error.message, "We couldn't update your favorite. Please try again."),
+        };
       }
     } else {
       const { error } = await supabase
@@ -372,7 +400,10 @@ export async function toggleProjectFileFavoriteAction(
         .eq("file_id", fileId);
 
       if (error) {
-        return { ok: false, error: error.message };
+        return {
+          ok: false,
+          error: toUserFacingError(error.message, "We couldn't update your favorite. Please try again."),
+        };
       }
     }
 
@@ -382,7 +413,7 @@ export async function toggleProjectFileFavoriteAction(
   } catch (error) {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "Could not update favorite.",
+      error: toUserFacingError(error, "We couldn't update your favorite. Please try again."),
     };
   }
 }

@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { useAuthTransition } from "@/components/auth/auth-transition-provider";
+import { getFirstNameFromUser } from "@/lib/auth/display-name";
 import { ensureHubProfileClient } from "@/lib/auth/ensure-profile-client";
 import { LOGIN_PATH, PROJECTS_PATH } from "@/lib/routes";
 import { createClient } from "@/lib/supabase/client";
@@ -18,7 +19,7 @@ export function AuthCallbackClient() {
     if (startedRef.current) return;
     startedRef.current = true;
 
-    beginAuthTransition("complete-sign-in");
+    beginAuthTransition("complete-sign-in", { persist: true });
 
     const code = searchParams.get("code");
     const next = searchParams.get("next")?.startsWith("/")
@@ -46,6 +47,13 @@ export function AuthCallbackClient() {
         }
 
         await ensureHubProfileClient(data.user);
+
+        const firstName = getFirstNameFromUser(data.user);
+        beginAuthTransition("welcome-sign-in", {
+          persist: true,
+          firstName,
+        });
+
         router.replace(next);
         router.refresh();
       } catch {

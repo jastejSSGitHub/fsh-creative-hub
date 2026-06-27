@@ -14,6 +14,8 @@ type HubDialogProps = {
   headerAction?: ReactNode;
   children: ReactNode;
   className?: string;
+  panelRef?: React.RefObject<HTMLDialogElement | null>;
+  onBackdropAttempt?: () => void;
 };
 
 export function HubDialog({
@@ -24,9 +26,17 @@ export function HubDialog({
   headerAction,
   children,
   className,
+  panelRef,
+  onBackdropAttempt,
 }: HubDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    if (panelRef) {
+      panelRef.current = dialogRef.current;
+    }
+  });
 
   useEffect(() => {
     setMounted(true);
@@ -58,13 +68,17 @@ export function HubDialog({
         event.clientY <= rect.bottom;
 
       if (!clickedInside) {
+        if (onBackdropAttempt) {
+          onBackdropAttempt();
+          return;
+        }
         onClose();
       }
     }
 
     document.addEventListener("mousedown", handleBackdropClick);
     return () => document.removeEventListener("mousedown", handleBackdropClick);
-  }, [open, onClose]);
+  }, [onBackdropAttempt, onClose, open]);
 
   if (!mounted) {
     return null;

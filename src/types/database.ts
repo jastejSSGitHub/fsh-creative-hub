@@ -17,6 +17,7 @@ export type HubProfile = {
   email: string;
   display_name: string;
   avatar_url: string | null;
+  is_hub_admin: boolean;
   created_at: string;
 };
 
@@ -25,6 +26,7 @@ export type HubProject = {
   name: string;
   description: string | null;
   cover_url: string | null;
+  is_org_wide: boolean;
   created_by: string;
   created_at: string;
   trashed_at: string | null;
@@ -68,6 +70,7 @@ export type HubInitiative = {
   name: string;
   description: string | null;
   sort_order: number;
+  ideas_canvas_id?: string | null;
   created_at: string;
 };
 
@@ -113,6 +116,11 @@ export type HubIdea = {
   author_id: string;
   body: string;
   color: string;
+  width?: number;
+  height?: number;
+  text_size?: string;
+  bold?: boolean;
+  strikethrough?: boolean;
   created_at: string;
 };
 

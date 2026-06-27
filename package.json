@@ -12,7 +12,8 @@
     "validate": "npm run typecheck && node scripts/check-motion-keyframes.mjs && npm run build",
     "migrate:blenz": "node scripts/migrate-blenz.mjs",
     "optimize:text-document-banners": "node scripts/optimize-text-document-banners.mjs",
-    "seed:presentation-demo": "node scripts/seed-presentation-demo.mjs"
+    "seed:presentation-demo": "node scripts/seed-presentation-demo.mjs",
+    "seed:healthy-cart-canada": "node scripts/seed-healthy-cart-canada.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

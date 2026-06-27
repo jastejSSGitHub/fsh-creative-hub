@@ -9,6 +9,7 @@ import {
   writeCanvasOnboardingPhase,
   type CanvasOnboardingPhase,
 } from "@/lib/canvas/onboarding-storage";
+import { DEV_TOOLS_SIMULATE_CHANGED } from "@/lib/dev-tools/events";
 import {
   CANVAS_INTRO_MESSAGES,
   CANVAS_INTRO_STEPS,
@@ -52,6 +53,23 @@ export function CanvasOnboarding({
       onStepChange?.(introStep);
     }
   }, [introStep, onStepChange, phase]);
+
+  useEffect(() => {
+    function handleSimulateChanged(event: Event) {
+      const simulate = (event as CustomEvent<{ simulate: boolean }>).detail.simulate;
+      if (simulate) {
+        setPhase("intro");
+        setIntroStep("welcome");
+        return;
+      }
+
+      setPhase(readCanvasOnboardingPhase(canvasId));
+      setIntroStep("welcome");
+    }
+
+    window.addEventListener(DEV_TOOLS_SIMULATE_CHANGED, handleSimulateChanged);
+    return () => window.removeEventListener(DEV_TOOLS_SIMULATE_CHANGED, handleSimulateChanged);
+  }, [canvasId]);
 
   if (phase === "done") return null;
 

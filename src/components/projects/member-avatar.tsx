@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import { HubTooltip } from "@/components/ui/hub-tooltip";
 import { memberAvatarColor } from "@/lib/hub/member-avatar-color";
 import { cn } from "@/lib/utils";
@@ -43,7 +45,13 @@ export function MemberAvatar({
 }: MemberAvatarProps) {
   const label = displayName.trim() || "Unknown user";
   const seed = colorSeed ?? label;
-  const initialsBackground = !avatarUrl ? memberAvatarColor(seed) : undefined;
+  const [imageFailed, setImageFailed] = useState(false);
+  const showImage = Boolean(avatarUrl) && !imageFailed;
+  const initialsBackground = !showImage ? memberAvatarColor(seed) : undefined;
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [avatarUrl]);
 
   return (
     <HubTooltip label={label} side="bottom">
@@ -51,14 +59,19 @@ export function MemberAvatar({
         className={cn(
           "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full",
           sizeClasses[size],
-          !avatarUrl && variantClasses[variant],
+          !showImage && variantClasses[variant],
           className,
         )}
         style={initialsBackground ? { backgroundColor: initialsBackground } : undefined}
       >
-        {avatarUrl ? (
+        {showImage ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={avatarUrl} alt="" className="size-full object-cover" />
+          <img
+            src={avatarUrl ?? undefined}
+            alt=""
+            className="size-full object-cover"
+            onError={() => setImageFailed(true)}
+          />
         ) : (
           memberInitials(label)
         )}

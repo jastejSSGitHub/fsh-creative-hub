@@ -134,14 +134,9 @@ async function getReviewState() {
   return map;
 }
 
-async function ensureAllProfilesAreMembers(projectId) {
-  const { data: profiles } = await hub.from("hub_profiles").select("id");
-  for (const profile of profiles ?? []) {
-    await hub.from("hub_project_members").upsert(
-      { project_id: projectId, user_id: profile.id, role: "admin" },
-      { onConflict: "project_id,user_id" },
-    );
-  }
+async function markBlenzOrgWide(projectId) {
+  await hub.from("hub_projects").update({ is_org_wide: true }).eq("id", projectId);
+  await hub.rpc("hub_sync_org_wide_project_members", { p_project_id: projectId });
 }
 
 async function ensureBlenzProject(ownerId) {
@@ -166,7 +161,7 @@ async function ensureBlenzProject(ownerId) {
         .eq("id", existing.id);
       console.log("Set Blenz project cover thumbnail.");
     }
-    await ensureAllProfilesAreMembers(existing.id);
+    await markBlenzOrgWide(existing.id);
     return existing.id;
   }
 
@@ -176,6 +171,7 @@ async function ensureBlenzProject(ownerId) {
       name: "Blenz",
       description: "Coffee branding creative review — migrated from Blenz review board",
       cover_url: coverUrl,
+      is_org_wide: true,
       created_by: ownerId,
     })
     .select("id")
@@ -183,12 +179,7 @@ async function ensureBlenzProject(ownerId) {
 
   if (error) throw error;
 
-  await hub.from("hub_project_members").insert({
-    project_id: project.id,
-    user_id: ownerId,
-    role: "admin",
-  });
-  await ensureAllProfilesAreMembers(project.id);
+  await markBlenzOrgWide(project.id);
 
   console.log("Created project Blenz:", project.id);
   return project.id;

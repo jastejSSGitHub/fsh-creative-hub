@@ -2,7 +2,7 @@
 
 import { motion, useReducedMotion } from "framer-motion";
 
-import { loopTransition } from "@/lib/motion/transitions";
+import { transitionForValue } from "@/lib/motion/transitions";
 import { cn } from "@/lib/utils";
 
 type AssetDropZoneHeroIllustrationProps = {
@@ -32,7 +32,7 @@ export function AssetDropZoneHeroIllustration({
           ? { type: "spring", stiffness: 320, damping: 24 }
           : reduced
             ? undefined
-            : loopTransition({ duration: 4.2 })
+            : transitionForValue([0, -2.5, 0], {}, { duration: 4.2 })
       }
     >
       <div className="absolute left-1/2 top-[58%] size-14 -translate-x-1/2 -translate-y-1/2 rounded-full bg-hub-accent/20 blur-2xl" />

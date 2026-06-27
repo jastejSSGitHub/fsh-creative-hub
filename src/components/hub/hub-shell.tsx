@@ -3,7 +3,9 @@ import { redirect } from "next/navigation";
 import { HubDetailToolbarProvider } from "@/components/hub/hub-detail-toolbar";
 import { HubHeader } from "@/components/hub/hub-header";
 import { HubMain } from "@/components/hub/hub-main";
+import { DevToolsHost } from "@/components/dev-tools/dev-tools-host";
 import { FeatureOnboardingHost } from "@/components/onboarding/feature-onboarding-host";
+import { DevToolsProvider } from "@/lib/dev-tools/dev-tools-context";
 import { getForYouCount } from "@/lib/inbox/queries";
 import { LOGIN_PATH } from "@/lib/routes";
 import { createClient } from "@/lib/supabase/server";
@@ -27,7 +29,7 @@ export async function HubShell({ children, variant = "default" }: HubShellProps)
 
   const { data: profile } = await supabase
     .from("hub_profiles")
-    .select("id, email, display_name, avatar_url, created_at")
+    .select("id, email, display_name, avatar_url, is_hub_admin, created_at")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -44,22 +46,25 @@ export async function HubShell({ children, variant = "default" }: HubShellProps)
 
   return (
     <HubDetailToolbarProvider>
-      <div className="flex min-h-full flex-col overflow-x-clip bg-hub-paper">
-        <HubHeader
-          forYouCount={forYouCount}
-          displayName={displayName}
-          email={email}
-          avatarUrl={displayProfile?.avatar_url}
-        />
+      <DevToolsProvider isHubAdmin={displayProfile?.is_hub_admin ?? false}>
+        <div className="flex min-h-full flex-col overflow-x-clip bg-hub-paper">
+          <HubHeader
+            forYouCount={forYouCount}
+            displayName={displayName}
+            email={email}
+            avatarUrl={displayProfile?.avatar_url}
+          />
 
-        {isInbox ? (
-          <main className="flex-1">{children}</main>
-        ) : (
-          <HubMain>{children}</HubMain>
-        )}
+          {isInbox ? (
+            <main className="flex-1">{children}</main>
+          ) : (
+            <HubMain>{children}</HubMain>
+          )}
 
-        <FeatureOnboardingHost userId={user.id} />
-      </div>
+          <FeatureOnboardingHost userId={user.id} />
+          <DevToolsHost />
+        </div>
+      </DevToolsProvider>
     </HubDetailToolbarProvider>
   );
 }

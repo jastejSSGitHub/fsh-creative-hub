@@ -8,14 +8,19 @@ export const AUTH_TRANSITION_MAX_AGE_MS = 90_000;
 export type StoredAuthTransition = {
   kind: AuthTransitionKind;
   startedAt: number;
+  firstName?: string;
 };
 
-export function persistAuthTransition(kind: AuthTransitionKind) {
+export function persistAuthTransition(
+  kind: AuthTransitionKind,
+  options?: { firstName?: string },
+) {
   if (typeof window === "undefined") return;
 
   const payload: StoredAuthTransition = {
     kind,
     startedAt: Date.now(),
+    ...(options?.firstName ? { firstName: options.firstName } : {}),
   };
   sessionStorage.setItem(AUTH_TRANSITION_KEY, JSON.stringify(payload));
 }

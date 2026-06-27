@@ -8,7 +8,10 @@ import { IdeasWorkflowIllustration } from "@/components/landing/ideas-workflow-i
 import { PresentWorkflowIllustration } from "@/components/landing/present-workflow-illustration";
 import { ProjectsWorkflowIllustration } from "@/components/landing/projects-workflow-illustration";
 import { TrimmedLoopVideo } from "@/components/landing/trimmed-loop-video";
-import { markFeatureOnboardingSeen } from "@/lib/onboarding/storage";
+import {
+  FEATURE_ONBOARDING_DISMISSED_EVENT,
+  markFeatureOnboardingSeen,
+} from "@/lib/onboarding/storage";
 import { cn } from "@/lib/utils";
 
 const STEP_GRADIENTS = {
@@ -123,6 +126,9 @@ export function FeatureOnboardingModal({
 
   const dismiss = useCallback(() => {
     markFeatureOnboardingSeen(userId);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent(FEATURE_ONBOARDING_DISMISSED_EVENT));
+    }
     onClose();
   }, [onClose, userId]);
 

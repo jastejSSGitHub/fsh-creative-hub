@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { toUserFacingError } from "@/lib/errors/user-facing";
 import type { CanvasConfigV1 } from "@/lib/canvas/types";
 import { canvasPath } from "@/lib/routes";
 import { createClient } from "@/lib/supabase/server";
@@ -34,14 +35,19 @@ export async function saveCanvasConfigAction(
       .eq("project_id", projectId)
       .eq("type", "canvas");
 
-    if (error) return { ok: false, error: error.message };
+    if (error) {
+      return {
+        ok: false,
+        error: toUserFacingError(error.message, "We couldn't save your canvas. Please try again."),
+      };
+    }
 
     revalidatePath(canvasPath(projectId, canvasId));
     return { ok: true };
   } catch (error) {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "Could not save canvas.",
+      error: toUserFacingError(error, "We couldn't save your canvas. Please try again."),
     };
   }
 }

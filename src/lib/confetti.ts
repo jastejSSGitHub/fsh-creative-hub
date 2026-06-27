@@ -31,6 +31,67 @@ export function fireSubtleConfetti(clientX?: number, clientY?: number) {
   });
 }
 
+/** Brief welcome burst after Google / OAuth sign-in. */
+export function fireWelcomeConfetti() {
+  if (typeof window === "undefined") return;
+
+  const colors = ["#ffc94b", "#18a0fb", "#22c55e", "#fbf7ee"];
+
+  void confetti({
+    particleCount: 12,
+    spread: 58,
+    startVelocity: 18,
+    scalar: 0.55,
+    ticks: 80,
+    gravity: 0.85,
+    origin: { x: 0.5, y: 0.42 },
+    colors,
+    disableForReducedMotion: true,
+  });
+
+  window.setTimeout(() => {
+    void confetti({
+      particleCount: 6,
+      spread: 72,
+      startVelocity: 12,
+      scalar: 0.45,
+      ticks: 60,
+      origin: { x: 0.35, y: 0.5 },
+      colors,
+      disableForReducedMotion: true,
+    });
+    void confetti({
+      particleCount: 6,
+      spread: 72,
+      startVelocity: 12,
+      scalar: 0.45,
+      ticks: 60,
+      origin: { x: 0.65, y: 0.5 },
+      colors,
+      disableForReducedMotion: true,
+    });
+  }, 180);
+}
+
+/** Brief burst when dev tools unlock at bottom-right. */
+export function fireDevToolsUnlockConfetti() {
+  if (typeof window === "undefined") return;
+
+  const colors = ["#7c3aed", "#ffc94b", "#18a0fb", "#22c55e"];
+
+  void confetti({
+    particleCount: 28,
+    spread: 62,
+    startVelocity: 22,
+    scalar: 0.7,
+    ticks: 90,
+    gravity: 0.85,
+    origin: { x: 0.92, y: 0.92 },
+    colors,
+    disableForReducedMotion: true,
+  });
+}
+
 /** Medium celebration — e.g. restoring a project. Kept brief and light. */
 export function fireConfetti() {
   if (typeof window === "undefined") return;

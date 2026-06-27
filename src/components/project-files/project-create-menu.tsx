@@ -19,6 +19,12 @@ type ProjectCreateMenuProps = {
   onCreateReviewBoard: () => void;
   onCreateCanvas: () => void;
   onCreateTextDocument: () => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  menuRef?: React.RefObject<HTMLDivElement | null>;
+  createButtonRef?: React.RefObject<HTMLButtonElement | null>;
+  rootRef?: React.RefObject<HTMLDivElement | null>;
+  lockOutsideClose?: boolean;
 };
 
 export function ProjectCreateMenu({
@@ -26,10 +32,25 @@ export function ProjectCreateMenu({
   onCreateReviewBoard,
   onCreateCanvas,
   onCreateTextDocument,
+  open: openProp,
+  onOpenChange,
+  menuRef,
+  createButtonRef,
+  rootRef,
+  lockOutsideClose = false,
 }: ProjectCreateMenuProps) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = openProp ?? internalOpen;
+  const setOpen = onOpenChange ?? setInternalOpen;
+  const localRootRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
+
+  function assignRootRef(node: HTMLDivElement | null) {
+    localRootRef.current = node;
+    if (rootRef) {
+      rootRef.current = node;
+    }
+  }
 
   const options: CreateFileOption[] = [
     {
@@ -59,10 +80,10 @@ export function ProjectCreateMenu({
   ];
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || lockOutsideClose) return;
 
     function handlePointerDown(event: MouseEvent) {
-      if (rootRef.current?.contains(event.target as Node)) return;
+      if (localRootRef.current?.contains(event.target as Node)) return;
       setOpen(false);
     }
 
@@ -80,18 +101,19 @@ export function ProjectCreateMenu({
       window.removeEventListener("mousedown", handlePointerDown);
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [open]);
+  }, [lockOutsideClose, open, setOpen]);
 
   if (!canCreate) return null;
 
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={assignRootRef} className="relative z-[46]">
       <button
+        ref={createButtonRef}
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
-        onClick={() => setOpen((current) => !current)}
+        onClick={() => setOpen(!open)}
         className={cn(
           "inline-flex min-h-9 items-center gap-1 rounded-[6px] bg-hub-primary px-3 text-[0.8125rem] font-medium text-white shadow-sm transition-colors hover:bg-[#1590e8]",
           open && "ring-2 ring-hub-primary/35",
@@ -104,6 +126,7 @@ export function ProjectCreateMenu({
 
       {open && (
         <div
+          ref={menuRef}
           id={menuId}
           role="menu"
           className="absolute right-0 top-full z-50 mt-1.5 w-[15.5rem] overflow-hidden rounded-[6px] border border-hub-foreground/12 bg-hub-surface py-1 shadow-xl"

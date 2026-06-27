@@ -27,6 +27,7 @@ type CanvasViewportSurfaceProps = {
     onDrop?: (event: React.DragEvent<HTMLDivElement>) => void;
   };
   containerRef: React.RefObject<HTMLDivElement | null>;
+  surfaceClassName?: string;
 };
 
 export function CanvasViewportSurface({
@@ -36,6 +37,7 @@ export function CanvasViewportSurface({
   cursor,
   handlers,
   containerRef,
+  surfaceClassName,
   nodesLayer,
   dropOverlay,
 }: CanvasViewportSurfaceProps) {
@@ -45,7 +47,10 @@ export function CanvasViewportSurface({
   return (
     <div
       ref={containerRef}
-      className="relative h-[100dvh] w-full touch-none select-none overflow-hidden"
+      className={cn(
+        "relative w-full touch-none select-none overflow-hidden",
+        surfaceClassName ?? "h-[100dvh]",
+      )}
       style={{ cursor, backgroundColor }}
       {...handlers}
     >

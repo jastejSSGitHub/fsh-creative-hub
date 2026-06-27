@@ -28,6 +28,7 @@ type CanvasBottomToolbarProps = {
   onRedo?: () => void;
   onStartEmbedPlacement?: () => void;
   onCancelEmbedPlacement?: () => void;
+  positionClassName?: string;
 };
 
 export function CanvasBottomToolbar({
@@ -46,11 +47,17 @@ export function CanvasBottomToolbar({
   onRedo,
   onStartEmbedPlacement,
   onCancelEmbedPlacement,
+  positionClassName = "bottom-4",
 }: CanvasBottomToolbarProps) {
   const isLight = themeMode === "light";
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-4 z-30 flex justify-center px-3">
+    <div
+      className={cn(
+        "pointer-events-none absolute inset-x-0 z-30 flex justify-center px-3",
+        positionClassName,
+      )}
+    >
       <div className="relative flex items-center gap-2 pointer-events-auto">
         {stampPickerOpen && (
           <StampPickerRadial

@@ -1,5 +1,8 @@
+import { readSimulateNewUser } from "@/lib/dev-tools/storage";
+
 const STORAGE_PREFIX = "fsh-hub-feature-onboarding-views";
 export const FEATURE_ONBOARDING_MAX_VIEWS = 3;
+export const FEATURE_ONBOARDING_DISMISSED_EVENT = "fsh-hub-feature-onboarding-dismissed";
 
 function readViewCount(userId: string): number {
   if (typeof window === "undefined") return FEATURE_ONBOARDING_MAX_VIEWS;
@@ -14,6 +17,7 @@ function readViewCount(userId: string): number {
 }
 
 export function shouldShowFeatureOnboarding(userId: string): boolean {
+  if (readSimulateNewUser()) return true;
   return readViewCount(userId) < FEATURE_ONBOARDING_MAX_VIEWS;
 }
 

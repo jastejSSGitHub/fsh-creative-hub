@@ -2,6 +2,7 @@
 
 import { motion, useReducedMotion } from "framer-motion";
 
+import { transitionForValue } from "@/lib/motion/transitions";
 import { cn } from "@/lib/utils";
 
 type ImageUploadIllustrationProps = {
@@ -31,7 +32,7 @@ export function ImageUploadIllustration({
           ? { type: "spring", stiffness: 320, damping: 24 }
           : reduced
             ? undefined
-            : { duration: 4, repeat: Infinity, ease: "easeInOut" }
+            : transitionForValue([0, -3, 0], {}, { duration: 4 })
       }
     >
       <div className="absolute left-1/2 top-[62%] size-16 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#18a0fb]/15 blur-2xl" />

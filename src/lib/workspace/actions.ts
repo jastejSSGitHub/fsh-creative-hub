@@ -2,12 +2,17 @@
 
 import { revalidatePath } from "next/cache";
 
+import { toUserFacingError } from "@/lib/errors/user-facing";
 import { canAdmin, canEdit } from "@/lib/permissions";
 import { PROJECTS_PATH, projectPath, reviewBoardPath } from "@/lib/routes";
 import { getProjectMembership } from "@/lib/projects/queries";
 import { createClient } from "@/lib/supabase/server";
 import { logActivity } from "@/lib/workspace/activity";
-import type { AssetStatus, HubRole, VoteReaction } from "@/types/database";
+import { stickyColorToIdeaColor } from "@/lib/workspace/idea-sticky-colors";
+import { ensureInitiativeIdeasCanvas } from "@/lib/workspace/ideas-canvas";
+import { getIdeasForInitiative } from "@/lib/workspace/queries";
+import type { AssetStatus, HubProjectFile, HubRole, VoteReaction } from "@/types/database";
+import type { CanvasTextSize, StickyColorId } from "@/lib/canvas/types";
 
 export type ActionResult =
   | { ok: true; id?: string }
@@ -40,6 +45,23 @@ async function requireProjectRole(
   }
 
   return { supabase, user, role };
+}
+
+async function requireIdeaAuthor(ideaId: string) {
+  const { supabase, user } = await requireUser();
+
+  const { data: idea, error } = await supabase
+    .from("hub_ideas")
+    .select("id, author_id, initiative_id")
+    .eq("id", ideaId)
+    .maybeSingle();
+
+  if (error || !idea) throw new Error("Idea not found.");
+  if (idea.author_id !== user.id) {
+    throw new Error("You can only edit your own sticky notes.");
+  }
+
+  return { supabase, user, idea };
 }
 
 async function getProjectIdForAsset(
@@ -94,7 +116,7 @@ export async function createInitiativeAction(
       .select("id")
       .single();
 
-    if (error || !data) return { ok: false, error: error?.message ?? "Failed." };
+    if (error || !data) return { ok: false, error: toUserFacingError(error?.message, "Something went wrong. Please try again.") };
 
     await logActivity(supabase, {
       projectId,
@@ -108,7 +130,7 @@ export async function createInitiativeAction(
     revalidateProject(projectId, reviewBoardId ?? undefined);
     return { ok: true, id: data.id };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Failed." };
+    return { ok: false, error: toUserFacingError(e, "Something went wrong. Please try again.") };
   }
 }
 
@@ -142,7 +164,7 @@ export async function registerAssetAction(input: {
       .select("id")
       .single();
 
-    if (error || !data) return { ok: false, error: error?.message ?? "Failed." };
+    if (error || !data) return { ok: false, error: toUserFacingError(error?.message, "Something went wrong. Please try again.") };
 
     await logActivity(supabase, {
       projectId: input.projectId,
@@ -156,7 +178,7 @@ export async function registerAssetAction(input: {
     revalidateProject(input.projectId, input.boardId);
     return { ok: true, id: data.id };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Failed." };
+    return { ok: false, error: toUserFacingError(e, "Something went wrong. Please try again.") };
   }
 }
 
@@ -187,7 +209,7 @@ export async function updateAssetStatusAction(
       .update({ status })
       .eq("id", assetId);
 
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: toUserFacingError(error.message, "Something went wrong. Please try again.") };
 
     const verb =
       status === "approved"
@@ -213,7 +235,7 @@ export async function updateAssetStatusAction(
     }
     return { ok: true, id: assetId };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Failed." };
+    return { ok: false, error: toUserFacingError(e, "Something went wrong. Please try again.") };
   }
 }
 
@@ -270,7 +292,7 @@ export async function toggleVoteAction(
     revalidateProject(projectId);
     return { ok: true, id: assetId };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Failed." };
+    return { ok: false, error: toUserFacingError(e, "Something went wrong. Please try again.") };
   }
 }
 
@@ -306,7 +328,7 @@ export async function addCommentAction(input: {
       .select("id")
       .single();
 
-    if (error || !data) return { ok: false, error: error?.message ?? "Failed." };
+    if (error || !data) return { ok: false, error: toUserFacingError(error?.message, "Something went wrong. Please try again.") };
 
     await logActivity(supabase, {
       projectId,
@@ -320,7 +342,7 @@ export async function addCommentAction(input: {
     revalidateProject(projectId);
     return { ok: true, id: data.id };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Failed." };
+    return { ok: false, error: toUserFacingError(e, "Something went wrong. Please try again.") };
   }
 }
 
@@ -351,12 +373,12 @@ export async function deleteCommentAction(
       .delete()
       .eq("id", commentId);
 
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: toUserFacingError(error.message, "Something went wrong. Please try again.") };
 
     revalidateProject(projectId);
     return { ok: true, id: commentId };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Failed." };
+    return { ok: false, error: toUserFacingError(e, "Something went wrong. Please try again.") };
   }
 }
 
@@ -388,12 +410,12 @@ export async function resolveCommentAction(
       .update({ resolved })
       .eq("id", commentId);
 
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: toUserFacingError(error.message, "Something went wrong. Please try again.") };
 
     revalidateProject(projectId);
     return { ok: true, id: commentId };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Failed." };
+    return { ok: false, error: toUserFacingError(e, "Something went wrong. Please try again.") };
   }
 }
 
@@ -423,12 +445,12 @@ export async function deleteAssetAction(
 
     const { error } = await supabase.from("hub_assets").delete().eq("id", assetId);
 
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: toUserFacingError(error.message, "Something went wrong. Please try again.") };
 
     revalidateProject(projectId, boardId);
     return { ok: true, id: assetId };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Failed." };
+    return { ok: false, error: toUserFacingError(e, "Something went wrong. Please try again.") };
   }
 }
 
@@ -456,12 +478,12 @@ export async function addIdeaAction(
       .select("id")
       .single();
 
-    if (error || !data) return { ok: false, error: error?.message ?? "Failed." };
+    if (error || !data) return { ok: false, error: toUserFacingError(error?.message, "Something went wrong. Please try again.") };
 
     revalidateProject(projectId);
     return { ok: true, id: data.id };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Failed." };
+    return { ok: false, error: toUserFacingError(e, "Something went wrong. Please try again.") };
   }
 }
 
@@ -491,6 +513,203 @@ export async function toggleIdeaVoteAction(
     revalidateProject(projectId);
     return { ok: true, id: ideaId };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Failed." };
+    return { ok: false, error: toUserFacingError(e, "Something went wrong. Please try again.") };
+  }
+}
+
+export async function updateIdeaSizeAction(
+  ideaId: string,
+  projectId: string,
+  width: number,
+  height: number,
+): Promise<ActionResult> {
+  try {
+    const { supabase } = await requireIdeaAuthor(ideaId);
+    await requireProjectRole(projectId);
+
+    const nextWidth = Math.round(width);
+    const nextHeight = Math.round(height);
+
+    if (nextWidth < 100 || nextWidth > 400 || nextHeight < 88 || nextHeight > 400) {
+      return { ok: false, error: "Invalid sticky size." };
+    }
+
+    const { error } = await supabase
+      .from("hub_ideas")
+      .update({ width: nextWidth, height: nextHeight })
+      .eq("id", ideaId);
+
+    if (error) return { ok: false, error: toUserFacingError(error.message, "Something went wrong. Please try again.") };
+
+    revalidateProject(projectId);
+    return { ok: true, id: ideaId };
+  } catch (e) {
+    return { ok: false, error: toUserFacingError(e, "Something went wrong. Please try again.") };
+  }
+}
+
+export async function updateIdeaBodyAction(
+  ideaId: string,
+  projectId: string,
+  body: string,
+): Promise<ActionResult> {
+  try {
+    const { supabase } = await requireIdeaAuthor(ideaId);
+    await requireProjectRole(projectId);
+
+    const trimmed = body.trim();
+    if (!trimmed) return { ok: false, error: "Idea cannot be empty." };
+
+    const { error } = await supabase
+      .from("hub_ideas")
+      .update({ body: trimmed })
+      .eq("id", ideaId);
+
+    if (error) return { ok: false, error: toUserFacingError(error.message, "Something went wrong. Please try again.") };
+
+    revalidateProject(projectId);
+    return { ok: true, id: ideaId };
+  } catch (e) {
+    return { ok: false, error: toUserFacingError(e, "Something went wrong. Please try again.") };
+  }
+}
+
+export async function updateIdeaFormatAction(
+  ideaId: string,
+  projectId: string,
+  patch: {
+    color?: StickyColorId;
+    textSize?: CanvasTextSize;
+    bold?: boolean;
+    strikethrough?: boolean;
+  },
+): Promise<ActionResult> {
+  try {
+    const { supabase } = await requireIdeaAuthor(ideaId);
+    await requireProjectRole(projectId);
+
+    const update: Record<string, unknown> = {};
+
+    if (patch.color !== undefined) {
+      update.color = stickyColorToIdeaColor(patch.color);
+    }
+    if (patch.textSize !== undefined) {
+      update.text_size = patch.textSize;
+    }
+    if (patch.bold !== undefined) {
+      update.bold = patch.bold;
+    }
+    if (patch.strikethrough !== undefined) {
+      update.strikethrough = patch.strikethrough;
+    }
+
+    if (Object.keys(update).length === 0) {
+      return { ok: true, id: ideaId };
+    }
+
+    const { error } = await supabase.from("hub_ideas").update(update).eq("id", ideaId);
+
+    if (error) return { ok: false, error: toUserFacingError(error.message, "Something went wrong. Please try again.") };
+
+    revalidateProject(projectId);
+    return { ok: true, id: ideaId };
+  } catch (e) {
+    return { ok: false, error: toUserFacingError(e, "Something went wrong. Please try again.") };
+  }
+}
+
+export async function deleteIdeaAction(
+  ideaId: string,
+  projectId: string,
+): Promise<ActionResult> {
+  try {
+    const { supabase } = await requireIdeaAuthor(ideaId);
+    await requireProjectRole(projectId);
+
+    const { error } = await supabase.from("hub_ideas").delete().eq("id", ideaId);
+
+    if (error) return { ok: false, error: toUserFacingError(error.message, "Something went wrong. Please try again.") };
+
+    revalidateProject(projectId);
+    return { ok: true, id: ideaId };
+  } catch (e) {
+    return { ok: false, error: toUserFacingError(e, "Something went wrong. Please try again.") };
+  }
+}
+
+export async function duplicateIdeaAction(
+  ideaId: string,
+  projectId: string,
+  initiativeId: string,
+): Promise<ActionResult> {
+  try {
+    const { supabase, user } = await requireIdeaAuthor(ideaId);
+    await requireProjectRole(projectId, "editor");
+
+    const { data: source, error: fetchError } = await supabase
+      .from("hub_ideas")
+      .select("*")
+      .eq("id", ideaId)
+      .single();
+
+    if (fetchError || !source) {
+      return { ok: false, error: toUserFacingError(fetchError?.message, "That idea could not be found.") };
+    }
+
+    const { data, error } = await supabase
+      .from("hub_ideas")
+      .insert({
+        initiative_id: initiativeId,
+        author_id: user.id,
+        body: source.body,
+        color: source.color,
+        width: source.width,
+        height: source.height,
+        text_size: source.text_size,
+        bold: source.bold,
+        strikethrough: source.strikethrough,
+      })
+      .select("id")
+      .single();
+
+    if (error || !data) return { ok: false, error: toUserFacingError(error?.message, "Something went wrong. Please try again.") };
+
+    revalidateProject(projectId);
+    return { ok: true, id: data.id };
+  } catch (e) {
+    return { ok: false, error: toUserFacingError(e, "Something went wrong. Please try again.") };
+  }
+}
+
+export type IdeasCanvasActionResult =
+  | { ok: true; canvas: HubProjectFile }
+  | { ok: false; error: string };
+
+export async function getInitiativeIdeasCanvasAction(
+  projectId: string,
+  initiativeId: string,
+  initiativeName: string,
+): Promise<IdeasCanvasActionResult> {
+  try {
+    const { supabase, user } = await requireProjectRole(projectId);
+
+    const ideas = await getIdeasForInitiative(supabase, initiativeId, user.id);
+    const canvas = await ensureInitiativeIdeasCanvas(
+      supabase,
+      projectId,
+      initiativeId,
+      initiativeName,
+      user.id,
+      ideas,
+    );
+
+    if (!canvas) {
+      return { ok: false, error: "Could not create ideas whiteboard." };
+    }
+
+    revalidateProject(projectId);
+    return { ok: true, canvas };
+  } catch (e) {
+    return { ok: false, error: toUserFacingError(e, "Something went wrong. Please try again.") };
   }
 }

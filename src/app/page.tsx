@@ -1,4 +1,7 @@
+import { Suspense } from "react";
+
 import { LandingPage } from "@/components/landing/landing-page";
+import { OAuthCodeRedirect } from "@/components/auth/oauth-code-redirect";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function HomePage() {
@@ -7,5 +10,12 @@ export default async function HomePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  return <LandingPage isLoggedIn={!!user} />;
+  return (
+    <>
+      <Suspense fallback={null}>
+        <OAuthCodeRedirect />
+      </Suspense>
+      <LandingPage isLoggedIn={!!user} />
+    </>
+  );
 }

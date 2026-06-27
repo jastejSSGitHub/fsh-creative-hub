@@ -78,6 +78,8 @@ type ProjectFileCardProps = {
   onSelect?: (fileId: string) => void;
   onFavoriteToggle?: (fileId: string, favorite: boolean) => void;
   onContextMenu: (file: ProjectFileWithMeta, x: number, y: number) => void;
+  favoriteButtonRef?: React.RefObject<HTMLButtonElement | null>;
+  forceFavoriteVisible?: boolean;
 };
 
 export function ProjectFileCard({
@@ -90,6 +92,8 @@ export function ProjectFileCard({
   onSelect,
   onFavoriteToggle,
   onContextMenu,
+  favoriteButtonRef,
+  forceFavoriteVisible = false,
 }: ProjectFileCardProps) {
   const router = useRouter();
   const clickTimeoutRef = useRef<number | null>(null);
@@ -206,6 +210,7 @@ export function ProjectFileCard({
 
         {onFavoriteToggle && (
           <button
+            ref={favoriteButtonRef}
             type="button"
             aria-label={file.isFavorite ? "Remove from favorites" : "Add to favorites"}
             aria-pressed={file.isFavorite}
@@ -213,7 +218,8 @@ export function ProjectFileCard({
             onDoubleClick={(event) => event.stopPropagation()}
             className={cn(
               "absolute top-2.5 right-2.5 flex size-8 items-center justify-center rounded-md border shadow-[0_2px_12px_rgba(0,0,0,0.12)] backdrop-blur-md transition-[opacity,border-color,transform,box-shadow,background-color] duration-300 ease-out",
-              file.isFavorite
+              forceFavoriteVisible && "z-[46]",
+              file.isFavorite || forceFavoriteVisible
                 ? "border-white/45 bg-hub-surface/25 opacity-100 scale-100"
                 : "border-white/35 bg-hub-surface/20 opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 group-focus-within:opacity-100 group-focus-within:scale-100 hover:border-white/50 hover:bg-hub-surface/30 active:scale-90",
             )}
@@ -221,7 +227,9 @@ export function ProjectFileCard({
             <Star
               className={cn(
                 "size-4 stroke-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)] transition-[fill,transform] duration-300 ease-out",
-                file.isFavorite ? "fill-hub-favorite scale-100" : "fill-white/75 scale-90",
+                file.isFavorite || forceFavoriteVisible
+                  ? "fill-hub-favorite scale-100"
+                  : "fill-white/75 scale-90",
               )}
             />
           </button>

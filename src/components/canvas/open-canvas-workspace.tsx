@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { CanvasBottomToolbar } from "@/components/canvas/canvas-bottom-toolbar";
 import { CanvasChrome } from "@/components/canvas/canvas-chrome";
+import { EmbeddedCanvasControls } from "@/components/canvas/embedded-canvas-controls";
 import { CanvasFileDropOverlay } from "@/components/canvas/canvas-file-drop-overlay";
 import { CanvasFontProvider } from "@/components/canvas/canvas-font-provider";
 import { CanvasNodesLayer } from "@/components/canvas/canvas-nodes-layer";
@@ -11,14 +12,17 @@ import { CanvasOnboarding } from "@/components/canvas/canvas-onboarding";
 import { CanvasTemplatePicker } from "@/components/canvas/canvas-template-picker";
 import { CanvasViewportSurface } from "@/components/canvas/canvas-viewport";
 import { InviteMembersDialog } from "@/components/projects/invite-members-dialog";
+import { useCanvasPinchZoom } from "@/hooks/use-canvas-pinch-zoom";
 import { useCanvasWorkspace } from "@/hooks/use-canvas-workspace";
 import { useCanvasFileDrop } from "@/hooks/use-canvas-file-drop";
 import { useCanvasMarqueeSelection } from "@/hooks/use-canvas-marquee-selection";
 import { useCanvasViewport } from "@/hooks/use-canvas-viewport";
+import { computeCanvasContentHeight } from "@/lib/canvas/content-bounds";
 import type { CanvasIntroStep } from "@/lib/canvas/onboarding-steps";
 import { getCanvasTheme } from "@/lib/canvas/presets";
 import type { StampId } from "@/lib/canvas/types";
 import { parseViewport } from "@/lib/canvas/viewport";
+import { cn } from "@/lib/utils";
 import type { ProjectCardData } from "@/lib/projects/queries";
 import type { HubProject, HubProjectFile } from "@/types/database";
 
@@ -29,6 +33,8 @@ type OpenCanvasWorkspaceProps = {
   projectCard: ProjectCardData;
   currentUserId: string;
   canRename: boolean;
+  variant?: "fullscreen" | "embedded";
+  onStickyCountChange?: (count: number) => void;
 };
 
 export function OpenCanvasWorkspace({
@@ -38,10 +44,14 @@ export function OpenCanvasWorkspace({
   projectCard,
   currentUserId,
   canRename,
+  variant = "fullscreen",
+  onStickyCountChange,
 }: OpenCanvasWorkspaceProps) {
+  const embedded = variant === "embedded";
   const {
     containerRef,
     viewport,
+    setViewport,
     tool,
     setTool,
     centerOnOrigin,
@@ -86,6 +96,36 @@ export function OpenCanvasWorkspace({
   const shareButtonRef = useRef<HTMLButtonElement>(null);
 
   const theme = getCanvasTheme(workspace.backgroundColor);
+
+  const embeddedHeight = useMemo(
+    () => computeCanvasContentHeight(workspace.nodes, viewport.zoom),
+    [workspace.nodes, viewport.zoom],
+  );
+
+  useCanvasPinchZoom({
+    containerRef,
+    enabled: embedded,
+    viewport,
+    setViewport,
+  });
+
+  useEffect(() => {
+    if (!embedded || !onStickyCountChange) return;
+    onStickyCountChange(
+      workspace.nodes.filter((node) => node.type === "sticky").length,
+    );
+  }, [embedded, onStickyCountChange, workspace.nodes]);
+
+  useEffect(() => {
+    if (!embedded) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [embedded]);
 
   const handleOnboardingStepChange = useCallback((step: CanvasIntroStep) => {
     if (step === "timer") {
@@ -378,14 +418,21 @@ export function OpenCanvasWorkspace({
   return (
     <CanvasFontProvider>
     <div
-      className="relative h-[100dvh] w-full overflow-hidden"
-      style={{ backgroundColor: workspace.backgroundColor }}
+      className={cn(
+        "relative w-full overflow-hidden",
+        embedded ? "rounded-xl border border-hub-foreground/10 shadow-sm" : "h-[100dvh]",
+      )}
+      style={{
+        backgroundColor: workspace.backgroundColor,
+        ...(embedded ? { height: embeddedHeight } : undefined),
+      }}
     >
       <CanvasViewportSurface
         containerRef={containerRef}
         viewport={viewport}
         backgroundColor={workspace.backgroundColor}
         theme={theme}
+        surfaceClassName={embedded ? "h-full" : undefined}
         cursor={
           pendingStampId && workspace.placementTool === "stamp"
             ? "none"
@@ -453,34 +500,48 @@ export function OpenCanvasWorkspace({
         }
       />
 
-      <CanvasTemplatePicker
-        open={workspace.templatePickerOpen}
-        themeMode={theme.mode}
-        onApplyHowMightWe={() => workspace.applyTemplate("how-might-we")}
-        onStartEmpty={() => workspace.setTemplatePickerOpen(false)}
-        onClose={() => workspace.setTemplatePickerOpen(false)}
-      />
+      {!embedded && (
+        <CanvasTemplatePicker
+          open={workspace.templatePickerOpen}
+          themeMode={theme.mode}
+          onApplyHowMightWe={() => workspace.applyTemplate("how-might-we")}
+          onStartEmpty={() => workspace.setTemplatePickerOpen(false)}
+          onClose={() => workspace.setTemplatePickerOpen(false)}
+        />
+      )}
 
-      <CanvasChrome
-        canvasId={canvas.id}
-        canvasName={canvas.name}
-        projectId={project.id}
-        canRename={canRename}
-        tool={tool}
-        onToolChange={setTool}
-        zoom={viewport.zoom}
-        backgroundColor={workspace.backgroundColor}
-        onBackgroundColorChange={workspace.setBackgroundColor}
-        onCenter={centerOnOrigin}
-        onResetView={resetView}
-        onZoomIn={zoomIn}
-        onZoomOut={zoomOut}
-        sidebarTab={sidebarTab}
-        onSidebarTabChange={setSidebarTab}
-        brainstormPanelRef={brainstormPanelRef}
-        shareButtonRef={shareButtonRef}
-        onShare={() => setShareOpen(true)}
-      />
+      {embedded ? (
+        <EmbeddedCanvasControls
+          theme={theme}
+          tool={tool}
+          zoom={viewport.zoom}
+          onToolChange={setTool}
+          onZoomIn={zoomIn}
+          onZoomOut={zoomOut}
+          onResetView={resetView}
+        />
+      ) : (
+        <CanvasChrome
+          canvasId={canvas.id}
+          canvasName={canvas.name}
+          projectId={project.id}
+          canRename={canRename}
+          tool={tool}
+          onToolChange={setTool}
+          zoom={viewport.zoom}
+          backgroundColor={workspace.backgroundColor}
+          onBackgroundColorChange={workspace.setBackgroundColor}
+          onCenter={centerOnOrigin}
+          onResetView={resetView}
+          onZoomIn={zoomIn}
+          onZoomOut={zoomOut}
+          sidebarTab={sidebarTab}
+          onSidebarTabChange={setSidebarTab}
+          brainstormPanelRef={brainstormPanelRef}
+          shareButtonRef={shareButtonRef}
+          onShare={() => setShareOpen(true)}
+        />
+      )}
 
       <CanvasBottomToolbar
         placementTool={workspace.placementTool}
@@ -498,32 +559,40 @@ export function OpenCanvasWorkspace({
         onRedo={workspace.redo}
         onStartEmbedPlacement={workspace.startEmbedPlacement}
         onCancelEmbedPlacement={cancelEmbedPlacement}
+        positionClassName={embedded ? "bottom-3" : "bottom-4"}
       />
 
-      <CanvasOnboarding
-        canvasId={canvas.id}
-        themeMode={theme.mode}
-        targets={{
-          stickyTool: stickyToolRef,
-          stampTool: stampToolRef,
-          brainstormPanel: brainstormPanelRef,
-          shareButton: shareButtonRef,
-        }}
-        onStepChange={handleOnboardingStepChange}
-        onShareClick={() => setShareOpen(true)}
-      />
+      {!embedded && (
+        <CanvasOnboarding
+          canvasId={canvas.id}
+          themeMode={theme.mode}
+          targets={{
+            stickyTool: stickyToolRef,
+            stampTool: stampToolRef,
+            brainstormPanel: brainstormPanelRef,
+            shareButton: shareButtonRef,
+          }}
+          onStepChange={handleOnboardingStepChange}
+          onShareClick={() => setShareOpen(true)}
+        />
+      )}
 
-      <InviteMembersDialog
-        project={shareOpen ? projectCard : null}
-        currentUserId={currentUserId}
-        onClose={() => setShareOpen(false)}
-      />
+      {!embedded && (
+        <InviteMembersDialog
+          project={shareOpen ? projectCard : null}
+          currentUserId={currentUserId}
+          onClose={() => setShareOpen(false)}
+        />
+      )}
 
       {copyToastVisible ? (
         <div
           role="status"
           aria-live="polite"
-          className="pointer-events-none fixed bottom-6 left-6 z-50 rounded-full border border-white/15 bg-[#1a1a1a]/92 px-4 py-2 text-sm font-medium text-white shadow-lg backdrop-blur-sm"
+          className={cn(
+            "pointer-events-none fixed z-50 rounded-full border border-white/15 bg-[#1a1a1a]/92 px-4 py-2 text-sm font-medium text-white shadow-lg backdrop-blur-sm",
+            embedded ? "bottom-20 left-1/2 -translate-x-1/2" : "bottom-6 left-6",
+          )}
         >
           Copied
         </div>

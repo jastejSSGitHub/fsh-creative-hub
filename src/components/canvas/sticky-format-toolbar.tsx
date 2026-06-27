@@ -1,6 +1,6 @@
 "use client";
 
-import { Bold, Check, ChevronDown, List, Strikethrough, Trash2 } from "lucide-react";
+import { Bold, Check, ChevronDown, Copy, List, Strikethrough, Trash2 } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -33,7 +33,10 @@ type StickyFormatToolbarProps = {
     strikethrough?: boolean;
   }) => void;
   onInsertEmoji: (emoji: string) => void;
-  onAddLink: () => void;
+  onAddLink?: () => void;
+  showLinkEmbed?: boolean;
+  onCopy?: () => void;
+  canDelete?: boolean;
   onDelete: () => void;
 };
 
@@ -59,6 +62,9 @@ export function StickyFormatToolbar({
   onChange,
   onInsertEmoji,
   onAddLink,
+  showLinkEmbed = true,
+  onCopy,
+  canDelete = true,
   onDelete,
 }: StickyFormatToolbarProps) {
   return (
@@ -94,7 +100,9 @@ export function StickyFormatToolbar({
         <Strikethrough className="size-3.5" />
       </ToolbarToggle>
 
-      <CanvasLinkEmbedTool onActivate={onAddLink} />
+      {showLinkEmbed ? (
+        <CanvasLinkEmbedTool onActivate={onAddLink ?? (() => undefined)} />
+      ) : null}
 
       <ToolbarButton label="Bullet list" tooltip="Bullet list (coming soon)" comingSoon>
         <List className="size-3.5" />
@@ -102,17 +110,32 @@ export function StickyFormatToolbar({
 
       <CanvasToolbarDivider />
 
-      <ToolbarButton
-        label="Delete sticky"
-        tooltip="Delete sticky"
-        onClick={(event) => {
-          event.stopPropagation();
-          onDelete();
-        }}
-        className="text-white/60 hover:bg-[#ef4444]/20 hover:text-[#fca5a5]"
-      >
-        <Trash2 className="size-3.5" />
-      </ToolbarButton>
+      {onCopy ? (
+        <ToolbarButton
+          label="Copy sticky"
+          tooltip="Duplicate sticky"
+          onClick={(event) => {
+            event.stopPropagation();
+            onCopy();
+          }}
+        >
+          <Copy className="size-3.5" />
+        </ToolbarButton>
+      ) : null}
+
+      {canDelete ? (
+        <ToolbarButton
+          label="Delete sticky"
+          tooltip="Delete sticky"
+          onClick={(event) => {
+            event.stopPropagation();
+            onDelete();
+          }}
+          className="text-white/60 hover:bg-[#ef4444]/20 hover:text-[#fca5a5]"
+        >
+          <Trash2 className="size-3.5" />
+        </ToolbarButton>
+      ) : null}
     </div>
   );
 }
@@ -245,7 +268,7 @@ function StickyColorPicker({
             role="listbox"
             aria-label="Sticky color"
             style={{ top: coords.top, left: coords.left }}
-            className="fixed z-[200] -translate-x-1/2 -translate-y-full"
+            className="fixed z-[9999] -translate-x-1/2 -translate-y-full"
             onPointerDown={(event) => event.stopPropagation()}
           >
             <div className={cn(POPOVER_PANEL_CLASS, "px-2 py-2")}>
@@ -329,7 +352,7 @@ function StickyEmojiPicker({
             role="listbox"
             aria-label="Insert emoji"
             style={{ top: coords.top, left: coords.left }}
-            className="fixed z-[200] -translate-x-1/2 -translate-y-full"
+            className="fixed z-[9999] -translate-x-1/2 -translate-y-full"
             onPointerDown={(event) => event.stopPropagation()}
           >
             <div className={cn(POPOVER_PANEL_CLASS, "w-[15.875rem] p-2")}>
@@ -406,7 +429,7 @@ function TextSizeMenu({
             role="listbox"
             aria-label="Text size"
             style={{ top: coords.top, left: coords.left }}
-            className="fixed z-[200] -translate-x-1/2 -translate-y-full"
+            className="fixed z-[9999] -translate-x-1/2 -translate-y-full"
             onPointerDown={(event) => event.stopPropagation()}
           >
             <div className={cn(POPOVER_PANEL_CLASS, "min-w-[8.5rem] py-1")}>
@@ -494,7 +517,7 @@ function SimpleTooltip({
             role="tooltip"
             style={{ top: coords.top, left: coords.left }}
             className={cn(
-              "pointer-events-none fixed z-[200] -translate-x-1/2 whitespace-nowrap rounded-[6px] border border-white/10 bg-[#1a1a1a] px-2.5 py-1 text-[0.6875rem] font-medium text-white shadow-lg",
+              "pointer-events-none fixed z-[9999] -translate-x-1/2 whitespace-nowrap rounded-[6px] border border-white/10 bg-[#1a1a1a] px-2.5 py-1 text-[0.6875rem] font-medium text-white shadow-lg",
               side === "top" ? "-translate-y-full" : "translate-y-0",
             )}
           >

@@ -1,6 +1,7 @@
 /** Local /public thumbnails for project cards (keyed by lowercase project name). */
 const PROJECT_THUMBNAILS: Record<string, string> = {
   blenz: "/media/projects_thumbnails/blenz_thumbnail.png",
+  "healthy cart canada": "/media/projects_thumbnails/healthy-cart-canada.png",
 };
 
 export function resolveProjectCoverUrl(

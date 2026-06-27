@@ -18,7 +18,7 @@ import {
 } from "@/components/workspace/asset-upload-indicator";
 import { CreateInitiativeDialog } from "@/components/workspace/create-initiative-dialog";
 import { FireLeaders } from "@/components/workspace/fire-leaders";
-import { IdeasBoard } from "@/components/workspace/ideas-board";
+import { IdeasCanvasBoard } from "@/components/workspace/ideas-canvas-board";
 import { PresentationMode } from "@/components/workspace/presentation-mode";
 import { WorkspaceDetailToolbar } from "@/components/workspace/workspace-detail-toolbar";
 import {
@@ -40,14 +40,12 @@ import { deleteAssetAction } from "@/lib/workspace/actions";
 import {
   getAssetDetail,
   getAssetsForInitiative,
-  getIdeasForInitiative,
   type ActivityWithActor,
   type AssetWithVotes,
   type CommentWithAuthor,
-  type IdeaWithMeta,
   type ProjectMemberWithRole,
 } from "@/lib/workspace/queries";
-import type { HubInitiative, HubProject, HubRole } from "@/types/database";
+import type { HubInitiative, HubProject, HubProjectFile, HubRole } from "@/types/database";
 import { cn } from "@/lib/utils";
 
 type StatusFilter = "all" | "pending" | "approved" | "rejected" | "final";
@@ -69,8 +67,10 @@ type ProjectWorkspaceProps = {
   backHref?: string;
   deferAssetsLoad?: boolean;
   initialView?: WorkspaceView;
-  initialIdeas?: IdeaWithMeta[];
   initialActivities?: ActivityWithActor[];
+  initialIdeasCanvas?: HubProjectFile | null;
+  initialIdeaCount?: number;
+  authorName?: string;
 };
 
 const FILTERS: { id: StatusFilter; label: string }[] = [
@@ -100,13 +100,15 @@ export function ProjectWorkspace({
   backHref,
   deferAssetsLoad = false,
   initialView = "assets",
-  initialIdeas = [],
   initialActivities = [],
+  initialIdeasCanvas = null,
+  initialIdeaCount = 0,
+  authorName = "You",
 }: ProjectWorkspaceProps) {
   const router = useRouter();
   const reduceMotion = useReducedMotion();
   const [workspaceView, setWorkspaceView] = useState<WorkspaceView>(initialView);
-  const [ideas, setIdeas] = useState<IdeaWithMeta[]>(initialIdeas);
+  const [ideaCount, setIdeaCount] = useState(initialIdeaCount);
   const [activities, setActivities] = useState<ActivityWithActor[]>(initialActivities);
   const [createInitiativeOpen, setCreateInitiativeOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -159,12 +161,12 @@ export function ProjectWorkspace({
   }, [initialView]);
 
   useEffect(() => {
-    setIdeas(initialIdeas);
-  }, [initialIdeas]);
-
-  useEffect(() => {
     setActivities(initialActivities);
   }, [initialActivities]);
+
+  useEffect(() => {
+    setIdeaCount(initialIdeaCount);
+  }, [initialIdeaCount]);
 
   useEffect(() => {
     setOverlayAssetId(openAssetId);
@@ -238,21 +240,6 @@ export function ProjectWorkspace({
   const initiativeAssets = activeInitiativeId
     ? assetsByInitiative[activeInitiativeId] ?? []
     : [];
-
-  useEffect(() => {
-    if (!activeInitiativeId || workspaceView !== "ideas") return;
-
-    let cancelled = false;
-    void (async () => {
-      const supabase = createClient();
-      const data = await getIdeasForInitiative(supabase, activeInitiativeId, userId);
-      if (!cancelled) setIdeas(data);
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [activeInitiativeId, workspaceView, userId]);
 
   const overlayAsset = overlayAssetId
     ? initiativeAssets.find((a) => a.id === overlayAssetId) ??
@@ -677,7 +664,7 @@ export function ProjectWorkspace({
               <WorkspaceViewTabs
                 view={workspaceView}
                 onChange={setWorkspaceViewInstant}
-                ideaCount={ideas.length}
+                ideaCount={ideaCount}
                 activityCount={activities.length}
                 variant="prominent"
               />
@@ -759,13 +746,20 @@ export function ProjectWorkspace({
               </div>
             )}
 
-            {activeInitiativeId && workspaceView === "ideas" && (
-              <IdeasBoard
-                ideas={ideas}
+            {activeInitiativeId && workspaceView === "ideas" && projectCardForInvite && (
+              <IdeasCanvasBoard
+                key={activeInitiativeId}
+                project={project}
                 initiativeId={activeInitiativeId}
-                projectId={project.id}
+                initiativeName={activeInitiative?.name ?? "Ideas"}
+                initialCanvas={
+                  activeInitiativeId === selectedInitiativeId ? initialIdeasCanvas : null
+                }
+                authorName={authorName}
+                projectCard={projectCardForInvite}
+                currentUserId={userId}
                 role={role}
-                userId={userId}
+                onStickyCountChange={setIdeaCount}
               />
             )}
 

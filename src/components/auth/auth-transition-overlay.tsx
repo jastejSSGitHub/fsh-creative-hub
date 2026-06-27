@@ -1,11 +1,12 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { AuthTransitionIllustration } from "@/components/auth/auth-transition-illustration";
+import { fireWelcomeConfetti } from "@/lib/confetti";
 import {
-  AUTH_TRANSITION_STAGE_MS,
+  getAuthTransitionStageMs,
   getAuthTransitionStages,
   type AuthTransitionKind,
 } from "@/lib/auth/transition-stages";
@@ -14,6 +15,7 @@ type AuthTransitionOverlayProps = {
   visible: boolean;
   kind: AuthTransitionKind | null;
   startedAt: number | null;
+  firstName?: string;
 };
 
 function ProgressShimmer({
@@ -87,10 +89,14 @@ function StageIndicators({
   );
 }
 
-function resolveStageIndex(startedAt: number | null, stageCount: number) {
+function resolveStageIndex(
+  startedAt: number | null,
+  stageCount: number,
+  stageMs: number,
+) {
   if (!startedAt) return 0;
   return Math.min(
-    Math.floor((Date.now() - startedAt) / AUTH_TRANSITION_STAGE_MS),
+    Math.floor((Date.now() - startedAt) / stageMs),
     stageCount - 1,
   );
 }
@@ -99,29 +105,42 @@ export function AuthTransitionOverlay({
   visible,
   kind,
   startedAt,
+  firstName,
 }: AuthTransitionOverlayProps) {
   const prefersReducedMotion = useReducedMotion();
   const reduced = !!prefersReducedMotion;
-  const stages = kind ? getAuthTransitionStages(kind) : [];
+  const stages = kind ? getAuthTransitionStages(kind, firstName) : [];
+  const stageMs = kind ? getAuthTransitionStageMs(kind) : 1_350;
   const [stageIndex, setStageIndex] = useState(0);
+  const confettiFiredRef = useRef(false);
 
   useEffect(() => {
     if (!visible || !kind) {
       setStageIndex(0);
+      confettiFiredRef.current = false;
       return;
     }
 
-    setStageIndex(resolveStageIndex(startedAt, stages.length));
+    setStageIndex(resolveStageIndex(startedAt, stages.length, stageMs));
 
     const timer = window.setInterval(() => {
       setStageIndex((current) => Math.min(current + 1, stages.length - 1));
-    }, AUTH_TRANSITION_STAGE_MS);
+    }, stageMs);
 
     return () => window.clearInterval(timer);
-  }, [kind, visible, startedAt, stages.length]);
+  }, [kind, visible, startedAt, stages.length, stageMs]);
+
+  useEffect(() => {
+    if (!visible || kind !== "welcome-sign-in" || stageIndex !== 0) return;
+    if (confettiFiredRef.current) return;
+
+    confettiFiredRef.current = true;
+    fireWelcomeConfetti();
+  }, [kind, stageIndex, visible]);
 
   const activeLabel = stages[stageIndex] ?? "";
   const progress = ((stageIndex + 1) / stages.length) * 100;
+  const isWelcome = kind === "welcome-sign-in" && stageIndex === 0;
 
   return (
     <AnimatePresence>
@@ -161,11 +180,19 @@ export function AuthTransitionOverlay({
                 />
               </motion.div>
 
-              <div className="mt-6 h-8 overflow-hidden">
+              <div
+                className={
+                  isWelcome ? "mt-6 min-h-[3.25rem] overflow-hidden" : "mt-6 h-8 overflow-hidden"
+                }
+              >
                 <AnimatePresence mode="wait">
                   <motion.p
-                    key={`${kind}-${stageIndex}`}
-                    className="font-display text-lg font-semibold tracking-tight text-hub-foreground"
+                    key={`${kind}-${stageIndex}-${firstName ?? ""}`}
+                    className={
+                      isWelcome
+                        ? "font-display text-2xl font-semibold tracking-tight text-hub-foreground"
+                        : "font-display text-lg font-semibold tracking-tight text-hub-foreground"
+                    }
                     initial={reduced ? false : { opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={reduced ? undefined : { opacity: 0, y: -8 }}

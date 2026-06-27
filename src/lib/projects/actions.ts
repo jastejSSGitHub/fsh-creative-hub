@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { validateInviteEmail } from "@/lib/email";
+import { toUserFacingError } from "@/lib/errors/user-facing";
 import { canAdmin } from "@/lib/permissions";
 import { ensureHubProfile } from "@/lib/auth/ensure-profile";
 import { PROJECTS_PATH, projectPath } from "@/lib/routes";
@@ -11,6 +12,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { HubRole } from "@/types/database";
 
 import { getProjectMembership } from "./queries";
+import { deleteOrphanProject } from "./project-setup";
 
 export type ActionResult =
   | { ok: true; projectId?: string }
@@ -82,19 +84,22 @@ export async function createProjectAction(
       .single();
 
     if (projectError || !project) {
-      return { ok: false, error: projectError?.message ?? "Could not create project." };
+      return {
+        ok: false,
+        error: toUserFacingError(
+          projectError?.message,
+          "We couldn't create your project. Please try again.",
+        ),
+      };
     }
 
-    const { error: memberError } = await supabase
-      .from("hub_project_members")
-      .insert({
-        project_id: project.id,
-        user_id: user.id,
-        role: "admin",
-      });
-
-    if (memberError) {
-      return { ok: false, error: memberError.message };
+    const membership = await getProjectMembership(supabase, project.id, user.id);
+    if (!membership) {
+      await deleteOrphanProject(project.id);
+      return {
+        ok: false,
+        error: "We couldn't finish setting up your project. Please try again.",
+      };
     }
 
     if (cover instanceof File && cover.size > 0) {
@@ -114,7 +119,7 @@ export async function createProjectAction(
   } catch (error) {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "Something went wrong.",
+      error: toUserFacingError(error, "We couldn't create your project. Please try again."),
     };
   }
 }
@@ -201,7 +206,10 @@ export async function inviteProjectMemberAction(
     });
 
     if (error) {
-      return { ok: false, error: error.message };
+      return {
+        ok: false,
+        error: toUserFacingError(error.message, "We couldn't invite that person. Please try again."),
+      };
     }
 
     revalidatePath(PROJECTS_PATH);
@@ -211,7 +219,7 @@ export async function inviteProjectMemberAction(
   } catch (error) {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "Could not invite member.",
+      error: toUserFacingError(error, "We couldn't invite that person. Please try again."),
     };
   }
 }
@@ -262,7 +270,10 @@ export async function updateProjectMemberRoleAction(
       .eq("user_id", memberUserId);
 
     if (error) {
-      return { ok: false, error: error.message };
+      return {
+        ok: false,
+        error: toUserFacingError(error.message, "We couldn't update that role. Please try again."),
+      };
     }
 
     revalidatePath(PROJECTS_PATH);
@@ -272,7 +283,7 @@ export async function updateProjectMemberRoleAction(
   } catch (error) {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "Could not update role.",
+      error: toUserFacingError(error, "We couldn't update that role. Please try again."),
     };
   }
 }
@@ -320,7 +331,10 @@ export async function removeProjectMemberAction(
       .eq("user_id", memberUserId);
 
     if (error) {
-      return { ok: false, error: error.message };
+      return {
+        ok: false,
+        error: toUserFacingError(error.message, "We couldn't remove that member. Please try again."),
+      };
     }
 
     revalidatePath(PROJECTS_PATH);
@@ -330,7 +344,7 @@ export async function removeProjectMemberAction(
   } catch (error) {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "Could not remove member.",
+      error: toUserFacingError(error, "We couldn't remove that member. Please try again."),
     };
   }
 }
@@ -358,7 +372,10 @@ export async function renameProjectAction(
       .eq("id", projectId);
 
     if (error) {
-      return { ok: false, error: error.message };
+      return {
+        ok: false,
+        error: toUserFacingError(error.message, "We couldn't rename that project. Please try again."),
+      };
     }
 
     revalidatePath(PROJECTS_PATH);
@@ -368,7 +385,7 @@ export async function renameProjectAction(
   } catch (error) {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "Could not rename project.",
+      error: toUserFacingError(error, "We couldn't rename that project. Please try again."),
     };
   }
 }
@@ -399,7 +416,10 @@ export async function toggleProjectFavoriteAction(
       .eq("user_id", user.id);
 
     if (error) {
-      return { ok: false, error: error.message };
+      return {
+        ok: false,
+        error: toUserFacingError(error.message, "We couldn't update your favorite. Please try again."),
+      };
     }
 
     revalidatePath(PROJECTS_PATH);
@@ -408,7 +428,7 @@ export async function toggleProjectFavoriteAction(
   } catch (error) {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "Could not update favorite.",
+      error: toUserFacingError(error, "We couldn't update your favorite. Please try again."),
     };
   }
 }
@@ -435,7 +455,10 @@ export async function trashProjectAction(projectId: string): Promise<ActionResul
       .eq("id", projectId);
 
     if (error) {
-      return { ok: false, error: error.message };
+      return {
+        ok: false,
+        error: toUserFacingError(error.message, "We couldn't move that project to trash. Please try again."),
+      };
     }
 
     revalidatePath(PROJECTS_PATH);
@@ -445,7 +468,7 @@ export async function trashProjectAction(projectId: string): Promise<ActionResul
   } catch (error) {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "Could not move project to trash.",
+      error: toUserFacingError(error, "We couldn't move that project to trash. Please try again."),
     };
   }
 }
@@ -478,7 +501,10 @@ export async function deleteProjectAction(
       .single();
 
     if (projectError || !project) {
-      return { ok: false, error: projectError?.message ?? "Project not found." };
+      return {
+        ok: false,
+        error: toUserFacingError(projectError?.message, "That project could not be found."),
+      };
     }
 
     if (!project.trashed_at) {
@@ -492,7 +518,10 @@ export async function deleteProjectAction(
     const { error } = await supabase.from("hub_projects").delete().eq("id", projectId);
 
     if (error) {
-      return { ok: false, error: error.message };
+      return {
+        ok: false,
+        error: toUserFacingError(error.message, "We couldn't delete that project. Please try again."),
+      };
     }
 
     revalidatePath(PROJECTS_PATH);
@@ -502,7 +531,7 @@ export async function deleteProjectAction(
   } catch (error) {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "Could not delete project.",
+      error: toUserFacingError(error, "We couldn't delete that project. Please try again."),
     };
   }
 }
@@ -529,7 +558,10 @@ export async function restoreProjectAction(projectId: string): Promise<ActionRes
       .eq("id", projectId);
 
     if (error) {
-      return { ok: false, error: error.message };
+      return {
+        ok: false,
+        error: toUserFacingError(error.message, "We couldn't restore that project. Please try again."),
+      };
     }
 
     revalidatePath(PROJECTS_PATH);
@@ -539,7 +571,7 @@ export async function restoreProjectAction(projectId: string): Promise<ActionRes
   } catch (error) {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "Could not restore project.",
+      error: toUserFacingError(error, "We couldn't restore that project. Please try again."),
     };
   }
 }
@@ -564,7 +596,10 @@ export async function duplicateProjectAction(projectId: string): Promise<ActionR
       .single();
 
     if (sourceError || !source) {
-      return { ok: false, error: sourceError?.message ?? "Project not found." };
+      return {
+        ok: false,
+        error: toUserFacingError(sourceError?.message, "That project could not be found."),
+      };
     }
 
     const { data: newProject, error: projectError } = await supabase
@@ -579,7 +614,13 @@ export async function duplicateProjectAction(projectId: string): Promise<ActionR
       .single();
 
     if (projectError || !newProject) {
-      return { ok: false, error: projectError?.message ?? "Could not duplicate project." };
+      return {
+        ok: false,
+        error: toUserFacingError(
+          projectError?.message,
+          "We couldn't duplicate that project. Please try again.",
+        ),
+      };
     }
 
     const { data: members } = await supabase
@@ -587,11 +628,13 @@ export async function duplicateProjectAction(projectId: string): Promise<ActionR
       .select("user_id, role")
       .eq("project_id", projectId);
 
-    const memberRows = (members ?? []).map((member) => ({
-      project_id: newProject.id,
-      user_id: member.user_id,
-      role: member.role,
-    }));
+    const memberRows = (members ?? [])
+      .filter((member) => member.user_id !== user.id)
+      .map((member) => ({
+        project_id: newProject.id,
+        user_id: member.user_id,
+        role: member.role,
+      }));
 
     if (memberRows.length > 0) {
       const { error: memberError } = await supabase
@@ -599,7 +642,14 @@ export async function duplicateProjectAction(projectId: string): Promise<ActionR
         .insert(memberRows);
 
       if (memberError) {
-        return { ok: false, error: memberError.message };
+        await deleteOrphanProject(newProject.id);
+        return {
+          ok: false,
+          error: toUserFacingError(
+            memberError.message,
+            "We couldn't duplicate that project. Please try again.",
+          ),
+        };
       }
     }
 
@@ -620,7 +670,14 @@ export async function duplicateProjectAction(projectId: string): Promise<ActionR
       );
 
       if (initiativeError) {
-        return { ok: false, error: initiativeError.message };
+        await deleteOrphanProject(newProject.id);
+        return {
+          ok: false,
+          error: toUserFacingError(
+            initiativeError.message,
+            "We couldn't duplicate that project. Please try again.",
+          ),
+        };
       }
     }
 
@@ -630,7 +687,7 @@ export async function duplicateProjectAction(projectId: string): Promise<ActionR
   } catch (error) {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "Could not duplicate project.",
+      error: toUserFacingError(error, "We couldn't duplicate that project. Please try again."),
     };
   }
 }

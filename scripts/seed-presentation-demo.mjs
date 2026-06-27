@@ -167,13 +167,6 @@ async function main() {
     if (error || !data) throw error ?? new Error("Could not create demo project.");
     project = data;
 
-    const { error: memberError } = await hub.from("hub_project_members").insert({
-      project_id: project.id,
-      user_id: devUser.id,
-      role: "admin",
-    });
-    if (memberError) throw memberError;
-
     console.log("Created project:", project.name);
   } else {
     console.log("Reusing project:", project.name);

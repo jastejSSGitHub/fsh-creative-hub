@@ -13,6 +13,8 @@ type TemplateCategory = "brainstorm" | "reviews";
 type ProjectTemplatesBannerProps = {
   projectId: string;
   onUseTemplate?: (category: TemplateCategory) => void;
+  forceVisible?: boolean;
+  bannerRef?: React.RefObject<HTMLElement | null>;
 };
 
 const TEMPLATE_CARDS: Record<
@@ -78,6 +80,8 @@ function storageKey(projectId: string) {
 export function ProjectTemplatesBanner({
   projectId,
   onUseTemplate,
+  forceVisible = false,
+  bannerRef,
 }: ProjectTemplatesBannerProps) {
   const [dismissed, setDismissed] = useState(true);
   const [category, setCategory] = useState<TemplateCategory>("brainstorm");
@@ -91,12 +95,18 @@ export function ProjectTemplatesBanner({
     setDismissed(true);
   }
 
-  if (dismissed) return null;
+  if (dismissed && !forceVisible) return null;
 
   const cards = TEMPLATE_CARDS[category];
 
   return (
-    <section className="overflow-hidden rounded-md bg-hub-surface-muted">
+    <section
+      ref={bannerRef}
+      className={cn(
+        "overflow-hidden rounded-md bg-hub-surface-muted",
+        forceVisible && "relative z-[46]",
+      )}
+    >
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3">
         <h2 className="font-display text-sm font-bold text-hub-foreground">
           Jump in with a template

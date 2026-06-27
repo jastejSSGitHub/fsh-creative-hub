@@ -64,7 +64,6 @@ export function CanvasOnboardingConnector({
 }: CanvasOnboardingConnectorProps) {
   const [geometry, setGeometry] = useState<{
     path: string;
-    spotlight: DOMRect;
     end: Point;
   } | null>(null);
 
@@ -87,7 +86,6 @@ export function CanvasOnboardingConnector({
 
       setGeometry({
         path: elbowPath(start, end),
-        spotlight: target,
         end,
       });
     }
@@ -110,35 +108,20 @@ export function CanvasOnboardingConnector({
 
   if (!active || !geometry) return null;
 
-  const pad = 6;
-
   return (
-    <>
-      <div
-        className="pointer-events-none fixed z-[48] rounded-xl border-2 border-[#7c3aed] shadow-[0_0_0_4px_rgba(124,58,237,0.25)] transition-all duration-300"
-        style={{
-          top: geometry.spotlight.top - pad,
-          left: geometry.spotlight.left - pad,
-          width: geometry.spotlight.width + pad * 2,
-          height: geometry.spotlight.height + pad * 2,
-        }}
-        aria-hidden
+    <svg
+      className="pointer-events-none fixed inset-0 z-[48] h-full w-full"
+      aria-hidden
+    >
+      <path
+        d={geometry.path}
+        fill="none"
+        stroke="#7c3aed"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
-
-      <svg
-        className="pointer-events-none fixed inset-0 z-[48] h-full w-full"
-        aria-hidden
-      >
-        <path
-          d={geometry.path}
-          fill="none"
-          stroke="#7c3aed"
-          strokeWidth={2}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <circle cx={geometry.end.x} cy={geometry.end.y} r={4} fill="#7c3aed" />
-      </svg>
-    </>
+      <circle cx={geometry.end.x} cy={geometry.end.y} r={4} fill="#7c3aed" />
+    </svg>
   );
 }

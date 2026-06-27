@@ -5,6 +5,10 @@ import { getProjectFile } from "@/lib/project-files/queries";
 import { LOGIN_PATH, projectPath } from "@/lib/routes";
 import { getProjectMembership, type ProjectCardData } from "@/lib/projects/queries";
 import { createClient } from "@/lib/supabase/server";
+import {
+  ensureInitiativeIdeasCanvas,
+  getIdeasCanvasStickyCount,
+} from "@/lib/workspace/ideas-canvas";
 import { getCommentsForAsset, getActivityForProject, getIdeasForInitiative, getInitiatives, getProjectMembers } from "@/lib/workspace/queries";
 import type { WorkspaceView } from "@/components/workspace/workspace-view-tabs";
 import type { AssetStatus, HubProject } from "@/types/database";
@@ -92,13 +96,41 @@ export default async function ReviewBoardPage({
   const initialView: WorkspaceView =
     query.view === "ideas" || query.view === "activity" ? query.view : "assets";
 
-  const [openAssetComments, initialIdeas, initialActivities] = await Promise.all([
-    openAssetId ? getCommentsForAsset(supabase, openAssetId) : Promise.resolve([]),
-    selectedInitiativeId
-      ? getIdeasForInitiative(supabase, selectedInitiativeId, user.id)
-      : Promise.resolve([]),
-    getActivityForProject(supabase, projectId),
-  ]);
+  const selectedInitiative =
+    initiatives.find((i) => i.id === selectedInitiativeId) ?? initiatives[0] ?? null;
+
+  const initialIdeas = selectedInitiativeId
+    ? await getIdeasForInitiative(supabase, selectedInitiativeId, user.id)
+    : [];
+
+  const [openAssetComments, initialActivities, authorProfile, initialIdeasCanvas] =
+    await Promise.all([
+      openAssetId ? getCommentsForAsset(supabase, openAssetId) : Promise.resolve([]),
+      getActivityForProject(supabase, projectId),
+      supabase
+        .from("hub_profiles")
+        .select("display_name")
+        .eq("id", user.id)
+        .maybeSingle(),
+      selectedInitiativeId && selectedInitiative
+        ? ensureInitiativeIdeasCanvas(
+            supabase,
+            projectId,
+            selectedInitiativeId,
+            selectedInitiative.name,
+            user.id,
+            initialIdeas,
+          )
+        : Promise.resolve(null),
+    ]);
+
+  const authorName =
+    authorProfile.data?.display_name ??
+    user.user_metadata?.full_name ??
+    user.email?.split("@")[0] ??
+    "You";
+
+  const initialIdeaCount = getIdeasCanvasStickyCount(initialIdeasCanvas);
 
   const projectCardForInvite = buildInviteProjectCard(project, role, members);
 
@@ -119,8 +151,10 @@ export default async function ReviewBoardPage({
       projectCardForInvite={projectCardForInvite}
       backHref={projectPath(projectId)}
       initialView={initialView}
-      initialIdeas={initialIdeas}
       initialActivities={initialActivities}
+      initialIdeasCanvas={initialIdeasCanvas}
+      initialIdeaCount={initialIdeaCount}
+      authorName={authorName}
     />
   );
 }

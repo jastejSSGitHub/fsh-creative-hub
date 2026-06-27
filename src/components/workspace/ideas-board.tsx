@@ -1,24 +1,30 @@
 "use client";
 
 import { Lightbulb, Sparkles } from "lucide-react";
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
-import { MemberAvatar } from "@/components/projects/member-avatar";
 import { buttonVariants } from "@/components/ui/button";
+import {
+  defaultIdeaStickySize,
+  IdeaStickyNote,
+} from "@/components/workspace/idea-sticky-note";
+import { STICKY_WIDTH } from "@/lib/canvas/presets";
+import type { CanvasTextSize, StickyColorId } from "@/lib/canvas/types";
 import { canEdit } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/client";
-import { addIdeaAction, toggleIdeaVoteAction } from "@/lib/workspace/actions";
+import {
+  addIdeaAction,
+  deleteIdeaAction,
+  duplicateIdeaAction,
+  toggleIdeaVoteAction,
+  updateIdeaBodyAction,
+  updateIdeaFormatAction,
+  updateIdeaSizeAction,
+} from "@/lib/workspace/actions";
+import { stickyColorToIdeaColor } from "@/lib/workspace/idea-sticky-colors";
 import { getIdeasForInitiative, type IdeaWithMeta } from "@/lib/workspace/queries";
 import type { HubRole } from "@/types/database";
 import { cn } from "@/lib/utils";
-
-const IDEA_COLORS: Record<string, { bg: string; rotate: string }> = {
-  yellow: { bg: "bg-amber-50 border-amber-200/80", rotate: "-rotate-1" },
-  pink: { bg: "bg-pink-50 border-pink-200/80", rotate: "rotate-1" },
-  blue: { bg: "bg-sky-50 border-sky-200/80", rotate: "-rotate-[0.5deg]" },
-  green: { bg: "bg-emerald-50 border-emerald-200/80", rotate: "rotate-[0.5deg]" },
-  lavender: { bg: "bg-violet-50 border-violet-200/80", rotate: "-rotate-1" },
-};
 
 type IdeasBoardProps = {
   ideas: IdeaWithMeta[];
@@ -27,6 +33,13 @@ type IdeasBoardProps = {
   role: HubRole;
   userId: string;
 };
+
+type StickySize = { width: number; height: number };
+
+function computeColumnMaxWidth(containerWidth: number, columns: number, gap: number) {
+  if (containerWidth <= 0 || columns <= 0) return STICKY_WIDTH;
+  return Math.floor((containerWidth - gap * (columns - 1)) / columns);
+}
 
 export function IdeasBoard({
   ideas: initialIdeas,
@@ -37,11 +50,53 @@ export function IdeasBoard({
 }: IdeasBoardProps) {
   const [ideas, setIdeas] = useState(initialIdeas);
   const [body, setBody] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [sizeOverrides, setSizeOverrides] = useState<Record<string, StickySize>>({});
+  const [columnMaxWidth, setColumnMaxWidth] = useState(STICKY_WIDTH);
   const [isPending, startTransition] = useTransition();
+  const gridRef = useRef<HTMLUListElement>(null);
 
   useEffect(() => {
     setIdeas(initialIdeas);
   }, [initialIdeas]);
+
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+
+    const gap = 16;
+
+    function syncColumnWidth() {
+      const columns = window.matchMedia("(min-width: 640px)").matches ? 2 : 1;
+      setColumnMaxWidth(computeColumnMaxWidth(grid!.clientWidth, columns, gap));
+    }
+
+    syncColumnWidth();
+
+    const observer = new ResizeObserver(syncColumnWidth);
+    observer.observe(grid);
+
+    const media = window.matchMedia("(min-width: 640px)");
+    media.addEventListener("change", syncColumnWidth);
+
+    return () => {
+      observer.disconnect();
+      media.removeEventListener("change", syncColumnWidth);
+    };
+  }, [ideas.length]);
+
+  useEffect(() => {
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target as HTMLElement;
+      if (target.closest("[data-idea-sticky]")) return;
+      if (target.closest("[data-sticky-toolbar]")) return;
+      if (target.closest("[data-sticky-toolbar-popover]")) return;
+      setSelectedId(null);
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, []);
 
   const refreshIdeas = useCallback(async () => {
     const supabase = createClient();
@@ -79,6 +134,25 @@ export function IdeasBoard({
     };
   }, [initiativeId, refreshIdeas]);
 
+  function getStickySize(idea: IdeaWithMeta): StickySize {
+    return sizeOverrides[idea.id] ?? defaultIdeaStickySize(idea);
+  }
+
+  function setStickySize(ideaId: string, size: StickySize) {
+    setSizeOverrides((current) => ({ ...current, [ideaId]: size }));
+    setIdeas((current) =>
+      current.map((idea) =>
+        idea.id === ideaId ? { ...idea, width: size.width, height: size.height } : idea,
+      ),
+    );
+  }
+
+  function patchIdea(ideaId: string, patch: Partial<IdeaWithMeta>) {
+    setIdeas((current) =>
+      current.map((idea) => (idea.id === ideaId ? { ...idea, ...patch } : idea)),
+    );
+  }
+
   function submitIdea() {
     startTransition(async () => {
       const result = await addIdeaAction(initiativeId, projectId, body);
@@ -96,24 +170,138 @@ export function IdeasBoard({
     });
   }
 
+  function persistStickySize(ideaId: string, size: StickySize) {
+    startTransition(async () => {
+      const result = await updateIdeaSizeAction(ideaId, projectId, size.width, size.height);
+      if (result.ok) {
+        setSizeOverrides((current) => {
+          const next = { ...current };
+          delete next[ideaId];
+          return next;
+        });
+      } else {
+        await refreshIdeas();
+      }
+    });
+  }
+
+  function updateBody(ideaId: string, nextBody: string) {
+    patchIdea(ideaId, { body: nextBody });
+    startTransition(async () => {
+      const result = await updateIdeaBodyAction(ideaId, projectId, nextBody);
+      if (!result.ok) await refreshIdeas();
+    });
+  }
+
+  function updateFormat(
+    ideaId: string,
+    patch: {
+      color?: StickyColorId;
+      textSize?: CanvasTextSize;
+      bold?: boolean;
+      strikethrough?: boolean;
+    },
+  ) {
+    const dbPatch: Partial<IdeaWithMeta> = {};
+    if (patch.color !== undefined) {
+      dbPatch.color = stickyColorToIdeaColor(patch.color);
+    }
+    if (patch.textSize !== undefined) dbPatch.text_size = patch.textSize;
+    if (patch.bold !== undefined) dbPatch.bold = patch.bold;
+    if (patch.strikethrough !== undefined) dbPatch.strikethrough = patch.strikethrough;
+
+    patchIdea(ideaId, dbPatch);
+
+    startTransition(async () => {
+      const result = await updateIdeaFormatAction(ideaId, projectId, patch);
+      if (!result.ok) await refreshIdeas();
+    });
+  }
+
+  const deleteIdea = useCallback(
+    (ideaId: string) => {
+      setSelectedId(null);
+      setIdeas((current) => current.filter((idea) => idea.id !== ideaId));
+      startTransition(async () => {
+        const result = await deleteIdeaAction(ideaId, projectId);
+        if (!result.ok) await refreshIdeas();
+      });
+    },
+    [projectId, refreshIdeas],
+  );
+
+  const duplicateIdea = useCallback(
+    (ideaId: string) => {
+      startTransition(async () => {
+        const result = await duplicateIdeaAction(ideaId, projectId, initiativeId);
+        if (result.ok) {
+          await refreshIdeas();
+          if (result.id) setSelectedId(result.id);
+        }
+      });
+    },
+    [initiativeId, projectId, refreshIdeas],
+  );
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (!selectedId) return;
+
+      const selected = ideas.find((idea) => idea.id === selectedId);
+      if (!selected || selected.author_id !== userId) return;
+
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "TEXTAREA" ||
+          target.tagName === "INPUT" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      const mod = event.metaKey || event.ctrlKey;
+
+      if (mod && event.key.toLowerCase() === "c") {
+        event.preventDefault();
+        void navigator.clipboard.writeText(selected.body);
+        return;
+      }
+
+      if (mod && event.key.toLowerCase() === "d") {
+        event.preventDefault();
+        duplicateIdea(selected.id);
+        return;
+      }
+
+      if (event.key === "Delete" || event.key === "Backspace") {
+        event.preventDefault();
+        deleteIdea(selected.id);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [deleteIdea, duplicateIdea, ideas, selectedId, userId]);
+
   return (
     <div className="space-y-5">
-      <div className="flex items-start gap-3 rounded-xl border border-hub-foreground/10 bg-hub-surface px-4 py-4 shadow-sm sm:px-5">
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-hub-final/20 text-hub-foreground">
-          <Lightbulb className="size-5" aria-hidden />
-        </div>
-        <div className="min-w-0 flex-1 space-y-1">
+      <div className="text-center">
+        <div className="flex items-center justify-center gap-2.5">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-hub-final/20 text-hub-foreground sm:size-10">
+            <Lightbulb className="size-4 sm:size-5" aria-hidden />
+          </div>
           <p className="font-display text-base font-bold text-hub-foreground sm:text-lg">
             Ideas board
           </p>
-          <p className="text-xs leading-relaxed text-hub-foreground/55 sm:text-sm">
-            Brainstorm directions before assets land. Everyone can upvote; editors can add ideas.
-          </p>
         </div>
+        <p className="mx-auto mt-1.5 max-w-md text-xs leading-relaxed text-hub-foreground/55 sm:text-sm">
+          Brainstorm directions before assets land. Everyone can upvote; editors can add ideas.
+        </p>
       </div>
 
       {canEdit(role) && (
-        <div className="rounded-xl border border-hub-foreground/10 bg-hub-surface p-4 shadow-sm sm:p-5">
+        <div className="rounded-lg border border-hub-foreground/10 bg-hub-surface p-4 shadow-sm sm:p-5">
           <label className="font-mono text-[0.62rem] uppercase tracking-[0.12em] text-hub-foreground/45">
             New idea
           </label>
@@ -154,49 +342,30 @@ export function IdeasBoard({
           </p>
         </div>
       ) : (
-        <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <ul ref={gridRef} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {ideas.map((idea) => {
-            const palette = IDEA_COLORS[idea.color] ?? IDEA_COLORS.yellow;
+            const size = getStickySize(idea);
+            const canMutate = idea.author_id === userId;
 
             return (
-              <li
-                key={idea.id}
-                className={cn(
-                  "flex flex-col justify-between rounded-xl border p-4 shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md",
-                  palette.bg,
-                  palette.rotate,
-                )}
-              >
-                <p className="text-sm leading-relaxed text-hub-foreground">{idea.body}</p>
-                <div className="mt-5 flex items-center justify-between gap-3 border-t border-hub-foreground/8 pt-3">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <MemberAvatar
-                      displayName={idea.author.display_name}
-                      avatarUrl={idea.author.avatar_url}
-                      colorSeed={idea.author.id}
-                      size="sm"
-                      variant="muted"
-                    />
-                    <span className="truncate text-xs text-hub-foreground/60">
-                      {idea.author.display_name}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    disabled={isPending}
-                    onClick={() => toggleVote(idea.id)}
-                    className={cn(
-                      "inline-flex min-h-10 min-w-[3.25rem] items-center justify-center gap-1 rounded-lg border px-3 text-xs font-semibold transition-all sm:min-h-9",
-                      idea.user_voted
-                        ? "border-hub-foreground bg-hub-espresso text-white shadow-sm"
-                        : "border-hub-foreground/15 bg-hub-surface/90 text-hub-foreground hover:border-hub-foreground/30",
-                    )}
-                    aria-pressed={idea.user_voted}
-                  >
-                    <span aria-hidden>▲</span>
-                    {idea.vote_count}
-                  </button>
-                </div>
+              <li key={idea.id} data-idea-sticky className="flex items-start">
+                <IdeaStickyNote
+                  idea={idea}
+                  width={size.width}
+                  height={size.height}
+                  maxWidth={columnMaxWidth}
+                  selected={selectedId === idea.id}
+                  canMutate={canMutate}
+                  isPending={isPending}
+                  onSelect={() => setSelectedId(idea.id)}
+                  onResize={(next) => setStickySize(idea.id, next)}
+                  onResizeEnd={(next) => persistStickySize(idea.id, next)}
+                  onBodyChange={(nextBody) => updateBody(idea.id, nextBody)}
+                  onFormatChange={(patch) => updateFormat(idea.id, patch)}
+                  onDuplicate={() => duplicateIdea(idea.id)}
+                  onDelete={() => deleteIdea(idea.id)}
+                  onToggleVote={() => toggleVote(idea.id)}
+                />
               </li>
             );
           })}
