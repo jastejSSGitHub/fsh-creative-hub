@@ -24,6 +24,7 @@ import { ProjectInlineTitle } from "@/components/projects/project-inline-title";
 import { NavBackLink } from "@/components/ui/nav-back-link";
 import { HubSelect } from "@/components/ui/hub-select";
 import { toggleProjectFileFavoriteAction } from "@/lib/project-files/actions";
+import type { ProjectTemplateId } from "@/lib/project-files/project-templates";
 import type { ProjectFileWithMeta } from "@/lib/project-files/queries";
 import { canAdmin, canEdit } from "@/lib/permissions";
 import type { ProjectCardData } from "@/lib/projects/queries";
@@ -68,6 +69,7 @@ type ProjectHomeProps = {
   onCreateCanvas: () => void;
   onCreateTextDocument: () => void;
   onShare: () => void;
+  onUseTemplate?: (templateId: ProjectTemplateId) => void;
   createMenuOpen?: boolean;
   onCreateMenuOpenChange?: (open: boolean) => void;
   createMenuRootRef?: RefObject<HTMLDivElement | null>;
@@ -158,6 +160,7 @@ export function ProjectHome({
   onCreateCanvas,
   onCreateTextDocument,
   onShare,
+  onUseTemplate,
   createMenuOpen,
   onCreateMenuOpenChange,
   createMenuRootRef,
@@ -436,7 +439,7 @@ export function ProjectHome({
 
       <ProjectTemplatesBanner
         projectId={project.id}
-        onUseTemplate={() => onCreateReviewBoard()}
+        onUseTemplate={onUseTemplate}
         forceVisible={templatesForceVisible}
         bannerRef={templatesBannerRef}
       />

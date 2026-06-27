@@ -1,10 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 
 import { HubDialog } from "@/components/projects/hub-dialog";
 import { createCanvasAction } from "@/lib/project-files/actions";
+import {
+  shouldShowProjectTemplateComingSoon,
+  type PendingProjectTemplate,
+} from "@/lib/project-files/project-templates";
 import { canvasPath } from "@/lib/routes";
 import {
   hubDialogCancelButtonClassName,
@@ -19,12 +23,16 @@ type CreateCanvasDialogProps = {
   projectId: string;
   open: boolean;
   onClose: () => void;
+  templateContext?: PendingProjectTemplate | null;
+  onUnshippedTemplateCreated?: () => void;
 };
 
 export function CreateCanvasDialog({
   projectId,
   open,
   onClose,
+  templateContext = null,
+  onUnshippedTemplateCreated,
 }: CreateCanvasDialogProps) {
   const router = useRouter();
   const [name, setName] = useState("");
@@ -37,6 +45,12 @@ export function CreateCanvasDialog({
     setError(null);
     onClose();
   }
+
+  useEffect(() => {
+    if (!open) return;
+    setName(templateContext?.title ?? "");
+    setError(null);
+  }, [open, templateContext?.title]);
 
   function handleCreate() {
     setError(null);
@@ -54,6 +68,16 @@ export function CreateCanvasDialog({
       }
 
       if (result.canvasId) {
+        if (
+          templateContext &&
+          shouldShowProjectTemplateComingSoon(templateContext.id)
+        ) {
+          onUnshippedTemplateCreated?.();
+          router.refresh();
+          handleClose();
+          return;
+        }
+
         router.push(canvasPath(projectId, result.canvasId));
       }
 

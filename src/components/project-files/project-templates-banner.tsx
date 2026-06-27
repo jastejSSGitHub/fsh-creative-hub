@@ -6,13 +6,14 @@ import { useEffect, useState } from "react";
 import {
   TEMPLATE_THUMBNAIL_ILLUSTRATIONS,
 } from "@/components/project-files/project-template-thumbnail-illustrations";
+import type { ProjectTemplateId } from "@/lib/project-files/project-templates";
 import { cn } from "@/lib/utils";
 
 type TemplateCategory = "brainstorm" | "reviews";
 
 type ProjectTemplatesBannerProps = {
   projectId: string;
-  onUseTemplate?: (category: TemplateCategory) => void;
+  onUseTemplate?: (templateId: ProjectTemplateId) => void;
   forceVisible?: boolean;
   bannerRef?: React.RefObject<HTMLElement | null>;
 };
@@ -149,7 +150,7 @@ export function ProjectTemplatesBanner({
               key={card.id}
               type="button"
               aria-label={card.title}
-              onClick={() => onUseTemplate?.(category)}
+              onClick={() => onUseTemplate?.(card.id)}
               className="group overflow-hidden rounded-md border border-hub-foreground/10 bg-hub-surface text-left shadow-sm transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hub-primary/40"
             >
               <div

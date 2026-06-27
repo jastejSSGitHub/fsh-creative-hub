@@ -6,6 +6,7 @@ import { CreateCanvasDialog } from "@/components/project-files/create-canvas-dia
 import { CreateReviewBoardDialog } from "@/components/project-files/create-review-board-dialog";
 import { CreateTextDocumentDialog } from "@/components/project-files/create-text-document-dialog";
 import { ProjectHome } from "@/components/project-files/project-home";
+import { TemplateComingSoonDialog } from "@/components/project-files/template-coming-soon-dialog";
 import {
   ProjectOnboarding,
   type ProjectShareOnboardingCard,
@@ -25,6 +26,11 @@ import {
 } from "@/lib/onboarding/storage";
 import { DEV_TOOLS_SIMULATE_CHANGED } from "@/lib/dev-tools/events";
 import { dispatchProjectNavigationEnd } from "@/lib/projects/project-navigation-events";
+import {
+  getProjectTemplate,
+  type PendingProjectTemplate,
+  type ProjectTemplateId,
+} from "@/lib/project-files/project-templates";
 import type { ProjectFileWithMeta } from "@/lib/project-files/queries";
 import type { ProjectCardData } from "@/lib/projects/queries";
 import type { HubProject, HubRole } from "@/types/database";
@@ -47,6 +53,10 @@ export function ProjectHomeClient({
   const [createBoardOpen, setCreateBoardOpen] = useState(false);
   const [createCanvasOpen, setCreateCanvasOpen] = useState(false);
   const [createDocOpen, setCreateDocOpen] = useState(false);
+  const [pendingTemplate, setPendingTemplate] =
+    useState<PendingProjectTemplate | null>(null);
+  const [comingSoonTemplate, setComingSoonTemplate] =
+    useState<PendingProjectTemplate | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [createMenuOpen, setCreateMenuOpen] = useState(false);
   const [templatesForceVisible, setTemplatesForceVisible] = useState(false);
@@ -168,6 +178,28 @@ export function ProjectHomeClient({
     handleOnboardingStepChange("welcome");
   }, [handleOnboardingStepChange, showOnboarding]);
 
+  function clearPendingTemplate() {
+    setPendingTemplate(null);
+  }
+
+  function handleUseTemplate(templateId: ProjectTemplateId) {
+    const template = getProjectTemplate(templateId);
+    setPendingTemplate({ id: template.id, title: template.title });
+
+    if (template.fileType === "canvas") {
+      setCreateCanvasOpen(true);
+      return;
+    }
+
+    setCreateBoardOpen(true);
+  }
+
+  function handleUnshippedTemplateCreated() {
+    if (!pendingTemplate) return;
+    setComingSoonTemplate(pendingTemplate);
+    clearPendingTemplate();
+  }
+
   return (
     <>
       <ProjectHome
@@ -176,9 +208,19 @@ export function ProjectHomeClient({
         files={files}
         projectCard={projectCard}
         currentUserId={currentUserId}
-        onCreateReviewBoard={() => setCreateBoardOpen(true)}
-        onCreateCanvas={() => setCreateCanvasOpen(true)}
-        onCreateTextDocument={() => setCreateDocOpen(true)}
+        onCreateReviewBoard={() => {
+          clearPendingTemplate();
+          setCreateBoardOpen(true);
+        }}
+        onCreateCanvas={() => {
+          clearPendingTemplate();
+          setCreateCanvasOpen(true);
+        }}
+        onCreateTextDocument={() => {
+          clearPendingTemplate();
+          setCreateDocOpen(true);
+        }}
+        onUseTemplate={handleUseTemplate}
         onShare={() => setShareOpen(true)}
         createMenuOpen={createMenuOpen}
         onCreateMenuOpenChange={setCreateMenuOpen}
@@ -193,17 +235,31 @@ export function ProjectHomeClient({
       <CreateReviewBoardDialog
         projectId={project.id}
         open={createBoardOpen}
-        onClose={() => setCreateBoardOpen(false)}
+        onClose={() => {
+          setCreateBoardOpen(false);
+          clearPendingTemplate();
+        }}
+        templateContext={pendingTemplate}
+        onUnshippedTemplateCreated={handleUnshippedTemplateCreated}
       />
       <CreateCanvasDialog
         projectId={project.id}
         open={createCanvasOpen}
-        onClose={() => setCreateCanvasOpen(false)}
+        onClose={() => {
+          setCreateCanvasOpen(false);
+          clearPendingTemplate();
+        }}
+        templateContext={pendingTemplate}
+        onUnshippedTemplateCreated={handleUnshippedTemplateCreated}
       />
       <CreateTextDocumentDialog
         projectId={project.id}
         open={createDocOpen}
         onClose={() => setCreateDocOpen(false)}
+      />
+      <TemplateComingSoonDialog
+        template={comingSoonTemplate}
+        onClose={() => setComingSoonTemplate(null)}
       />
       <InviteMembersDialog
         project={shareOpen ? projectCard : null}

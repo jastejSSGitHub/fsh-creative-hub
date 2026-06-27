@@ -1,12 +1,16 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 
 import { HubDialog } from "@/components/projects/hub-dialog";
 import { AssetUploadZone } from "@/components/workspace/asset-upload-zone";
 import { buttonVariants } from "@/components/ui/button";
 import { createReviewBoardAction } from "@/lib/project-files/actions";
+import {
+  shouldShowProjectTemplateComingSoon,
+  type PendingProjectTemplate,
+} from "@/lib/project-files/project-templates";
 import {
   initiativeNameForSection,
   SECTION_PRESETS,
@@ -25,6 +29,8 @@ type CreateReviewBoardDialogProps = {
   projectId: string;
   open: boolean;
   onClose: () => void;
+  templateContext?: PendingProjectTemplate | null;
+  onUnshippedTemplateCreated?: () => void;
 };
 
 const DEFAULT_SECTIONS: SectionSelection[] = [
@@ -37,6 +43,8 @@ export function CreateReviewBoardDialog({
   projectId,
   open,
   onClose,
+  templateContext = null,
+  onUnshippedTemplateCreated,
 }: CreateReviewBoardDialogProps) {
   const router = useRouter();
   const [step, setStep] = useState<1 | 2>(1);
@@ -65,6 +73,12 @@ export function CreateReviewBoardDialog({
     reset();
     onClose();
   }
+
+  useEffect(() => {
+    if (!open) return;
+    setName(templateContext?.title ?? "");
+    setError(null);
+  }, [open, templateContext?.title]);
 
   function toggleSection(preset: SectionPresetId) {
     setSections((prev) =>
@@ -122,7 +136,19 @@ export function CreateReviewBoardDialog({
 
   function finish(navigate = true) {
     if (!boardId) return;
+    const showComingSoon =
+      templateContext &&
+      shouldShowProjectTemplateComingSoon(templateContext.id);
+
+    if (showComingSoon) {
+      onUnshippedTemplateCreated?.();
+      handleClose();
+      router.refresh();
+      return;
+    }
+
     handleClose();
+
     if (navigate) {
       router.push(reviewBoardPath(projectId, boardId));
       router.refresh();
