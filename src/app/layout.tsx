@@ -44,6 +44,13 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${bricolage.variable} ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var p=location.pathname;if(p==="/"||p==="/landing"){var r=document.documentElement;r.classList.remove("dark");r.classList.add("light");r.style.colorScheme="light";}}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col bg-hub-paper text-hub-foreground font-sans">
         <ThemeProvider>
           <AuthTransitionProvider>{children}</AuthTransitionProvider>

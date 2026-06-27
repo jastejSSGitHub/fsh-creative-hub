@@ -46,7 +46,7 @@ export function HeroVerbPill({ className }: HeroVerbPillProps) {
         <AnimatePresence mode="wait" initial={false}>
           <motion.span
             key={verb.word}
-            className="col-start-1 row-start-1 whitespace-nowrap"
+            className="col-start-1 row-start-1 whitespace-nowrap text-hub-espresso"
             initial={reduced ? false : { opacity: 0, y: 14, filter: "blur(4px)" }}
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
             exit={

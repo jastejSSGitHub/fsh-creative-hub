@@ -165,6 +165,20 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* Marketing landing is always light — hub dark theme must not bleed in. */
+.landing-page,
+.dark .landing-page {
+  color-scheme: light;
+  --hub-paper: #fbf7ee;
+  --hub-espresso: #0b0b0b;
+  --hub-foreground: #0b0b0b;
+  --hub-surface: #ffffff;
+  --hub-surface-muted: #f6f2e8;
+  --hub-surface-subtle: color-mix(in srgb, var(--hub-espresso) 3%, var(--hub-paper));
+  --background: var(--hub-paper);
+  --foreground: var(--hub-espresso);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

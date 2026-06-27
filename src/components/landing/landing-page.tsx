@@ -15,7 +15,7 @@ export function LandingPage({ isLoggedIn }: LandingPageProps) {
   const year = new Date().getFullYear();
 
   return (
-    <div className="flex min-h-full flex-col bg-hub-paper">
+    <div className="landing-page flex min-h-full flex-col bg-hub-paper text-hub-foreground">
       <LandingScrollbar />
       <HeroSection isLoggedIn={isLoggedIn} />
       <MarqueeStrip />
