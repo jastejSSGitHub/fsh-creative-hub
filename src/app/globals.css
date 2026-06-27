@@ -381,6 +381,136 @@
     }
   }
 
+  @keyframes canvas-sticky-wiggle {
+    0%,
+    100% {
+      transform: rotate(-0.35deg);
+    }
+    50% {
+      transform: rotate(0.35deg);
+    }
+  }
+
+  .canvas-sticky-wiggle {
+    animation: canvas-sticky-wiggle 1.6s ease-in-out infinite;
+    transform-origin: center center;
+  }
+
+  .canvas-sticky-magnetic {
+    box-shadow:
+      0 4px 16px rgba(0, 0, 0, 0.15),
+      0 0 0 2px rgba(24, 160, 251, 0.45);
+  }
+
+  @keyframes canvas-embed-float {
+    0%,
+    100% {
+      transform: translateY(0) rotate(-2deg);
+      opacity: 0.55;
+    }
+    50% {
+      transform: translateY(-6px) rotate(2deg);
+      opacity: 0.9;
+    }
+  }
+
+  @keyframes canvas-embed-pulse {
+    0%,
+    100% {
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
+    }
+    50% {
+      box-shadow: 0 8px 28px rgba(24, 160, 251, 0.22);
+    }
+  }
+
+  .canvas-embed-float {
+    animation: canvas-embed-float 3.2s ease-in-out infinite;
+  }
+
+  .canvas-embed-empty-pulse {
+    animation: canvas-embed-pulse 2.4s ease-in-out infinite;
+  }
+
+  @keyframes canvas-embed-drag-hint {
+    0%,
+    100% {
+      opacity: 0.45;
+      border-color: rgba(24, 160, 251, 0.38);
+    }
+    50% {
+      opacity: 1;
+      border-color: rgba(24, 160, 251, 0.82);
+    }
+  }
+
+  .canvas-embed-drag-zone:hover .canvas-embed-drag-stroke {
+    opacity: 1;
+    animation: canvas-embed-drag-hint 1.35s ease-in-out infinite;
+  }
+
+  @keyframes canvas-image-drop-in {
+    0% {
+      opacity: 0;
+      transform: scale(0.88);
+    }
+    60% {
+      opacity: 1;
+      transform: scale(1.03);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes canvas-image-drop-ghost-pulse {
+    0%,
+    100% {
+      opacity: 0.72;
+      transform: scale(0.98);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .canvas-image-drop-in {
+    animation: canvas-image-drop-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .canvas-image-drop-ghost {
+    animation: canvas-image-drop-ghost-pulse 1.2s ease-in-out infinite;
+  }
+
+  .canvas-image-upload-spinner {
+    animation: canvas-image-upload-spin 0.75s linear infinite;
+  }
+
+  @keyframes canvas-image-upload-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .canvas-embed-float,
+    .canvas-embed-empty-pulse,
+    .canvas-sticky-wiggle,
+    .canvas-image-drop-in,
+    .canvas-image-drop-ghost,
+    .canvas-image-upload-spinner {
+      animation: none;
+    }
+
+    .canvas-embed-drag-zone:hover .canvas-embed-drag-stroke {
+      animation: none;
+      opacity: 0.85;
+      border-color: rgba(24, 160, 251, 0.72);
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .hub-file-thumb-shimmer,
     .hub-file-thumb-card,
@@ -483,5 +613,16 @@
     display: none;
     height: 0;
     width: 0;
+  }
+
+  .hub-scrollbar-hidden {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .hub-scrollbar-hidden::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
   }
 }

@@ -6,45 +6,74 @@ export type CoverImageOption = {
   bannerPosition: number;
 };
 
+const BANNER_MEDIA_BASE = "/media/text-document-banners";
+
 export const DEFAULT_COVER_IMAGES: CoverImageOption[] = [
   {
-    id: "art1",
+    id: "mist-valley",
     label: "Mist Valley",
-    src: "/media/Text Document Banners/Art1.png",
+    src: `${BANNER_MEDIA_BASE}/mist-valley.webp`,
     bannerPosition: 40,
   },
   {
-    id: "art2",
+    id: "ink-mountains",
     label: "Ink Mountains",
-    src: "/media/Text Document Banners/Art2.png",
+    src: `${BANNER_MEDIA_BASE}/ink-mountains.webp`,
     bannerPosition: 45,
   },
   {
-    id: "art3",
+    id: "river-mist",
     label: "River Mist",
-    src: "/media/Text Document Banners/Art3.png",
+    src: `${BANNER_MEDIA_BASE}/river-mist.webp`,
     bannerPosition: 50,
   },
   {
-    id: "art4",
+    id: "forest-path",
     label: "Forest Path",
-    src: "/media/Text Document Banners/Art4.png",
+    src: `${BANNER_MEDIA_BASE}/forest-path.webp`,
     bannerPosition: 42,
   },
   {
-    id: "blenz_banner",
+    id: "desert-dawn",
+    label: "Desert Dawn",
+    src: `${BANNER_MEDIA_BASE}/desert-dawn.webp`,
+    bannerPosition: 48,
+  },
+  {
+    id: "blenz-banner",
     label: "Blenz Banner",
-    src: "/media/Text Document Banners/blenz_banner.png",
+    src: `${BANNER_MEDIA_BASE}/blenz-banner.webp`,
     bannerPosition: 50,
   },
 ];
 
-export const ARTWORK_COVER_IMAGE_IDS = ["art1", "art2", "art3", "art4"] as const;
+/** Maps older stored cover ids to the current kebab-case ids. */
+export const LEGACY_COVER_IMAGE_IDS: Record<string, string> = {
+  art1: "mist-valley",
+  art2: "ink-mountains",
+  art3: "river-mist",
+  art4: "forest-path",
+  art5: "desert-dawn",
+  blenz_banner: "blenz-banner",
+};
 
-export const BLENZ_BANNER_COVER_IMAGE_ID = "blenz_banner";
+export const ARTWORK_COVER_IMAGE_IDS = [
+  "mist-valley",
+  "ink-mountains",
+  "river-mist",
+  "forest-path",
+  "desert-dawn",
+] as const;
+
+export const BLENZ_BANNER_COVER_IMAGE_ID = "blenz-banner";
+
+export function normalizeCoverImageId(id: string): string {
+  return LEGACY_COVER_IMAGE_IDS[id] ?? id;
+}
 
 export function coverImageById(id: string): CoverImageOption | undefined {
-  return DEFAULT_COVER_IMAGES.find((image) => image.id === id);
+  const normalizedId = normalizeCoverImageId(id);
+  return DEFAULT_COVER_IMAGES.find((image) => image.id === normalizedId);
 }
 
 export function encodePublicAssetPath(path: string): string {

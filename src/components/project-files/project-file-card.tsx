@@ -54,8 +54,8 @@ export function navigateToProjectFile(
       projectId,
       docId: file.id,
       docName: file.name,
-      icon: resolveDocumentIcon(config.icon),
-      cover: resolveDocumentCover(config.cover, file.name),
+      icon: resolveDocumentIcon(config.icon, projectId, file.id),
+      cover: resolveDocumentCover(config.cover, file.name, projectId, file.id),
     });
   }
 

@@ -20,11 +20,6 @@ function LoadingCard() {
       <div className="space-y-2 p-3 sm:p-4">
         <SkeletonBone className="h-4 w-4/5" />
         <SkeletonBone className="h-3 w-16" />
-        <div className="flex gap-1 pt-0.5">
-          {Array.from({ length: 3 }).map((_, barIndex) => (
-            <SkeletonBone key={barIndex} className="h-1.5 flex-1 rounded-full" />
-          ))}
-        </div>
       </div>
     </div>
   );

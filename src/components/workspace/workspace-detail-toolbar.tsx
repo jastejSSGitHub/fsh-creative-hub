@@ -31,12 +31,16 @@ export function WorkspaceDetailToolbar({
   return (
     <div className="flex shrink-0 items-center gap-2 sm:gap-2.5">
       {showStats && stats && (
-        <div className="flex items-center gap-1.5 rounded-full border border-hub-foreground/10 bg-hub-foreground/[0.04] px-2 py-1 font-mono text-[0.5rem] uppercase tracking-wider text-hub-foreground/55 sm:gap-2 sm:px-2.5 sm:text-[0.55rem]">
-          <span className="text-hub-approved">{stats.approved} approved</span>
-          <span aria-hidden>·</span>
-          <span className="text-hub-rejected">{stats.rejected} rejected</span>
-          <span aria-hidden>·</span>
-          <span className="text-hub-foreground/70">{stats.total} total</span>
+        <div className="flex items-center gap-1.5 rounded-full border border-hub-foreground/12 bg-hub-surface px-2.5 py-1.5 font-mono text-[0.55rem] uppercase tracking-wider shadow-sm sm:gap-2 sm:px-3 sm:text-[0.625rem]">
+          <span className="font-semibold text-green-800">{stats.approved} approved</span>
+          <span className="text-hub-foreground/30" aria-hidden>
+            ·
+          </span>
+          <span className="font-medium text-red-700">{stats.rejected} rejected</span>
+          <span className="text-hub-foreground/30" aria-hidden>
+            ·
+          </span>
+          <span className="font-semibold text-hub-foreground">{stats.total} total</span>
         </div>
       )}
 

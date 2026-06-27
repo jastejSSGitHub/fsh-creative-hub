@@ -1,9 +1,10 @@
 "use client";
 
-import { ImagePlus, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useRef, useState, useTransition } from "react";
 
 import { AssetDropIllustration } from "@/components/workspace/asset-drop-illustration";
+import { AssetDropZoneHeroIllustration } from "@/components/workspace/asset-drop-zone-hero-illustration";
 import {
   assetTypeFromFile,
   fileToName,
@@ -19,31 +20,43 @@ type AssetUploadZoneProps = {
   projectId: string;
   initiativeId: string;
   boardId?: string;
-  onUploaded: (assetId: string) => void;
+  onUploadStart?: () => void;
+  onUploaded: (assetId: string) => void | Promise<void>;
+  onUploadComplete?: (lastAssetId: string) => void;
+  onUploadBatchEnd?: (lastAssetId: string | null) => void;
+  onUploadError?: (message: string) => void;
 };
 
 export function AssetUploadZone({
   projectId,
   initiativeId,
   boardId,
+  onUploadStart,
   onUploaded,
+  onUploadComplete,
+  onUploadBatchEnd,
+  onUploadError,
 }: AssetUploadZoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   async function uploadFiles(files: FileList | File[]) {
     const list = Array.from(files);
     if (!list.length) return;
 
-    setMessage(null);
+    setErrorMessage(null);
+    onUploadStart?.();
     const supabase = createClient();
+    let lastAssetId: string | null = null;
 
     for (const file of list) {
       const type = assetTypeFromFile(file);
       if (!type) {
-        setMessage(`${file.name}: unsupported file type.`);
+        const msg = `${file.name}: unsupported file type.`;
+        setErrorMessage(msg);
+        onUploadError?.(msg);
         continue;
       }
 
@@ -60,7 +73,8 @@ export function AssetUploadZone({
         });
 
       if (uploadError) {
-        setMessage(uploadError.message);
+        setErrorMessage(uploadError.message);
+        onUploadError?.(uploadError.message);
         continue;
       }
 
@@ -81,16 +95,21 @@ export function AssetUploadZone({
       });
 
       if (!result.ok) {
-        setMessage(result.error);
+        setErrorMessage(result.error);
+        onUploadError?.(result.error);
         continue;
       }
 
       if (result.id) {
-        onUploaded(result.id);
+        lastAssetId = result.id;
+        await onUploaded(result.id);
       }
     }
 
-    setMessage(`${list.length} file${list.length === 1 ? "" : "s"} uploaded.`);
+    if (lastAssetId) {
+      onUploadComplete?.(lastAssetId);
+    }
+    onUploadBatchEnd?.(lastAssetId);
   }
 
   function handleDrop(event: React.DragEvent) {
@@ -121,20 +140,8 @@ export function AssetUploadZone({
             onDrop={handleDrop}
             className="flex min-h-[9rem] flex-col items-center justify-center px-6 py-8 text-center md:col-span-3"
           >
-            <div
-              className={cn(
-                "mb-3 flex size-11 items-center justify-center rounded-2xl bg-hub-foreground/[0.04] transition-all duration-300",
-                dragging && "scale-105 bg-hub-final/15",
-              )}
-            >
-              <ImagePlus
-                className={cn(
-                  "size-5 text-hub-foreground/40 transition-colors duration-300",
-                  dragging && "text-hub-foreground/70",
-                )}
-                strokeWidth={1.5}
-                aria-hidden
-              />
+            <div className="mb-1">
+              <AssetDropZoneHeroIllustration active={dragging} />
             </div>
 
             <p className="font-display text-[1.05rem] font-semibold tracking-tight text-hub-foreground">
@@ -180,9 +187,9 @@ export function AssetUploadZone({
         </div>
       </div>
 
-      {message && (
-        <p className="text-sm text-hub-foreground/60">{message}</p>
-      )}
+      {errorMessage ? (
+        <p className="text-sm text-hub-rejected">{errorMessage}</p>
+      ) : null}
     </div>
   );
 }

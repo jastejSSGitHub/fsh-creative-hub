@@ -12,11 +12,15 @@ import {
   type ReactNode,
 } from "react";
 
+import { CodeBlock } from "@/components/documents/block-editor/code-block";
+import { ImageBlock } from "@/components/documents/block-editor/image-block";
 import { BlockGutter } from "@/components/documents/block-editor/block-gutter";
 import {
   HtmlEmbedBlock,
   WebEmbedBlock,
 } from "@/components/documents/block-editor/embed-block";
+import { TableBlock } from "@/components/documents/block-editor/table-block";
+import { UrlAwareField } from "@/components/documents/block-editor/url-aware-field";
 import {
   SlashMenu,
   slashCommandToBlockType,
@@ -86,6 +90,7 @@ type BlockEditorProps = {
   onChange: (blocks: DocumentBlock[]) => void;
   canEdit: boolean;
   projectId: string;
+  docId: string;
   linkedPages?: LinkedPageOption[];
   onHeadingsChange?: (headings: { id: string; text: string; level: number }[]) => void;
 };
@@ -126,6 +131,7 @@ export function BlockEditor({
   onChange,
   canEdit,
   projectId,
+  docId,
   linkedPages = [],
   onHeadingsChange,
 }: BlockEditorProps) {
@@ -136,6 +142,7 @@ export function BlockEditor({
     blockId: string;
     query: string;
   } | null>(null);
+  const [activeHintBlockId, setActiveHintBlockId] = useState<string | null>(null);
 
   const inputRefs = useRef<Map<string, HTMLTextAreaElement>>(new Map());
 
@@ -147,14 +154,16 @@ export function BlockEditor({
   );
 
   const insertBlockAfter = useCallback(
-    (afterId: string, type: DocumentBlockType = "paragraph") => {
+    (afterId: string, type: DocumentBlockType = "paragraph", options?: { focus?: boolean }) => {
       const index = blocks.findIndex((b) => b.id === afterId);
       if (index === -1) return;
       const next = [...blocks];
       const block = createBlock(type);
       next.splice(index + 1, 0, block);
       onChange(next);
-      requestAnimationFrame(() => inputRefs.current.get(block.id)?.focus());
+      if (options?.focus !== false) {
+        requestAnimationFrame(() => inputRefs.current.get(block.id)?.focus());
+      }
     },
     [blocks, onChange],
   );
@@ -427,15 +436,6 @@ export function BlockEditor({
           linkedFileName: linkedPages[0].name,
         },
       });
-    } else if (type === "image") {
-      const url = window.prompt("Image URL");
-      if (url) {
-        updateBlock(slashState.blockId, {
-          type,
-          content: "",
-          meta: { imageUrl: url },
-        });
-      }
     } else {
       replaceBlockType(slashState.blockId, type);
     }
@@ -460,7 +460,7 @@ export function BlockEditor({
   ) {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
-      insertBlockAfter(block.id);
+      insertBlockAfter(block.id, "paragraph", { focus: false });
       return;
     }
 
@@ -514,7 +514,7 @@ export function BlockEditor({
             ? (event: MouseEvent<HTMLDivElement>) => {
                 const target = event.target as HTMLElement;
                 if (target.closest("textarea, button, a, input")) return;
-                focusBlock(block.id);
+                setActiveHintBlockId(block.id);
               }
             : undefined,
         };
@@ -556,22 +556,17 @@ export function BlockEditor({
           );
         }
 
-        if (block.type === "image" && block.meta?.imageUrl) {
+        if (block.type === "image") {
           return renderBlockShell(
             block,
-            <>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={block.meta.imageUrl}
-                alt={block.content || "Embedded image"}
-                className="max-h-[24rem] w-full rounded-[6px] object-cover"
-              />
-              {block.content ? (
-                <p className="mt-1.5 text-center text-[0.75rem] text-hub-foreground/50">
-                  {block.content}
-                </p>
-              ) : null}
-            </>,
+            <ImageBlock
+              block={block}
+              canEdit={canEdit}
+              projectId={projectId}
+              docId={docId}
+              onUpdate={(patch) => updateBlock(block.id, patch)}
+              onDelete={canDeleteBlock ? () => deleteBlock(block.id) : undefined}
+            />,
             { className: "py-2", dropTarget: false, ...shellOptions },
           );
         }
@@ -608,38 +603,21 @@ export function BlockEditor({
           const rows = block.meta?.tableRows ?? [["", ""]];
           return renderBlockShell(
             block,
-            <div className="overflow-x-auto rounded-[6px] border border-hub-foreground/12">
-              <table className="w-full min-w-[20rem] border-collapse text-[0.8125rem]">
-                <tbody>
-                  {rows.map((row, rowIndex) => (
-                    <tr key={rowIndex} className="border-b border-hub-foreground/8 last:border-0">
-                      {row.map((cell, cellIndex) => (
-                        <td key={cellIndex} className="border-r border-hub-foreground/8 p-2 last:border-0">
-                          {canEdit ? (
-                            <input
-                              value={cell}
-                              onChange={(e) => {
-                                const nextRows = rows.map((r, ri) =>
-                                  ri === rowIndex
-                                    ? r.map((c, ci) => (ci === cellIndex ? e.target.value : c))
-                                    : r,
-                                );
-                                updateBlock(block.id, {
-                                  meta: { ...block.meta, tableRows: nextRows },
-                                });
-                              }}
-                              className="w-full bg-transparent outline-none"
-                            />
-                          ) : (
-                            cell
-                          )}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>,
+            <TableBlock
+              rows={rows}
+              columnWidths={block.meta?.tableColumnWidths}
+              canEdit={canEdit}
+              onChange={(nextRows) =>
+                updateBlock(block.id, {
+                  meta: { ...block.meta, tableRows: nextRows },
+                })
+              }
+              onColumnWidthsChange={(tableColumnWidths) =>
+                updateBlock(block.id, {
+                  meta: { ...block.meta, tableColumnWidths },
+                })
+              }
+            />,
             { className: "py-2", dropTarget: false, ...shellOptions },
           );
         }
@@ -647,24 +625,12 @@ export function BlockEditor({
         if (block.type === "code") {
           return renderBlockShell(
             block,
-            <pre className="overflow-x-auto rounded-[6px] bg-hub-foreground/[0.06] p-3">
-              <textarea
-                ref={(el) => {
-                  if (el) inputRefs.current.set(block.id, el);
-                }}
-                value={block.content}
-                readOnly={!canEdit}
-                placeholder={blockPlaceholder(block.type)}
-                rows={3}
-                onChange={(e) => handleInput(block, e.target.value, e.target)}
-                onKeyDown={(e) => handleKeyDown(e, block, index)}
-                className={cn(
-                  "w-full resize-none bg-transparent outline-none",
-                  blockClassName(block.type),
-                )}
-              />
-            </pre>,
-            { className: "py-1", dropTarget: false, ...shellOptions },
+            <CodeBlock
+              block={block}
+              canEdit={canEdit}
+              onUpdate={(patch) => updateBlock(block.id, patch)}
+            />,
+            { className: "py-2", dropTarget: false, ...shellOptions },
           );
         }
 
@@ -677,22 +643,35 @@ export function BlockEditor({
               </span>
             ) : null}
 
-            <textarea
-              ref={(el) => {
-                if (el) {
-                  inputRefs.current.set(block.id, el);
-                  el.style.height = "auto";
-                  el.style.height = `${el.scrollHeight}px`;
-                }
-              }}
+            <UrlAwareField
+              multiline
               value={block.content}
               readOnly={!canEdit}
               placeholder={blockPlaceholder(block.type)}
-              rows={1}
-              onChange={(e) => handleInput(block, e.target.value, e.target)}
-              onKeyDown={(e) => handleKeyDown(e, block, index)}
-              className={cn(
-                "relative w-full resize-none overflow-hidden bg-transparent outline-none placeholder:text-hub-foreground/35",
+              forceEditing={Boolean(slashState?.blockId === block.id)}
+              activated={activeHintBlockId === block.id}
+              onBlurField={() => {
+                if (activeHintBlockId === block.id) {
+                  setActiveHintBlockId(null);
+                }
+              }}
+              onInputRef={(el) => {
+                if (el instanceof HTMLTextAreaElement) {
+                  inputRefs.current.set(block.id, el);
+                  el.style.height = "auto";
+                  el.style.height = `${el.scrollHeight}px`;
+                } else {
+                  inputRefs.current.delete(block.id);
+                }
+              }}
+              onChange={(value) => {
+                const textarea = inputRefs.current.get(block.id);
+                if (textarea) handleInput(block, value, textarea);
+                else updateBlock(block.id, { content: value });
+              }}
+              onKeyDown={(e) => handleKeyDown(e as KeyboardEvent<HTMLTextAreaElement>, block, index)}
+              inputClassName={cn(
+                "relative resize-none overflow-hidden",
                 blockClassName(block.type),
                 block.type === "bulletList" && "relative",
               )}
@@ -720,9 +699,7 @@ export function BlockEditor({
             canDelete={false}
             onAddBelow={addBlockAtEnd}
           />
-          <p className="py-0.5 text-[0.9375rem] leading-relaxed text-hub-foreground/35">
-            {blockPlaceholder("paragraph")}
-          </p>
+          <div className="min-h-[1.625rem] py-0.5" aria-hidden />
         </div>
       ) : null}
 

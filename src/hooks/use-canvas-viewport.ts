@@ -6,7 +6,9 @@ import {
   CANVAS_WORLD_ORIGIN,
   centerOnWorldPoint,
   clampZoom,
+  focusViewportOnWorldPoint,
   panViewport,
+  TEXT_EDIT_TARGET_ZOOM,
   type CanvasTool,
   type CanvasViewport,
   zoomAtPoint,
@@ -78,6 +80,25 @@ export function useCanvasViewport({ initialViewport }: UseCanvasViewportOptions)
 
   const zoomIn = useCallback(() => zoomBy(1.15), [zoomBy]);
   const zoomOut = useCallback(() => zoomBy(1 / 1.15), [zoomBy]);
+
+  const focusOnWorldPoint = useCallback(
+    (worldX: number, worldY: number, targetZoom = TEXT_EDIT_TARGET_ZOOM) => {
+      const container = containerRef.current;
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      setViewport((current) =>
+        focusViewportOnWorldPoint(
+          current,
+          worldX,
+          worldY,
+          rect.width,
+          rect.height,
+          targetZoom,
+        ),
+      );
+    },
+    [],
+  );
 
   useLayoutEffect(() => {
     const container = containerRef.current;
@@ -224,6 +245,7 @@ export function useCanvasViewport({ initialViewport }: UseCanvasViewportOptions)
     setTool,
     centerOnOrigin,
     resetView,
+    focusOnWorldPoint,
     zoomIn,
     zoomOut,
     cursor,

@@ -1,4 +1,4 @@
-import { DEFAULT_CANVAS_BG } from "@/lib/canvas/presets";
+import { resolveCanvasBackgroundColor } from "@/lib/canvas/presets";
 import type { CanvasConfigV1, CanvasNode } from "@/lib/canvas/types";
 import { CANVAS_DEFAULT_ZOOM, clampZoom } from "@/lib/canvas/viewport";
 
@@ -30,10 +30,7 @@ export function parseCanvasConfig(
     version: 1,
     nodes,
     viewport,
-    backgroundColor:
-      typeof raw?.backgroundColor === "string"
-        ? raw.backgroundColor
-        : DEFAULT_CANVAS_BG,
+    backgroundColor: resolveCanvasBackgroundColor(raw?.backgroundColor),
     templateApplied:
       typeof raw?.templateApplied === "string" ? raw.templateApplied : undefined,
     onboardingCompleted: raw?.onboardingCompleted === true,

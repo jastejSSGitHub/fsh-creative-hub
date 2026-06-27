@@ -4,17 +4,18 @@ import type { CanvasNode, SectionNode } from "@/lib/canvas/types";
 const GRID = 24;
 const SNAP_PADDING = 32;
 
-export function snapStickyToSection(
+export function snapNodeToSection(
   x: number,
   y: number,
+  width: number,
+  height: number,
   sections: SectionNode[],
 ): { x: number; y: number; sectionId?: string; snapped: boolean } {
   for (const section of sections) {
     const innerLeft = section.x + SNAP_PADDING;
     const innerTop = section.y + 72 + SNAP_PADDING;
-    const innerRight = section.x + section.width - SNAP_PADDING - STICKY_WIDTH;
-    const innerBottom =
-      section.y + section.height - SNAP_PADDING - STICKY_HEIGHT;
+    const innerRight = section.x + section.width - SNAP_PADDING - width;
+    const innerBottom = section.y + section.height - SNAP_PADDING - height;
 
     if (
       x >= innerLeft - 40 &&
@@ -43,6 +44,14 @@ export function snapStickyToSection(
     y: Math.round(y / GRID) * GRID,
     snapped: false,
   };
+}
+
+export function snapStickyToSection(
+  x: number,
+  y: number,
+  sections: SectionNode[],
+): { x: number; y: number; sectionId?: string; snapped: boolean } {
+  return snapNodeToSection(x, y, STICKY_WIDTH, STICKY_HEIGHT, sections);
 }
 
 export function getSectionNodes(nodes: CanvasNode[]): SectionNode[] {

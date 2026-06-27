@@ -8,6 +8,7 @@ import {
 } from "@/lib/project-files/section-presets";
 import { getProjectMembership } from "@/lib/projects/queries";
 import { emptyDocumentConfig } from "@/lib/documents/types";
+import { DEFAULT_CANVAS_BG } from "@/lib/canvas/presets";
 import { canvasPath, projectPath, reviewBoardPath, textDocumentPath } from "@/lib/routes";
 import { createClient } from "@/lib/supabase/server";
 import { logActivity } from "@/lib/workspace/activity";
@@ -138,7 +139,7 @@ export async function createCanvasAction(
           version: 1,
           nodes: [],
           viewport: { x: 0, y: 0, zoom: 1 },
-          backgroundColor: "#1a1a1a",
+          backgroundColor: DEFAULT_CANVAS_BG,
         },
         created_by: user.id,
       })
@@ -265,6 +266,52 @@ export async function updateTextDocumentAction(
     return {
       ok: false,
       error: error instanceof Error ? error.message : "Something went wrong.",
+    };
+  }
+}
+
+type RenameProjectFileInput = {
+  projectId: string;
+  fileId: string;
+  fileType: "canvas" | "text_document" | "review_board";
+  name: string;
+};
+
+export async function renameProjectFileAction(
+  input: RenameProjectFileInput,
+): Promise<ActionResult> {
+  try {
+    const { supabase } = await requireEditor(input.projectId);
+    const trimmed = input.name.trim();
+
+    if (!trimmed) return { ok: false, error: "Name is required." };
+
+    const { error } = await supabase
+      .from("hub_project_files")
+      .update({ name: trimmed })
+      .eq("id", input.fileId)
+      .eq("project_id", input.projectId)
+      .eq("type", input.fileType);
+
+    if (error) {
+      return { ok: false, error: error.message };
+    }
+
+    revalidatePath(projectPath(input.projectId));
+
+    if (input.fileType === "canvas") {
+      revalidatePath(canvasPath(input.projectId, input.fileId));
+    } else if (input.fileType === "text_document") {
+      revalidatePath(textDocumentPath(input.projectId, input.fileId));
+    } else {
+      revalidatePath(reviewBoardPath(input.projectId, input.fileId));
+    }
+
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Could not rename file.",
     };
   }
 }

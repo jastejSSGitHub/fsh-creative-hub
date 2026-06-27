@@ -1,4 +1,8 @@
 import {
+  readDocumentPrefsCache,
+  writeDocumentPrefsCache,
+} from "@/lib/documents/document-prefs-cache";
+import {
   ARTWORK_COVER_IMAGE_IDS,
   BLENZ_BANNER_COVER_IMAGE_ID,
   defaultCoverImagePosition,
@@ -6,6 +10,7 @@ import {
 } from "@/lib/documents/cover-images";
 import { COVER_GRADIENTS } from "@/lib/documents/covers";
 import type { DocumentCover, TextDocumentConfig } from "@/lib/documents/types";
+import { parseDocumentConfig } from "@/lib/documents/types";
 
 export const DEFAULT_DOCUMENT_COVER_GRADIENT_ID = "ocean";
 export const DEFAULT_DOCUMENT_ICON = "📄";
@@ -53,12 +58,67 @@ export function defaultDocumentIcon(): string {
 export function resolveDocumentCover(
   cover: DocumentCover | null,
   documentName?: string | null,
+  projectId?: string,
+  docId?: string,
 ): DocumentCover {
-  return cover ?? defaultDocumentCover(documentName);
+  if (cover) return cover;
+
+  if (projectId && docId) {
+    const cached = readDocumentPrefsCache(projectId, docId);
+    if (cached?.cover) return cached.cover;
+  }
+
+  return defaultDocumentCover(documentName);
 }
 
-export function resolveDocumentIcon(icon: string | null): string {
-  return icon ?? defaultDocumentIcon();
+export function resolveDocumentIcon(
+  icon: string | null,
+  projectId?: string,
+  docId?: string,
+): string {
+  if (icon) return icon;
+
+  if (projectId && docId) {
+    const cached = readDocumentPrefsCache(projectId, docId);
+    if (cached?.icon) return cached.icon;
+  }
+
+  return defaultDocumentIcon();
+}
+
+export function hydrateTextDocumentConfig(
+  raw: Record<string, unknown>,
+  options: {
+    projectId: string;
+    docId: string;
+    documentName: string;
+  },
+): TextDocumentConfig {
+  const parsed = parseDocumentConfig(raw);
+
+  if (shouldApplyLegacyDocumentDefaults(parsed)) {
+    const cover = defaultDocumentCover(options.documentName);
+    const icon = defaultDocumentIcon();
+    writeDocumentPrefsCache(options.projectId, options.docId, { cover, icon });
+    return { ...parsed, cover, icon };
+  }
+
+  const cached = readDocumentPrefsCache(options.projectId, options.docId);
+  if (!cached) return parsed;
+
+  return {
+    ...parsed,
+    cover: parsed.cover ?? cached.cover,
+    icon: parsed.icon ?? cached.icon,
+  };
+}
+
+export function rememberDocumentPreferences(
+  projectId: string,
+  docId: string,
+  prefs: { cover: DocumentCover | null; icon: string | null },
+) {
+  writeDocumentPrefsCache(projectId, docId, prefs);
 }
 
 export function shouldApplyLegacyDocumentDefaults(

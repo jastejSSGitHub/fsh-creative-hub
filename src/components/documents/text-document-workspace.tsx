@@ -24,10 +24,14 @@ import { HubSplitButton } from "@/components/ui/hub-split-button";
 import { NavBackLink } from "@/components/ui/nav-back-link";
 import { downloadMarkdown } from "@/lib/documents/markdown";
 import {
-  defaultDocumentCover,
-  defaultDocumentIcon,
+  hydrateTextDocumentConfig,
+  rememberDocumentPreferences,
   shouldApplyLegacyDocumentDefaults,
 } from "@/lib/documents/defaults";
+import {
+  hasLegacyDefaultsSeeded,
+  markLegacyDefaultsSeeded,
+} from "@/lib/documents/document-prefs-cache";
 import {
   buildPlainTextPreview,
   createBlock,
@@ -36,10 +40,12 @@ import {
 } from "@/lib/documents/types";
 import { updateTextDocumentAction } from "@/lib/project-files/actions";
 import type { ProjectFileWithMeta } from "@/lib/project-files/queries";
+import { captureTextDocumentNavigationSnapshot } from "@/lib/projects/text-document-snapshot";
 import { canEdit } from "@/lib/permissions";
 import { projectPath } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 import type { HubProject, HubProjectFile, HubRole } from "@/types/database";
+import type { DocumentCover } from "@/lib/documents/types";
 
 type TextDocumentWorkspaceProps = {
   project: HubProject;
@@ -56,16 +62,13 @@ export function TextDocumentWorkspace({
 }: TextDocumentWorkspaceProps) {
   const editable = canEdit(role);
   const [title, setTitle] = useState(doc.name);
-  const [config, setConfig] = useState<TextDocumentConfig>(() => {
-    const parsed = parseDocumentConfig(doc.config);
-    if (!shouldApplyLegacyDocumentDefaults(parsed)) return parsed;
-
-    return {
-      ...parsed,
-      cover: defaultDocumentCover(doc.name),
-      icon: defaultDocumentIcon(),
-    };
-  });
+  const [config, setConfig] = useState<TextDocumentConfig>(() =>
+    hydrateTextDocumentConfig(doc.config as Record<string, unknown>, {
+      projectId: project.id,
+      docId: doc.id,
+      documentName: doc.name,
+    }),
+  );
   const [headings, setHeadings] = useState<
     { id: string; text: string; level: number }[]
   >([]);
@@ -84,7 +87,11 @@ export function TextDocumentWorkspace({
     .map((f) => ({ id: f.id, name: f.name }));
 
   const persist = useCallback(
-    (nextTitle: string, nextConfig: TextDocumentConfig) => {
+    (
+      nextTitle: string,
+      nextConfig: TextDocumentConfig,
+      options?: { immediate?: boolean },
+    ) => {
       if (!editable) return;
 
       setSaveState("saving");
@@ -92,6 +99,8 @@ export function TextDocumentWorkspace({
       if (saveTimerRef.current) {
         window.clearTimeout(saveTimerRef.current);
       }
+
+      const delay = options?.immediate ? 0 : 600;
 
       saveTimerRef.current = window.setTimeout(() => {
         startTransition(async () => {
@@ -107,9 +116,32 @@ export function TextDocumentWorkspace({
 
           setSaveState(result.ok ? "saved" : "idle");
         });
-      }, 600);
+      }, delay);
     },
     [doc.id, editable, project.id],
+  );
+
+  const syncNavigationSnapshot = useCallback(
+    (nextTitle: string, nextConfig: TextDocumentConfig) => {
+      captureTextDocumentNavigationSnapshot({
+        projectId: project.id,
+        docId: doc.id,
+        docName: nextTitle.trim() || doc.name,
+        icon: nextConfig.icon,
+        cover: nextConfig.cover,
+      });
+    },
+    [doc.id, doc.name, project.id],
+  );
+
+  const rememberPreferences = useCallback(
+    (nextConfig: TextDocumentConfig) => {
+      rememberDocumentPreferences(project.id, doc.id, {
+        cover: nextConfig.cover,
+        icon: nextConfig.icon,
+      });
+    },
+    [doc.id, project.id],
   );
 
   useEffect(() => {
@@ -120,21 +152,69 @@ export function TextDocumentWorkspace({
 
   useEffect(() => {
     if (legacyMigratedRef.current || !editable) return;
+    if (hasLegacyDefaultsSeeded(doc.id)) return;
 
-    const parsed = parseDocumentConfig(doc.config);
+    const parsed = parseDocumentConfig(doc.config as Record<string, unknown>);
     if (!shouldApplyLegacyDocumentDefaults(parsed)) return;
 
     legacyMigratedRef.current = true;
-    persist(doc.name, {
-      ...parsed,
-      cover: defaultDocumentCover(doc.name),
-      icon: defaultDocumentIcon(),
+    markLegacyDefaultsSeeded(doc.id);
+
+    const seeded = hydrateTextDocumentConfig(doc.config as Record<string, unknown>, {
+      projectId: project.id,
+      docId: doc.id,
+      documentName: doc.name,
     });
-  }, [doc.config, doc.name, editable, persist]);
+
+    rememberPreferences(seeded);
+    syncNavigationSnapshot(doc.name, seeded);
+    persist(doc.name, seeded, { immediate: true });
+  }, [
+    doc.config,
+    doc.id,
+    doc.name,
+    editable,
+    persist,
+    project.id,
+    rememberPreferences,
+    syncNavigationSnapshot,
+  ]);
+
+  useEffect(() => {
+    setTitle(doc.name);
+    const hydrated = hydrateTextDocumentConfig(doc.config as Record<string, unknown>, {
+      projectId: project.id,
+      docId: doc.id,
+      documentName: doc.name,
+    });
+    setConfig(hydrated);
+    rememberPreferences(hydrated);
+    syncNavigationSnapshot(doc.name, hydrated);
+  }, [doc.id, project.id]);
 
   function updateConfig(next: TextDocumentConfig) {
     setConfig(next);
+    rememberPreferences(next);
+    syncNavigationSnapshot(title, next);
     persist(title, next);
+  }
+
+  function updateDocumentPreferences(
+    patch: Partial<Pick<TextDocumentConfig, "cover" | "icon">>,
+  ) {
+    const next = { ...config, ...patch };
+    setConfig(next);
+    rememberPreferences(next);
+    syncNavigationSnapshot(title, next);
+    persist(title, next, { immediate: true });
+  }
+
+  function updateCover(cover: DocumentCover | null) {
+    updateDocumentPreferences({ cover });
+  }
+
+  function updateIcon(icon: string | null) {
+    updateDocumentPreferences({ icon });
   }
 
   function updateTitle(next: string) {
@@ -248,7 +328,7 @@ export function TextDocumentWorkspace({
         canEdit={editable}
         projectId={project.id}
         docId={doc.id}
-        onChange={(cover) => updateConfig({ ...config, cover })}
+        onChange={updateCover}
       />
 
       <div className="mx-auto w-[90%] px-4 sm:px-6">
@@ -281,7 +361,7 @@ export function TextDocumentWorkspace({
                 {!config.cover ? (
                   <button
                     type="button"
-                    onClick={() => updateConfig({ ...config, cover: defaultCover(title) })}
+                    onClick={() => updateCover(defaultCover(title))}
                     className="rounded-[6px] px-2 py-1 text-[0.75rem] text-hub-foreground/45 transition-colors hover:bg-hub-foreground/[0.05] hover:text-hub-foreground"
                   >
                     Add cover
@@ -324,6 +404,7 @@ export function TextDocumentWorkspace({
             onChange={(blocks) => updateConfig({ ...config, blocks })}
             canEdit={editable}
             projectId={project.id}
+            docId={doc.id}
             linkedPages={linkedPages}
             onHeadingsChange={setHeadings}
           />
@@ -334,7 +415,7 @@ export function TextDocumentWorkspace({
 
       <DocumentIconPicker
         icon={config.icon}
-        onChange={(icon) => updateConfig({ ...config, icon })}
+        onChange={updateIcon}
         open={iconPickerOpen}
         onClose={() => setIconPickerOpen(false)}
         anchorRef={titleAreaRef}

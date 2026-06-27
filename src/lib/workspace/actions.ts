@@ -397,6 +397,41 @@ export async function resolveCommentAction(
   }
 }
 
+export async function deleteAssetAction(
+  assetId: string,
+  projectId: string,
+  boardId?: string,
+): Promise<ActionResult> {
+  try {
+    const { supabase, user } = await requireProjectRole(projectId, "editor");
+
+    const { data: asset } = await supabase
+      .from("hub_assets")
+      .select("storage_path, uploaded_by")
+      .eq("id", assetId)
+      .single();
+
+    if (!asset) return { ok: false, error: "Asset not found." };
+
+    if (asset.uploaded_by !== user.id) {
+      return { ok: false, error: "You can only delete assets you uploaded." };
+    }
+
+    if (asset.storage_path) {
+      await supabase.storage.from("hub-media").remove([asset.storage_path]);
+    }
+
+    const { error } = await supabase.from("hub_assets").delete().eq("id", assetId);
+
+    if (error) return { ok: false, error: error.message };
+
+    revalidateProject(projectId, boardId);
+    return { ok: true, id: assetId };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed." };
+  }
+}
+
 export async function addIdeaAction(
   initiativeId: string,
   projectId: string,

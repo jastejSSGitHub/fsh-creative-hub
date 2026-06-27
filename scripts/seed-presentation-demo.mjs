@@ -18,6 +18,7 @@ const DEMO_PROJECT_NAME = "Presentation Demo";
 const DEMO_BOARD_NAME = "Spring Campaign Review";
 const DEMO_SECTION = "Marketing Visuals";
 const DEV_EMAIL = "dev@fshdesign.local";
+const DEV_DISPLAY_NAME = "Jastej Sehra";
 
 const DEMO_ASSETS = [
   {
@@ -143,7 +144,9 @@ async function findDemoProject(userId) {
 async function main() {
   const devUser = await findDevUser();
   const displayName =
-    devUser.user_metadata?.full_name ?? devUser.email?.split("@")[0] ?? "Dev User";
+    devUser.user_metadata?.full_name ??
+    devUser.email?.split("@")[0] ??
+    DEV_DISPLAY_NAME;
 
   await ensureProfile(devUser.id, devUser.email ?? DEV_EMAIL, displayName);
 

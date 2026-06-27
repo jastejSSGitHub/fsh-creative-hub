@@ -1,21 +1,23 @@
+import { canvasGlassClass, type CanvasGlassVariant } from "@/lib/canvas/glass-styles";
 import { cn } from "@/lib/utils";
 
 type CanvasGlassProps = React.ComponentPropsWithoutRef<"div"> & {
   as?: "div" | "section" | "aside";
+  themeMode?: "light" | "dark";
+  variant?: CanvasGlassVariant;
 };
 
 export function CanvasGlass({
   children,
   className,
   as: Component = "div",
+  themeMode = "dark",
+  variant = "panel",
   ...props
 }: CanvasGlassProps) {
   return (
     <Component
-      className={cn(
-        "border border-white/10 bg-white/[0.07] shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-2xl",
-        className,
-      )}
+      className={cn(canvasGlassClass(themeMode, variant), className)}
       {...props}
     >
       {children}

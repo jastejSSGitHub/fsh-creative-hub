@@ -40,15 +40,16 @@ function ReviewBoardHeaderSkeleton({
 
 function SectionTabsSkeleton({ sectionCount }: { sectionCount: number }) {
   const tabCount = Math.max(sectionCount, 2);
+  const tabWidths = ["w-28", "w-16", "w-24", "w-20"];
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="hidden flex-wrap gap-1 lg:flex">
+      <div className="flex min-w-max gap-2">
         {Array.from({ length: Math.min(tabCount, 4) }).map((_, index) => (
           <div
             key={index}
             className={cn(
-              "inline-flex min-h-10 items-center rounded-md border px-4",
+              "inline-flex min-h-9 items-center rounded-full border px-3.5",
               index === 0
                 ? "border-hub-accent/35 bg-hub-accent/15"
                 : "border-hub-foreground/10 bg-hub-surface/80",
@@ -57,14 +58,14 @@ function SectionTabsSkeleton({ sectionCount }: { sectionCount: number }) {
             <SkeletonBone
               className={cn(
                 "h-4 rounded-sm",
-                index === 0 ? "w-24 bg-hub-foreground/[0.08]" : "w-28",
+                tabWidths[index] ?? "w-20",
+                index === 0 && "bg-hub-foreground/[0.08]",
               )}
             />
           </div>
         ))}
       </div>
-      <SkeletonBone className="h-10 w-full rounded-md sm:max-w-xs lg:hidden" />
-      <SkeletonBone className="h-10 w-full rounded-md sm:w-36" />
+      <SkeletonBone className="h-8 w-full rounded-[6px] sm:w-28" />
     </div>
   );
 }

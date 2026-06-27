@@ -28,8 +28,8 @@ export const CANVAS_INTRO_MESSAGES: Record<
     cta: "Next",
   },
   timer: {
-    title: "Timer & music",
-    body: "The Brainstorming panel is open on the right — start a timer and ambient music during live sessions.",
+    title: "Timer",
+    body: "The Brainstorming panel is open on the right — start a timer during live sessions.",
     cta: "Next",
   },
   share: {
@@ -48,9 +48,9 @@ export function introStepCardClass(step: CanvasIntroStep): string {
     case "sticker":
       return "bottom-[8.5rem] left-[max(1rem,calc(50%-5.5rem))]";
     case "timer":
-      return "right-[15.75rem] top-28 max-sm:bottom-36 max-sm:left-1/2 max-sm:right-auto max-sm:top-auto max-sm:-translate-x-1/2";
+      return "right-[18rem] top-20 max-sm:bottom-36 max-sm:left-1/2 max-sm:right-auto max-sm:top-auto max-sm:-translate-x-1/2";
     case "share":
-      return "top-[4.75rem] right-[15.75rem] max-sm:top-20 max-sm:left-4 max-sm:right-4";
+      return "top-16 right-[18rem] max-sm:top-20 max-sm:left-4 max-sm:right-4";
     default:
       return "bottom-24 left-1/2 -translate-x-1/2";
   }

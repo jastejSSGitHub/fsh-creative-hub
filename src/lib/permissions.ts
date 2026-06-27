@@ -12,6 +12,14 @@ export function canEdit(role: HubRole | null | undefined): boolean {
   return role === "admin" || role === "editor";
 }
 
+export function canDeleteOwnAsset(
+  role: HubRole | null | undefined,
+  userId: string,
+  uploadedBy: string,
+): boolean {
+  return canEdit(role) && userId === uploadedBy;
+}
+
 export function canAdmin(role: HubRole | null | undefined): boolean {
   return role === "admin";
 }

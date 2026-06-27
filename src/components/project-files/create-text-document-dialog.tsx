@@ -8,6 +8,7 @@ import { createTextDocumentAction } from "@/lib/project-files/actions";
 import {
   defaultDocumentCover,
   defaultDocumentIcon,
+  rememberDocumentPreferences,
 } from "@/lib/documents/defaults";
 import { captureTextDocumentNavigationSnapshot } from "@/lib/projects/text-document-snapshot";
 import { textDocumentPath } from "@/lib/routes";
@@ -59,12 +60,15 @@ export function CreateTextDocumentDialog({
       }
 
       if (result.docId) {
+        const cover = defaultDocumentCover(trimmed);
+        const icon = defaultDocumentIcon();
+        rememberDocumentPreferences(projectId, result.docId, { cover, icon });
         captureTextDocumentNavigationSnapshot({
           projectId,
           docId: result.docId,
           docName: trimmed,
-          icon: defaultDocumentIcon(),
-          cover: defaultDocumentCover(trimmed),
+          icon,
+          cover,
         });
         router.push(textDocumentPath(projectId, result.docId));
       }

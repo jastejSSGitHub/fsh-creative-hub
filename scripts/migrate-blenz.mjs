@@ -53,6 +53,7 @@ const legacy = createClient(LEGACY_URL, LEGACY_SERVICE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
+const BLENZ_COVER_PATH = "/media/projects_thumbnails/blenz_thumbnail.png";
 const POSTER_FOLDER = "refreshing-graphics";
 const MENU_FOLDER = "refreshing-menus";
 const VIDEO_FOLDER = "videos";
@@ -144,14 +145,27 @@ async function ensureAllProfilesAreMembers(projectId) {
 }
 
 async function ensureBlenzProject(ownerId) {
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3010").replace(
+    /\/$/,
+    "",
+  );
+  const coverUrl = `${siteUrl}${BLENZ_COVER_PATH}`;
+
   const { data: existing } = await hub
     .from("hub_projects")
-    .select("id")
+    .select("id, cover_url")
     .eq("name", "Blenz")
     .maybeSingle();
 
   if (existing) {
     console.log("Project Blenz already exists:", existing.id);
+    if (!existing.cover_url) {
+      await hub
+        .from("hub_projects")
+        .update({ cover_url: coverUrl })
+        .eq("id", existing.id);
+      console.log("Set Blenz project cover thumbnail.");
+    }
     await ensureAllProfilesAreMembers(existing.id);
     return existing.id;
   }
@@ -161,6 +175,7 @@ async function ensureBlenzProject(ownerId) {
     .insert({
       name: "Blenz",
       description: "Coffee branding creative review — migrated from Blenz review board",
+      cover_url: coverUrl,
       created_by: ownerId,
     })
     .select("id")

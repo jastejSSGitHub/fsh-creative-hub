@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { HubRole } from "@/types/database";
+import { resolveProjectCoverUrl } from "@/lib/projects/project-thumbnails";
 
 export type ProjectMemberPreview = {
   id: string;
@@ -195,7 +196,7 @@ export async function getProjectsForUser(
         id: project.id,
         name: project.name,
         description: project.description,
-        cover_url: project.cover_url,
+        cover_url: resolveProjectCoverUrl(project.name, project.cover_url),
         created_at: project.created_at,
         updated_at: project.updated_at ?? project.created_at,
         trashed_at: project.trashed_at ?? null,
@@ -366,7 +367,7 @@ export async function getProjectDetailContext(
       id: project.id,
       name: project.name,
       description: project.description,
-      cover_url: project.cover_url,
+      cover_url: resolveProjectCoverUrl(project.name, project.cover_url),
       created_at: project.created_at,
       updated_at: project.updated_at ?? project.created_at,
       trashed_at: project.trashed_at ?? null,

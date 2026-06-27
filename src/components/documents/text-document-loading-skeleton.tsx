@@ -128,8 +128,17 @@ export function TextDocumentLoadingSkeleton() {
     return readTextDocumentNavigationSnapshot(docPath.projectId, docPath.docId);
   }, [docPath]);
 
-  const cover = resolveDocumentCover(snapshot?.cover ?? null, snapshot?.docName);
-  const icon = resolveDocumentIcon(snapshot?.icon ?? null);
+  const cover = resolveDocumentCover(
+    snapshot?.cover ?? null,
+    snapshot?.docName,
+    docPath?.projectId,
+    docPath?.docId,
+  );
+  const icon = resolveDocumentIcon(
+    snapshot?.icon ?? null,
+    docPath?.projectId,
+    docPath?.docId,
+  );
 
   return (
     <div

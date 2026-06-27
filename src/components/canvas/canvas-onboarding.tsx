@@ -16,6 +16,7 @@ import {
   introStepHasTarget,
   type CanvasIntroStep,
 } from "@/lib/canvas/onboarding-steps";
+import { canvasGlassControlClass } from "@/lib/canvas/glass-styles";
 import { cn } from "@/lib/utils";
 
 export type CanvasOnboardingTargets = {
@@ -186,10 +187,8 @@ function SkipIntroButton({
       type="button"
       onClick={onSkip}
       className={cn(
-        "pointer-events-auto fixed bottom-4 right-4 z-50 rounded-full border px-3 py-1.5 text-sm font-medium shadow-lg transition-colors",
-        themeMode === "light"
-          ? "border-black/15 bg-white text-[#1a1a1a] hover:bg-black/[0.03]"
-          : "border-white/15 bg-[#1a1a1a]/80 text-white hover:bg-white/10",
+        "pointer-events-auto fixed bottom-4 right-4 z-50 rounded-full border px-3 py-1.5 text-sm font-medium",
+        canvasGlassControlClass(themeMode),
       )}
     >
       Skip intro ›

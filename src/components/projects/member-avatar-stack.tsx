@@ -35,6 +35,7 @@ export function MemberAvatarStack({
             <MemberAvatar
               displayName={member.display_name}
               avatarUrl={member.avatar_url}
+              colorSeed={member.id}
               variant={inverse ? "stackInverse" : "stack"}
               size="sm"
             />

@@ -88,6 +88,7 @@ export function ActivityFeed({ activities: initialActivities, projectId }: Activ
                 <MemberAvatar
                   displayName={item.actor.display_name}
                   avatarUrl={item.actor.avatar_url}
+                  colorSeed={item.actor.id}
                   variant="muted"
                   size="md"
                 />

@@ -1,6 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 
 import { OpenCanvasWorkspace } from "@/components/canvas/open-canvas-workspace";
+import { parseCanvasConfig } from "@/lib/canvas/parse-config";
+import { canEdit } from "@/lib/permissions";
 import { getProjectFile } from "@/lib/project-files/queries";
 import { LOGIN_PATH } from "@/lib/routes";
 import { getProjectDetailContext, getProjectMembership } from "@/lib/projects/queries";
@@ -43,13 +45,23 @@ export default async function CanvasPage({ params }: CanvasPageProps) {
     user.email?.split("@")[0] ??
     "You";
 
+  const initialConfig = parseCanvasConfig(
+    canvas.config as Record<string, unknown> | undefined,
+  );
+
   return (
-    <OpenCanvasWorkspace
-      project={project}
-      canvas={canvas}
-      authorName={authorName}
-      projectCard={projectContext.card}
-      currentUserId={user.id}
-    />
+    <div
+      className="min-h-[100dvh]"
+      style={{ backgroundColor: initialConfig.backgroundColor }}
+    >
+      <OpenCanvasWorkspace
+        project={project}
+        canvas={canvas}
+        authorName={authorName}
+        projectCard={projectContext.card}
+        currentUserId={user.id}
+        canRename={canEdit(role)}
+      />
+    </div>
   );
 }

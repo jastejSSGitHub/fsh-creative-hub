@@ -41,10 +41,8 @@ export function CanvasTemplatePicker({
   return (
     <div className="pointer-events-none absolute inset-x-0 top-16 z-40 flex justify-center px-4">
       <CanvasGlass
-        className={cn(
-          "pointer-events-auto w-full max-w-3xl rounded-2xl p-5",
-          isLight && "border-black/10 bg-white/95 text-[#1a1a1a]",
-        )}
+        themeMode={themeMode}
+        className="pointer-events-auto w-full max-w-3xl rounded-2xl p-5"
       >
         <div className="flex items-start justify-between gap-4">
           <div>

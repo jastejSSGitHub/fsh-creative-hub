@@ -16,7 +16,14 @@ import {
 } from "lucide-react";
 
 import { CanvasBrainstormPanel } from "@/components/canvas/canvas-brainstorm-panel";
+import { CanvasInlineTitle } from "@/components/canvas/canvas-inline-title";
 import { CanvasGlass } from "@/components/canvas/canvas-glass";
+import {
+  canvasGlassControlClass,
+  canvasGlassDividerClass,
+  canvasGlassMenuItemClass,
+  canvasGlassTextClass,
+} from "@/lib/canvas/glass-styles";
 import {
   CANVAS_BG_PRESETS,
   formatZoomPercent,
@@ -27,8 +34,10 @@ import { PROJECTS_PATH, projectPath } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
 type CanvasChromeProps = {
+  canvasId: string;
   canvasName: string;
   projectId: string;
+  canRename: boolean;
   tool: CanvasTool;
   onToolChange: (tool: CanvasTool) => void;
   zoom: number;
@@ -46,8 +55,10 @@ type CanvasChromeProps = {
 };
 
 export function CanvasChrome({
+  canvasId,
   canvasName,
   projectId,
+  canRename,
   tool,
   onToolChange,
   zoom,
@@ -64,14 +75,16 @@ export function CanvasChrome({
   onShare,
 }: CanvasChromeProps) {
   const theme = getCanvasTheme(backgroundColor);
+  const isLight = theme.mode === "light";
 
   return (
     <>
       <CanvasTopBar
+        canvasId={canvasId}
         canvasName={canvasName}
         projectId={projectId}
+        canRename={canRename}
         theme={theme}
-        shareButtonRef={shareButtonRef}
         onShare={onShare}
       />
 
@@ -80,72 +93,101 @@ export function CanvasChrome({
       <CanvasRightSidebar
         backgroundColor={backgroundColor}
         onBackgroundColorChange={onBackgroundColorChange}
-        onCenter={onCenter}
-        onResetView={onResetView}
         theme={theme}
         tab={sidebarTab}
         onTabChange={onSidebarTabChange}
         brainstormPanelRef={brainstormPanelRef}
+        shareButtonRef={shareButtonRef}
+        onShare={onShare}
       />
 
-      <CanvasGlass
-        className={cn(
-          "pointer-events-auto absolute bottom-4 right-4 flex items-center gap-1 rounded-full p-1 font-mono text-[0.7rem]",
-          theme.mode === "light" && "border-black/10 bg-white/90 text-[#1a1a1a]",
-          theme.mode === "dark" && "text-white/70",
-        )}
-      >
-        <button
-          type="button"
-          onClick={onZoomOut}
-          aria-label="Zoom out"
-          className="inline-flex size-7 items-center justify-center rounded-full transition-colors hover:bg-black/5"
+      <div className="pointer-events-auto absolute bottom-4 right-3 z-20 flex items-center gap-2 sm:right-4">
+        <CanvasGlass
+          themeMode={theme.mode}
+          variant="control"
+          className="flex items-center gap-0.5 rounded-full p-1"
         >
-          <Minus className="size-3.5" />
-        </button>
-        <span className="min-w-[3rem] text-center">{formatZoomPercent(zoom)}</span>
-        <button
-          type="button"
-          onClick={onZoomIn}
-          aria-label="Zoom in"
-          className="inline-flex size-7 items-center justify-center rounded-full transition-colors hover:bg-black/5"
+          <button
+            type="button"
+            onClick={onCenter}
+            className={cn(
+              "inline-flex h-7 items-center gap-1 rounded-[6px] px-2.5 text-[0.75rem] font-medium transition-colors",
+              isLight
+                ? "text-[#1a1a1a]/80 hover:bg-black/[0.06] hover:text-[#1a1a1a]"
+                : "text-white/75 hover:bg-white/10 hover:text-white",
+            )}
+          >
+            <Focus className="size-3.5 shrink-0 opacity-80" aria-hidden />
+            Center
+          </button>
+          <button
+            type="button"
+            onClick={onResetView}
+            aria-label="Reset zoom"
+            title="Reset zoom"
+            className={cn(
+              "inline-flex size-7 items-center justify-center rounded-full transition-colors",
+              isLight
+                ? "text-[#1a1a1a]/75 hover:bg-black/[0.06] hover:text-[#1a1a1a]"
+                : "text-white/70 hover:bg-white/10 hover:text-white",
+            )}
+          >
+            <RotateCcw className="size-3.5" aria-hidden />
+          </button>
+        </CanvasGlass>
+
+        <CanvasGlass
+          themeMode={theme.mode}
+          variant="control"
+          className={cn(
+            "flex items-center gap-1 rounded-full p-1 font-mono text-[0.7rem]",
+            isLight ? "text-[#1a1a1a]" : "text-white/70",
+          )}
         >
-          <Plus className="size-3.5" />
-        </button>
-      </CanvasGlass>
+          <button
+            type="button"
+            onClick={onZoomOut}
+            aria-label="Zoom out"
+            className="inline-flex size-7 items-center justify-center rounded-full transition-colors hover:bg-black/5"
+          >
+            <Minus className="size-3.5" />
+          </button>
+          <span className="min-w-[3rem] text-center">{formatZoomPercent(zoom)}</span>
+          <button
+            type="button"
+            onClick={onZoomIn}
+            aria-label="Zoom in"
+            className="inline-flex size-7 items-center justify-center rounded-full transition-colors hover:bg-black/5"
+          >
+            <Plus className="size-3.5" />
+          </button>
+        </CanvasGlass>
+      </div>
     </>
   );
 }
 
-function chromeControlClass(isLight: boolean, active = false) {
-  return cn(
-    "backdrop-blur-2xl transition-colors",
-    isLight
-      ? cn(
-          "border-black/12 bg-white/92 text-[#1a1a1a] shadow-[0_4px_20px_rgba(0,0,0,0.08)] hover:bg-white",
-          active && "bg-white text-[#1a1a1a]",
-        )
-      : cn(
-          "border-white/10 bg-white/[0.07] text-white/85 shadow-[0_8px_32px_rgba(0,0,0,0.35)] hover:bg-white/[0.12] hover:text-white",
-          active && "bg-white/[0.14] text-white",
-        ),
-  );
+function shareCtaClass() {
+  return "inline-flex min-h-7 shrink-0 items-center rounded-[6px] bg-hub-primary px-2.5 text-[0.75rem] font-medium text-white shadow-sm transition-colors hover:bg-[#1590e8]";
 }
 
 function CanvasTopBar({
+  canvasId,
   canvasName,
   projectId,
+  canRename,
   theme,
-  shareButtonRef,
   onShare,
 }: {
+  canvasId: string;
   canvasName: string;
   projectId: string;
+  canRename: boolean;
   theme: CanvasTheme;
-  shareButtonRef?: React.RefObject<HTMLButtonElement | null>;
   onShare: () => void;
 }) {
   const isLight = theme.mode === "light";
+  const themeMode = theme.mode;
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -176,8 +218,8 @@ function CanvasTopBar({
         <Link
           href={projectPath(projectId)}
           className={cn(
-            "inline-flex w-fit items-center gap-1 rounded-lg border px-2.5 py-1.5 text-[0.8125rem] font-medium",
-            chromeControlClass(isLight),
+            "inline-flex w-fit items-center gap-1 rounded-full border px-2.5 py-1.5 text-[0.8125rem] font-medium",
+            canvasGlassControlClass(themeMode),
           )}
         >
           <ChevronLeft className="size-3.5" aria-hidden />
@@ -192,64 +234,57 @@ function CanvasTopBar({
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen((open) => !open)}
             className={cn(
-              "inline-flex size-9 items-center justify-center rounded-lg border",
-              chromeControlClass(isLight, menuOpen),
+              "inline-flex size-9 items-center justify-center rounded-full border",
+              canvasGlassControlClass(themeMode, menuOpen),
             )}
           >
             <Menu className="size-4" aria-hidden />
           </button>
 
-          <h1
-            className={cn(
-              "max-w-[min(60vw,20rem)] truncate font-display text-base font-extrabold tracking-tight sm:max-w-[min(50vw,28rem)] sm:text-lg",
-              theme.mode === "light" ? "text-[#1a1a1a]" : "text-white",
-            )}
-          >
-            {canvasName}
-          </h1>
+          <CanvasInlineTitle
+            projectId={projectId}
+            canvasId={canvasId}
+            name={canvasName}
+            canRename={canRename}
+            theme={theme}
+          />
 
           {menuOpen && (
             <div ref={menuRef} className="absolute left-0 top-full z-30 mt-2">
               <CanvasGlass
+                themeMode={themeMode}
                 className="min-w-[15.5rem] overflow-hidden rounded-xl py-1.5"
                 role="menu"
               >
-              <CanvasMenuItem
-                href={PROJECTS_PATH}
-                icon={ChevronLeft}
-                label="Go to all projects"
-                onSelect={() => setMenuOpen(false)}
-              />
-              <CanvasMenuItem
-                icon={Download}
-                label="Download project"
-                disabled
-                hint="Soon"
-              />
-              <CanvasMenuItem
-                icon={Copy}
-                label="Duplicate project"
-                disabled
-                hint="Soon"
-              />
+                <CanvasMenuItem
+                  themeMode={themeMode}
+                  href={PROJECTS_PATH}
+                  icon={ChevronLeft}
+                  label="Go to all projects"
+                  onSelect={() => setMenuOpen(false)}
+                />
+                <CanvasMenuItem
+                  themeMode={themeMode}
+                  icon={Download}
+                  label="Download project"
+                  disabled
+                  hint="Soon"
+                />
+                <CanvasMenuItem
+                  themeMode={themeMode}
+                  icon={Copy}
+                  label="Duplicate project"
+                  disabled
+                  hint="Soon"
+                />
               </CanvasGlass>
             </div>
           )}
         </div>
       </div>
 
-      <div className="pointer-events-auto flex items-start">
-        <button
-          ref={shareButtonRef}
-          type="button"
-          onClick={onShare}
-          className={cn(
-            "inline-flex min-h-9 items-center rounded-lg border px-3.5 text-[0.8125rem] font-medium transition-colors",
-            isLight
-              ? "border-black/12 bg-white/92 text-[#1a1a1a] shadow-[0_4px_20px_rgba(0,0,0,0.08)] hover:bg-white"
-              : "border-white/10 bg-white/[0.07] text-white/85 shadow-[0_8px_32px_rgba(0,0,0,0.35)] backdrop-blur-2xl hover:bg-white/[0.12] hover:text-white",
-          )}
-        >
+      <div className="pointer-events-auto flex items-start sm:hidden">
+        <button type="button" onClick={onShare} className={shareCtaClass()}>
           Share
         </button>
       </div>
@@ -258,6 +293,7 @@ function CanvasTopBar({
 }
 
 function CanvasMenuItem({
+  themeMode,
   href,
   icon: Icon,
   label,
@@ -265,6 +301,7 @@ function CanvasMenuItem({
   hint,
   onSelect,
 }: {
+  themeMode: "light" | "dark";
   href?: string;
   icon: typeof Menu;
   label: string;
@@ -272,19 +309,19 @@ function CanvasMenuItem({
   hint?: string;
   onSelect?: () => void;
 }) {
-  const className = cn(
-    "flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[0.8125rem] text-white/85 transition-colors",
-    disabled
-      ? "cursor-not-allowed text-white/35"
-      : "hover:bg-white/[0.08] hover:text-white",
-  );
+  const className = canvasGlassMenuItemClass(themeMode, disabled);
 
   const content = (
     <>
       <Icon className="size-4 shrink-0 opacity-80" aria-hidden />
       <span className="flex-1">{label}</span>
       {hint && (
-        <span className="font-mono text-[0.6rem] uppercase tracking-wider text-white/30">
+        <span
+          className={cn(
+            "font-mono text-[0.6rem] uppercase tracking-wider",
+            canvasGlassTextClass(themeMode, true),
+          )}
+        >
           {hint}
         </span>
       )}
@@ -316,13 +353,13 @@ function CanvasToolSwitcher({
   theme: CanvasTheme;
 }) {
   const isLight = theme.mode === "light";
+  const themeMode = theme.mode;
 
   return (
     <CanvasGlass
-      className={cn(
-        "pointer-events-auto absolute right-3 top-1/2 z-20 flex -translate-y-1/2 flex-col gap-0.5 rounded-full p-1 sm:right-4",
-        isLight && "border-black/12 bg-white/92 shadow-[0_4px_20px_rgba(0,0,0,0.08)]",
-      )}
+      themeMode={themeMode}
+      variant="control"
+      className="pointer-events-auto absolute right-3 top-1/2 z-20 flex -translate-y-1/2 flex-col gap-0.5 rounded-full p-1 sm:right-4"
     >
       <ToolButton
         active={tool === "select"}
@@ -387,140 +424,124 @@ function ToolButton({
 function CanvasRightSidebar({
   backgroundColor,
   onBackgroundColorChange,
-  onCenter,
-  onResetView,
   theme,
   tab,
   onTabChange,
   brainstormPanelRef,
+  shareButtonRef,
+  onShare,
 }: {
   backgroundColor: string;
   onBackgroundColorChange: (color: string) => void;
-  onCenter: () => void;
-  onResetView: () => void;
   theme: CanvasTheme;
   tab: "design" | "brainstorm";
   onTabChange: (tab: "design" | "brainstorm") => void;
   brainstormPanelRef?: React.RefObject<HTMLDivElement | null>;
+  shareButtonRef?: React.RefObject<HTMLButtonElement | null>;
+  onShare: () => void;
 }) {
   const [pageOpen, setPageOpen] = useState(false);
   const isLight = theme.mode === "light";
+  const themeMode = theme.mode;
 
   return (
     <div
       ref={brainstormPanelRef}
-      className="pointer-events-auto absolute right-3 top-3 z-20 hidden sm:block sm:right-16"
+      className="pointer-events-auto absolute right-3 top-3 z-20 hidden sm:right-4 sm:block"
     >
       <CanvasGlass
         as="aside"
-        className={cn(
-          "flex w-52 flex-col rounded-xl",
-          isLight && "border-black/10 bg-white/90",
-        )}
+        themeMode={themeMode}
+        className="flex w-64 flex-col rounded-xl"
       >
-      <div className={cn("flex border-b px-3 pt-2.5", isLight ? "border-black/8" : "border-white/8")}>
-        {(["design", "brainstorm"] as const).map((id) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => onTabChange(id)}
-            className={cn(
-              "border-b-2 px-2 pb-2 text-[0.75rem] font-medium capitalize transition-colors",
-              tab === id
-                ? isLight
-                  ? "border-[#1a1a1a] text-[#1a1a1a]"
-                  : "border-white text-white"
-                : isLight
-                  ? "border-transparent text-[#1a1a1a]/45"
-                  : "border-transparent text-white/45",
-            )}
-          >
-            {id === "brainstorm" ? "Brainstorming" : "Design"}
-          </button>
-        ))}
-      </div>
-
-      {tab === "design" ? (
-        <div className="space-y-3 p-3">
-          <button
-            type="button"
-            onClick={() => setPageOpen((o) => !o)}
-            className={cn(
-              "flex w-full items-center justify-between rounded-md px-1.5 py-1.5 text-left text-[0.75rem] font-medium",
-              isLight ? "text-[#1a1a1a]/80 hover:bg-black/[0.04]" : "text-white/80 hover:bg-white/[0.06]",
-            )}
-          >
-            Page background
-            <span className="text-[0.65rem] opacity-50">{pageOpen ? "−" : "+"}</span>
-          </button>
-
-          {pageOpen && (
-            <div className="space-y-2 px-1">
-              <p className={cn("font-mono text-[0.58rem] uppercase tracking-[0.12em]", isLight ? "text-black/40" : "text-white/40")}>
-                Curated colors
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {CANVAS_BG_PRESETS.map((preset) => (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    title={preset.label}
-                    aria-label={`${preset.label} background`}
-                    onClick={() => onBackgroundColorChange(preset.value)}
-                    className={cn(
-                      "size-6 rounded-md border transition-transform hover:scale-105",
-                      backgroundColor === preset.value
-                        ? isLight
-                          ? "border-[#1a1a1a] ring-1 ring-[#1a1a1a]/30"
-                          : "border-white ring-1 ring-white/40"
-                        : isLight
-                          ? "border-black/15"
-                          : "border-white/15",
-                    )}
-                    style={{ backgroundColor: preset.value }}
-                  />
-                ))}
-              </div>
-            </div>
+        <div
+          className={cn(
+            "flex items-center justify-between gap-2 border-b px-3 pb-0 pt-2.5",
+            canvasGlassDividerClass(themeMode),
           )}
-
-          <div className={cn("space-y-1.5 border-t pt-3", isLight ? "border-black/8" : "border-white/8")}>
-            <SidebarAction icon={Focus} label="Center canvas" onClick={onCenter} isLight={isLight} />
-            <SidebarAction icon={RotateCcw} label="Reset zoom" onClick={onResetView} isLight={isLight} />
+        >
+          <div className="flex min-w-0">
+            {(["design", "brainstorm"] as const).map((id) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => onTabChange(id)}
+                className={cn(
+                  "shrink-0 border-b-2 px-2 pb-2 text-[0.75rem] font-medium capitalize transition-colors",
+                  tab === id
+                    ? isLight
+                      ? "border-[#1a1a1a] text-[#1a1a1a]"
+                      : "border-white text-white"
+                    : isLight
+                      ? "border-transparent text-[#1a1a1a]/45"
+                      : "border-transparent text-white/45",
+                )}
+              >
+                {id === "brainstorm" ? "Brainstorming" : "Design"}
+              </button>
+            ))}
           </div>
+
+          <button ref={shareButtonRef} type="button" onClick={onShare} className={shareCtaClass()}>
+            Share
+          </button>
         </div>
-      ) : (
-        <CanvasBrainstormPanel themeMode={theme.mode} />
-      )}
+
+        {tab === "design" ? (
+          <div className="space-y-3 p-3">
+            <button
+              type="button"
+              onClick={() => setPageOpen((o) => !o)}
+              className={cn(
+                "flex w-full items-center justify-between rounded-md px-1.5 py-1.5 text-left text-[0.75rem] font-medium",
+                isLight
+                  ? "text-[#1a1a1a]/80 hover:bg-black/[0.04]"
+                  : "text-white/80 hover:bg-white/[0.06]",
+              )}
+            >
+              Page background
+              <span className="text-[0.65rem] opacity-50">{pageOpen ? "−" : "+"}</span>
+            </button>
+
+            {pageOpen && (
+              <div className="space-y-2 px-1">
+                <p
+                  className={cn(
+                    "font-mono text-[0.58rem] uppercase tracking-[0.12em]",
+                    isLight ? "text-black/40" : "text-white/40",
+                  )}
+                >
+                  Curated colors
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {CANVAS_BG_PRESETS.map((preset) => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      title={preset.label}
+                      aria-label={`${preset.label} background`}
+                      onClick={() => onBackgroundColorChange(preset.value)}
+                      className={cn(
+                        "size-6 rounded-md border transition-transform hover:scale-105",
+                        backgroundColor === preset.value
+                          ? isLight
+                            ? "border-[#1a1a1a] ring-1 ring-[#1a1a1a]/30"
+                            : "border-white ring-1 ring-white/40"
+                          : isLight
+                            ? "border-black/15"
+                            : "border-white/15",
+                      )}
+                      style={{ backgroundColor: preset.value }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <CanvasBrainstormPanel themeMode={theme.mode} />
+        )}
       </CanvasGlass>
     </div>
-  );
-}
-
-function SidebarAction({
-  icon: Icon,
-  label,
-  onClick,
-  isLight,
-}: {
-  icon: typeof Focus;
-  label: string;
-  onClick: () => void;
-  isLight: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "flex w-full items-center gap-2 rounded-md px-1.5 py-1.5 text-left text-[0.75rem] transition-colors",
-        isLight
-          ? "text-[#1a1a1a]/75 hover:bg-black/[0.04] hover:text-[#1a1a1a]"
-          : "text-white/75 hover:bg-white/[0.06] hover:text-white",
-      )}
-    >
-      <Icon className="size-3.5 shrink-0 opacity-80" aria-hidden />
-      {label}
-    </button>
   );
 }

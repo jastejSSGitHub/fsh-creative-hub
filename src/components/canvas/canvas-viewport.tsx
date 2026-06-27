@@ -13,11 +13,17 @@ type CanvasViewportSurfaceProps = {
   showEmptyState: boolean;
   onDismissEmptyState: () => void;
   nodesLayer?: React.ReactNode;
+  dropOverlay?: React.ReactNode;
   handlers: {
     onPointerDown: (event: React.PointerEvent<HTMLDivElement>) => void;
     onPointerMove: (event: React.PointerEvent<HTMLDivElement>) => void;
     onPointerUp: (event: React.PointerEvent<HTMLDivElement>) => void;
     onPointerCancel: (event: React.PointerEvent<HTMLDivElement>) => void;
+    onPointerEnter?: (event: React.PointerEvent<HTMLDivElement>) => void;
+    onDragEnter?: (event: React.DragEvent<HTMLDivElement>) => void;
+    onDragOver?: (event: React.DragEvent<HTMLDivElement>) => void;
+    onDragLeave?: (event: React.DragEvent<HTMLDivElement>) => void;
+    onDrop?: (event: React.DragEvent<HTMLDivElement>) => void;
   };
   containerRef: React.RefObject<HTMLDivElement | null>;
 };
@@ -30,6 +36,7 @@ export function CanvasViewportSurface({
   handlers,
   containerRef,
   nodesLayer,
+  dropOverlay,
 }: CanvasViewportSurfaceProps) {
   const dotColor =
     theme.mode === "light" ? "rgba(0,0,0,0.22)" : "rgba(255,255,255,0.22)";
@@ -42,7 +49,7 @@ export function CanvasViewportSurface({
       {...handlers}
     >
       <div
-        className="absolute inset-0"
+        className="pointer-events-none absolute inset-0"
         style={{
           opacity: theme.dotOpacity,
           backgroundImage: `radial-gradient(circle, ${dotColor} 1px, transparent 1px)`,
@@ -62,6 +69,8 @@ export function CanvasViewportSurface({
       >
         {nodesLayer}
       </div>
+
+      {dropOverlay}
 
       <div className={cn("pointer-events-none absolute inset-0", theme.vignette)} aria-hidden />
     </div>

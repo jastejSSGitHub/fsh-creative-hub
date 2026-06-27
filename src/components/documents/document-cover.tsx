@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 
 import { COVER_GRADIENTS } from "@/lib/documents/covers";
-import { DEFAULT_COVER_IMAGES, resolveCoverImageSrc } from "@/lib/documents/cover-images";
+import { DEFAULT_COVER_IMAGES, normalizeCoverImageId, resolveCoverImageSrc } from "@/lib/documents/cover-images";
 import {
   normalizeCoverImageUrl,
   uploadDocumentCoverImage,
@@ -152,8 +152,8 @@ function CoverImagePicker({
               }}
               className={cn(
                 "relative aspect-[16/10] overflow-hidden rounded-[4px] ring-offset-2 transition-transform hover:scale-[1.02]",
-                cover.kind === "image" &&
-                  cover.value === image.id &&
+                      cover.kind === "image" &&
+                        normalizeCoverImageId(cover.value) === image.id &&
                   "ring-2 ring-hub-primary",
               )}
             >

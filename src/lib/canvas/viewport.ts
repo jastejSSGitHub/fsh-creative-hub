@@ -89,3 +89,25 @@ export function centerOnWorldPoint(
 export function formatZoomPercent(zoom: number): string {
   return `${Math.round(zoom * 100)}%`;
 }
+
+/** Comfortable zoom for reading/editing inline canvas text (100%). */
+export const TEXT_EDIT_TARGET_ZOOM = 1;
+
+export function focusViewportOnWorldPoint(
+  viewport: CanvasViewport,
+  worldX: number,
+  worldY: number,
+  containerWidth: number,
+  containerHeight: number,
+  targetZoom = TEXT_EDIT_TARGET_ZOOM,
+): CanvasViewport {
+  const zoom = clampZoom(Math.max(viewport.zoom, targetZoom));
+  return centerOnWorldPoint(
+    viewport,
+    worldX,
+    worldY,
+    containerWidth,
+    containerHeight,
+    zoom,
+  );
+}

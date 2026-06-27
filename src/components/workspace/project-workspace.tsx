@@ -1,15 +1,21 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion, useIsPresent, useReducedMotion } from "framer-motion";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { InviteMembersDialog } from "@/components/projects/invite-members-dialog";
 import { ProjectInlineTitle } from "@/components/projects/project-inline-title";
 import { AssetCard } from "@/components/workspace/asset-card";
+import { AssetDeleteConfirmDialog } from "@/components/workspace/asset-delete-confirm-dialog";
 import { ActivityFeed } from "@/components/workspace/activity-feed";
 import { AssetDetailOverlay } from "@/components/workspace/asset-detail-overlay";
 import { AssetGridLoading } from "@/components/workspace/asset-grid-loading";
 import { AssetUploadZone } from "@/components/workspace/asset-upload-zone";
+import {
+  AssetUploadIndicator,
+  type AssetUploadIndicatorPhase,
+} from "@/components/workspace/asset-upload-indicator";
 import { CreateInitiativeDialog } from "@/components/workspace/create-initiative-dialog";
 import { FireLeaders } from "@/components/workspace/fire-leaders";
 import { IdeasBoard } from "@/components/workspace/ideas-board";
@@ -20,13 +26,17 @@ import {
   type WorkspaceView,
 } from "@/components/workspace/workspace-view-tabs";
 import { buttonVariants } from "@/components/ui/button";
+import { FilterTagRow } from "@/components/ui/filter-tag-row";
 import { NavBackLink } from "@/components/ui/nav-back-link";
-import { canAdmin, canEdit } from "@/lib/permissions";
+import { UndoToast } from "@/components/ui/undo-toast";
+import { canAdmin, canDeleteOwnAsset, canEdit } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/client";
 import { captureWorkspaceSnapshot } from "@/lib/projects/workspace-snapshot";
 import { captureReviewBoardNavigationSnapshot, readReviewBoardNavigationSnapshot } from "@/lib/projects/review-board-snapshot";
 import type { ProjectCardData } from "@/lib/projects/queries";
 import { PROJECTS_PATH, reviewBoardPath } from "@/lib/routes";
+import { scrollToAssetCardWhenReady } from "@/lib/workspace/scroll-to-asset";
+import { deleteAssetAction } from "@/lib/workspace/actions";
 import {
   getAssetDetail,
   getAssetsForInitiative,
@@ -71,6 +81,8 @@ const FILTERS: { id: StatusFilter; label: string }[] = [
   { id: "final", label: "Final" },
 ];
 
+const ASSET_DELETE_UNDO_MS = 5000;
+
 export function ProjectWorkspace({
   project,
   reviewBoard,
@@ -92,6 +104,7 @@ export function ProjectWorkspace({
   initialActivities = [],
 }: ProjectWorkspaceProps) {
   const router = useRouter();
+  const reduceMotion = useReducedMotion();
   const [workspaceView, setWorkspaceView] = useState<WorkspaceView>(initialView);
   const [ideas, setIdeas] = useState<IdeaWithMeta[]>(initialIdeas);
   const [activities, setActivities] = useState<ActivityWithActor[]>(initialActivities);
@@ -104,6 +117,19 @@ export function ProjectWorkspace({
   const [localInitiativeId, setLocalInitiativeId] = useState<string | null>(
     selectedInitiativeId ?? initiatives[0]?.id ?? null,
   );
+  const [uploadIndicatorPhase, setUploadIndicatorPhase] =
+    useState<AssetUploadIndicatorPhase>("idle");
+  const [uploadIndicatorMessage, setUploadIndicatorMessage] = useState<string>();
+  const [highlightAssetId, setHighlightAssetId] = useState<string | null>(null);
+  const uploadIndicatorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingAssetDeleteRef = useRef<{
+    asset: AssetWithVotes;
+    timeoutId: ReturnType<typeof setTimeout>;
+  } | null>(null);
+  const [deleteConfirmAsset, setDeleteConfirmAsset] = useState<AssetWithVotes | null>(null);
+  const [deleteToastVisible, setDeleteToastVisible] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [assetsByInitiative, setAssetsByInitiative] = useState<
     Record<string, AssetWithVotes[]>
   >(() => {
@@ -228,11 +254,6 @@ export function ProjectWorkspace({
     };
   }, [activeInitiativeId, workspaceView, userId]);
 
-  const filteredAssets = useMemo(() => {
-    if (statusFilter === "all") return initiativeAssets;
-    return initiativeAssets.filter((asset) => asset.status === statusFilter);
-  }, [initiativeAssets, statusFilter]);
-
   const overlayAsset = overlayAssetId
     ? initiativeAssets.find((a) => a.id === overlayAssetId) ??
       Object.values(assetsByInitiative)
@@ -285,6 +306,99 @@ export function ProjectWorkspace({
     });
   }
 
+  function removeAssetFromGrid(asset: AssetWithVotes) {
+    setAssetsByInitiative((prev) => {
+      const sectionAssets = prev[asset.initiative_id];
+      if (!sectionAssets) return prev;
+
+      return {
+        ...prev,
+        [asset.initiative_id]: sectionAssets.filter((item) => item.id !== asset.id),
+      };
+    });
+  }
+
+  function restoreAssetToGrid(asset: AssetWithVotes) {
+    setAssetsByInitiative((prev) => {
+      const sectionAssets = prev[asset.initiative_id] ?? [];
+      if (sectionAssets.some((item) => item.id === asset.id)) return prev;
+
+      const next = [...sectionAssets, asset].sort(
+        (a, b) => a.sort_order - b.sort_order || a.created_at.localeCompare(b.created_at),
+      );
+
+      return {
+        ...prev,
+        [asset.initiative_id]: next,
+      };
+    });
+  }
+
+  const commitPendingAssetDelete = useCallback(
+    async (options?: { keepToast?: boolean }) => {
+      const pending = pendingAssetDeleteRef.current;
+      if (!pending) return;
+
+      clearTimeout(pending.timeoutId);
+      pendingAssetDeleteRef.current = null;
+      if (!options?.keepToast) {
+        setDeleteToastVisible(false);
+      }
+
+      const result = await deleteAssetAction(
+        pending.asset.id,
+        project.id,
+        reviewBoard?.id,
+      );
+
+      if (!result.ok) {
+        restoreAssetToGrid(pending.asset);
+        setDeleteError(result.error);
+      }
+    },
+    [project.id, reviewBoard?.id],
+  );
+
+  function queueAssetDelete(asset: AssetWithVotes) {
+    void commitPendingAssetDelete({ keepToast: true });
+
+    if (overlayAssetId === asset.id) {
+      closeAssetOverlay();
+    }
+
+    removeAssetFromGrid(asset);
+    setDeleteError(null);
+    setDeleteToastVisible(true);
+
+    const timeoutId = setTimeout(() => {
+      void commitPendingAssetDelete();
+    }, ASSET_DELETE_UNDO_MS);
+
+    pendingAssetDeleteRef.current = { asset, timeoutId };
+  }
+
+  function undoAssetDelete() {
+    const pending = pendingAssetDeleteRef.current;
+    if (!pending) return;
+
+    clearTimeout(pending.timeoutId);
+    pendingAssetDeleteRef.current = null;
+    setDeleteToastVisible(false);
+    restoreAssetToGrid(pending.asset);
+  }
+
+  function handleAssetDeleteRequest(asset: AssetWithVotes) {
+    if (!canDeleteOwnAsset(role, userId, asset.uploaded_by)) return;
+    setDeleteConfirmAsset(asset);
+  }
+
+  function confirmAssetDelete() {
+    if (!deleteConfirmAsset) return;
+    const asset = deleteConfirmAsset;
+    setDeleteConfirmAsset(null);
+    queueAssetDelete(asset);
+  }
+
   async function handleAssetUploaded(assetId: string) {
     const supabase = createClient();
     const asset = await getAssetDetail(supabase, assetId);
@@ -296,6 +410,76 @@ export function ProjectWorkspace({
       [asset.initiative_id]: [...(prev[asset.initiative_id] ?? []), asset],
     }));
   }
+
+  function clearUploadIndicatorTimer() {
+    if (uploadIndicatorTimerRef.current) {
+      clearTimeout(uploadIndicatorTimerRef.current);
+      uploadIndicatorTimerRef.current = null;
+    }
+  }
+
+  function clearHighlightTimer() {
+    if (highlightTimerRef.current) {
+      clearTimeout(highlightTimerRef.current);
+      highlightTimerRef.current = null;
+    }
+  }
+
+  function handleUploadStart() {
+    clearUploadIndicatorTimer();
+    clearHighlightTimer();
+    setHighlightAssetId(null);
+    setUploadIndicatorMessage(undefined);
+    setUploadIndicatorPhase("uploading");
+  }
+
+  function handleUploadError(message: string) {
+    clearUploadIndicatorTimer();
+    setUploadIndicatorMessage(message);
+    setUploadIndicatorPhase("error");
+    uploadIndicatorTimerRef.current = setTimeout(() => {
+      setUploadIndicatorPhase("idle");
+      setUploadIndicatorMessage(undefined);
+    }, 3200);
+  }
+
+  function handleUploadBatchEnd(lastAssetId: string | null) {
+    if (lastAssetId) return;
+    clearUploadIndicatorTimer();
+    setUploadIndicatorPhase((phase) => (phase === "uploading" ? "idle" : phase));
+  }
+
+  function handleUploadComplete(lastAssetId: string) {
+    if (statusFilter !== "all") {
+      setStatusFilterInstant("all");
+    }
+
+    setUploadIndicatorPhase("success");
+    setHighlightAssetId(lastAssetId);
+    scrollToAssetCardWhenReady(lastAssetId);
+
+    clearUploadIndicatorTimer();
+    uploadIndicatorTimerRef.current = setTimeout(() => {
+      setUploadIndicatorPhase("idle");
+    }, 2200);
+
+    clearHighlightTimer();
+    highlightTimerRef.current = setTimeout(() => {
+      setHighlightAssetId(null);
+    }, 3200);
+  }
+
+  useEffect(() => {
+    return () => {
+      clearUploadIndicatorTimer();
+      clearHighlightTimer();
+      const pending = pendingAssetDeleteRef.current;
+      if (pending) {
+        clearTimeout(pending.timeoutId);
+        void deleteAssetAction(pending.asset.id, project.id, reviewBoard?.id);
+      }
+    };
+  }, [project.id, reviewBoard?.id]);
 
   function setStatusFilterInstant(next: StatusFilter) {
     setStatusFilter(next);
@@ -501,49 +685,20 @@ export function ProjectWorkspace({
 
             {showAssetsChrome && (
               <div className="flex flex-col gap-3 border-b border-hub-foreground/8 pb-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
-                  <label className="font-mono text-[0.65rem] uppercase tracking-wider text-hub-foreground/45 sm:sr-only">
-                    Section
-                  </label>
-                  <select
-                    value={activeInitiativeId ?? ""}
-                    onChange={(e) => switchInitiative(e.target.value)}
-                    onFocus={() => {
-                      if (activeInitiativeId) void ensureInitiativeAssets(activeInitiativeId);
-                    }}
-                    className="min-h-10 w-full rounded-md border border-hub-foreground/15 bg-hub-surface px-3.5 text-sm sm:max-w-xs lg:hidden"
-                  >
-                    {initiatives.map((i) => (
-                      <option key={i.id} value={i.id}>
-                        {i.name}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="hidden flex-wrap gap-1 lg:flex">
-                    {initiatives.map((i) => (
-                      <button
-                        key={i.id}
-                        type="button"
-                        onClick={() => switchInitiative(i.id)}
-                        onMouseEnter={() => void ensureInitiativeAssets(i.id)}
-                        onFocus={() => void ensureInitiativeAssets(i.id)}
-                        className={cn(
-                          "min-h-10 rounded-md border px-4 text-sm font-medium transition-colors",
-                          i.id === activeInitiativeId
-                            ? "border-hub-foreground bg-hub-espresso text-hub-paper"
-                            : "border-hub-foreground/15 bg-hub-surface text-hub-foreground hover:bg-hub-foreground/5",
-                        )}
-                      >
-                        {i.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <FilterTagRow
+                  aria-label="Section"
+                  layoutId="review-board-section-filter"
+                  items={initiatives.map((i) => ({ id: i.id, label: i.name }))}
+                  value={activeInitiativeId ?? ""}
+                  onChange={switchInitiative}
+                  onItemHover={(id) => void ensureInitiativeAssets(id)}
+                  onItemFocus={(id) => void ensureInitiativeAssets(id)}
+                />
                 {canEdit(role) && (
                   <button
                     type="button"
                     onClick={() => setCreateInitiativeOpen(true)}
-                    className="inline-flex min-h-10 w-full items-center justify-center rounded-md border border-hub-foreground/15 bg-hub-surface px-4 text-sm font-medium text-hub-foreground transition-colors hover:bg-hub-foreground/[0.04] sm:w-auto"
+                    className="inline-flex h-8 shrink-0 items-center justify-center rounded-[6px] border border-hub-foreground/12 bg-hub-surface px-3 text-[0.8125rem] font-medium text-hub-foreground transition-colors hover:bg-hub-foreground/[0.03] sm:ml-2"
                   >
                     + Section
                   </button>
@@ -558,93 +713,49 @@ export function ProjectWorkspace({
                     projectId={project.id}
                     boardId={reviewBoard?.id}
                     initiativeId={activeInitiativeId}
+                    onUploadStart={handleUploadStart}
                     onUploaded={handleAssetUploaded}
+                    onUploadComplete={handleUploadComplete}
+                    onUploadBatchEnd={handleUploadBatchEnd}
+                    onUploadError={handleUploadError}
                   />
                 )}
 
-                <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-                  <div className="flex min-w-max gap-2 pb-1">
-                  {FILTERS.map((f) => (
-                    <button
-                      key={f.id}
-                      type="button"
-                      onClick={() => setStatusFilterInstant(f.id)}
-                      className={cn(
-                        "min-h-9 shrink-0 rounded-md border px-3 text-xs font-medium uppercase tracking-wider",
-                        statusFilter === f.id
-                          ? "border-hub-foreground bg-hub-espresso text-hub-paper"
-                          : "border-hub-foreground/15 bg-hub-surface text-hub-foreground/60",
-                      )}
-                    >
-                      {f.label}
-                    </button>
-                  ))}
-                  </div>
-                </div>
+                <FilterTagRow
+                  compact
+                  aria-label="Status"
+                  layoutId="review-board-status-filter"
+                  items={FILTERS}
+                  value={statusFilter}
+                  onChange={(id) => setStatusFilterInstant(id as StatusFilter)}
+                />
 
-                <FireLeaders assets={initiativeAssets} onOpen={openAssetOverlay} />
-
-                {initiativeAssetsLoading && initiativeAssets.length === 0 ? (
-                  <AssetGridLoading assetCountHint={assetCountHint} />
-                ) : initiativeAssets.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-hub-foreground/15 px-6 py-12 text-center">
-                    <p className="font-display text-lg font-bold text-hub-foreground">
-                      Drop your first asset
-                    </p>
-                    <p className="mt-2 text-sm text-hub-foreground/55">
-                      {activeInitiative?.name ?? "This section"} is ready for uploads.
-                    </p>
-                  </div>
-                ) : filteredAssets.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-hub-foreground/15 px-6 py-12 text-center">
-                    <p className="font-display text-lg font-bold text-hub-foreground">
-                      No {statusFilter} assets
-                    </p>
-                    <p className="mt-2 text-sm text-hub-foreground/55">
-                      Try another filter or upload new work to this section.
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    {(() => {
-                      const regular = filteredAssets.filter((a) => !a.is_fix_candidate);
-                      const fixes = filteredAssets.filter((a) => a.is_fix_candidate);
-                      return (
-                        <>
-                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                            {regular.map((asset) => (
-                              <AssetCard
-                                key={asset.id}
-                                asset={asset}
-                                onOpen={() => openAssetOverlay(asset.id)}
-                              />
-                            ))}
-                          </div>
-                          {fixes.length > 0 && (
-                            <div className="space-y-4 pt-2">
-                              <div className="flex items-center gap-3">
-                                <div className="h-px flex-1 bg-hub-foreground/10" />
-                                <p className="font-mono text-[0.65rem] uppercase tracking-wider text-hub-foreground/45">
-                                  Fix needed
-                                </p>
-                                <div className="h-px flex-1 bg-hub-foreground/10" />
-                              </div>
-                              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                                {fixes.map((asset) => (
-                                  <AssetCard
-                                    key={asset.id}
-                                    asset={asset}
-                                    onOpen={() => openAssetOverlay(asset.id)}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </>
-                      );
-                    })()}
-                  </>
-                )}
+                <motion.div
+                  layout
+                  transition={{ layout: { duration: 0.32, ease: [0.4, 0, 0.2, 1] } }}
+                  className="relative w-full"
+                >
+                  <AnimatePresence initial={false}>
+                    <ReviewBoardSectionAssets
+                      key={activeInitiativeId}
+                      initiativeName={activeInitiative?.name ?? "This section"}
+                      assets={assetsByInitiative[activeInitiativeId] ?? []}
+                      statusFilter={statusFilter}
+                      highlightAssetId={highlightAssetId}
+                      loading={
+                        initiativeAssetsLoading &&
+                        (assetsByInitiative[activeInitiativeId]?.length ?? 0) === 0
+                      }
+                      assetCountHint={assetCountHint}
+                      reduceMotion={reduceMotion ?? false}
+                      role={role}
+                      userId={userId}
+                      showAssetMenu={canEdit(role)}
+                      onOpenAsset={openAssetOverlay}
+                      onDeleteRequest={handleAssetDeleteRequest}
+                    />
+                  </AnimatePresence>
+                </motion.div>
               </div>
             )}
 
@@ -703,6 +814,161 @@ export function ProjectWorkspace({
           onClose={() => setPresentationOpen(false)}
         />
       )}
+
+      <AssetUploadIndicator phase={uploadIndicatorPhase} message={uploadIndicatorMessage} />
+
+      <AssetDeleteConfirmDialog
+        open={deleteConfirmAsset != null}
+        assetName={deleteConfirmAsset?.name}
+        onClose={() => setDeleteConfirmAsset(null)}
+        onConfirm={confirmAssetDelete}
+      />
+
+      <UndoToast
+        message="Asset deleted"
+        visible={deleteToastVisible}
+        onUndo={undoAssetDelete}
+      />
+
+      {deleteError && (
+        <div
+          role="alert"
+          className="fixed bottom-6 right-6 z-[60] flex max-w-sm items-center gap-3 rounded-lg border border-hub-rejected/30 bg-hub-surface px-4 py-3 text-sm text-hub-rejected shadow-xl"
+        >
+          <span>{deleteError}</span>
+          <button
+            type="button"
+            onClick={() => setDeleteError(null)}
+            className="shrink-0 font-medium underline-offset-2 hover:underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
     </>
+  );
+}
+
+type ReviewBoardSectionAssetsProps = {
+  initiativeName: string;
+  assets: AssetWithVotes[];
+  statusFilter: StatusFilter;
+  highlightAssetId?: string | null;
+  loading: boolean;
+  assetCountHint?: number;
+  reduceMotion: boolean;
+  role: HubRole;
+  userId: string;
+  showAssetMenu: boolean;
+  onOpenAsset: (assetId: string) => void;
+  onDeleteRequest: (asset: AssetWithVotes) => void;
+};
+
+function ReviewBoardSectionAssets({
+  initiativeName,
+  assets,
+  statusFilter,
+  highlightAssetId = null,
+  loading,
+  assetCountHint,
+  reduceMotion,
+  role,
+  userId,
+  showAssetMenu,
+  onOpenAsset,
+  onDeleteRequest,
+}: ReviewBoardSectionAssetsProps) {
+  const isPresent = useIsPresent();
+  const filteredAssets =
+    statusFilter === "all"
+      ? assets
+      : assets.filter((asset) => asset.status === statusFilter);
+
+  const regular = filteredAssets.filter((asset) => !asset.is_fix_candidate);
+  const fixes = filteredAssets.filter((asset) => asset.is_fix_candidate);
+
+  return (
+    <motion.div
+      initial={reduceMotion ? false : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={reduceMotion ? undefined : { opacity: 0 }}
+      transition={
+        reduceMotion
+          ? { duration: 0 }
+          : { duration: 0.24, ease: [0.4, 0, 0.2, 1] }
+      }
+      className={cn(
+        "w-full space-y-5",
+        isPresent ? "relative z-10" : "pointer-events-none absolute inset-x-0 top-0 z-0",
+      )}
+    >
+      <FireLeaders assets={assets} onOpen={onOpenAsset} />
+
+      {loading ? (
+        <AssetGridLoading assetCountHint={assetCountHint} />
+      ) : assets.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-hub-foreground/15 px-6 py-12 text-center">
+          <p className="font-display text-lg font-bold text-hub-foreground">
+            Drop your first asset
+          </p>
+          <p className="mt-2 text-sm text-hub-foreground/55">
+            {initiativeName} is ready for uploads.
+          </p>
+        </div>
+      ) : filteredAssets.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-hub-foreground/15 px-6 py-12 text-center">
+          <p className="font-display text-lg font-bold text-hub-foreground">
+            No {statusFilter} assets
+          </p>
+          <p className="mt-2 text-sm text-hub-foreground/55">
+            Try another filter or upload new work to this section.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {regular.map((asset) => (
+              <AssetCard
+                key={asset.id}
+                asset={asset}
+                role={role}
+                userId={userId}
+                highlighted={asset.id === highlightAssetId}
+                onOpen={() => onOpenAsset(asset.id)}
+                onDeleteRequest={
+                  showAssetMenu ? () => onDeleteRequest(asset) : undefined
+                }
+              />
+            ))}
+          </div>
+          {fixes.length > 0 && (
+            <div className="space-y-4 pt-2">
+              <div className="flex items-center gap-3">
+                <div className="h-px flex-1 bg-hub-foreground/10" />
+                <p className="font-mono text-[0.65rem] uppercase tracking-wider text-hub-foreground/45">
+                  Fix needed
+                </p>
+                <div className="h-px flex-1 bg-hub-foreground/10" />
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {fixes.map((asset) => (
+                  <AssetCard
+                    key={asset.id}
+                    asset={asset}
+                    role={role}
+                    userId={userId}
+                    highlighted={asset.id === highlightAssetId}
+                    onOpen={() => onOpenAsset(asset.id)}
+                    onDeleteRequest={
+                      showAssetMenu ? () => onDeleteRequest(asset) : undefined
+                    }
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </motion.div>
   );
 }

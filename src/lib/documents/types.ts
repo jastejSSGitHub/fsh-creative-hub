@@ -28,10 +28,16 @@ export type DocumentBlock = {
     linkedFileId?: string;
     linkedFileName?: string;
     imageUrl?: string;
+    imageWidth?: number;
+    imageSize?: "sm" | "md" | "lg";
+    imageAspectRatio?: number;
     tableRows?: string[][];
+    tableColumnWidths?: number[];
     embedUrl?: string;
     embedHtml?: string;
     embedHeight?: number;
+    codeLanguage?: string;
+    codeFilename?: string;
   };
 };
 
@@ -89,7 +95,33 @@ export function createBlock(type: DocumentBlockType = "paragraph"): DocumentBloc
     return { id, type, content: "", meta: { embedHtml: "", embedHeight: 560 } };
   }
 
+  if (type === "image") {
+    return { id, type, content: "", meta: {} };
+  }
+
+  if (type === "code") {
+    return { id, type, content: "", meta: { codeLanguage: "typescript" } };
+  }
+
   return { id, type, content: "" };
+}
+
+export function parseDocumentCover(raw: unknown): DocumentCover | null {
+  if (!raw || typeof raw !== "object") return null;
+
+  const record = raw as Record<string, unknown>;
+  const kind = record.kind;
+  const value = record.value;
+
+  if ((kind !== "image" && kind !== "gradient") || typeof value !== "string" || !value.trim()) {
+    return null;
+  }
+
+  return {
+    kind,
+    value: value.trim(),
+    position: typeof record.position === "number" ? record.position : undefined,
+  };
 }
 
 export function parseDocumentConfig(raw: Record<string, unknown>): TextDocumentConfig {
@@ -104,7 +136,7 @@ export function parseDocumentConfig(raw: Record<string, unknown>): TextDocumentC
   return {
     version: 1,
     icon: typeof raw.icon === "string" ? raw.icon : null,
-    cover: (raw.cover as DocumentCover | null) ?? null,
+    cover: parseDocumentCover(raw.cover),
     blocks: blocks.length ? blocks : fallback.blocks,
     plainTextPreview: typeof raw.plainTextPreview === "string" ? raw.plainTextPreview : "",
   };

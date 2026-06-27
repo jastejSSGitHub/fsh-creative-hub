@@ -316,9 +316,9 @@ export function InviteMembersDialog({
                     <MemberAvatar
                       displayName={member.display_name}
                       avatarUrl={member.avatar_url}
+                      colorSeed={member.id}
                       variant="primary"
                       size="xs"
-                      className="bg-[#18a0fb]"
                     />
 
                     <p className="min-w-0 flex-1 truncate text-[0.8125rem] text-hub-foreground">

@@ -173,6 +173,7 @@ export function IdeasBoard({
                     <MemberAvatar
                       displayName={idea.author.display_name}
                       avatarUrl={idea.author.avatar_url}
+                      colorSeed={idea.author.id}
                       size="sm"
                       variant="muted"
                     />

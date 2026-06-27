@@ -1,30 +1,30 @@
 "use client";
 
 import { HubTooltip } from "@/components/ui/hub-tooltip";
+import { memberAvatarColor } from "@/lib/hub/member-avatar-color";
 import { cn } from "@/lib/utils";
 
 export function memberInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0].slice(0, 2).toLowerCase();
-  return `${parts[0][0]}${parts[1][0]}`.toLowerCase();
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
 }
 
 type MemberAvatarProps = {
   displayName: string;
   avatarUrl?: string | null;
+  colorSeed?: string;
   variant?: "primary" | "muted" | "stack" | "stackInverse";
   size?: "xs" | "sm" | "md";
   className?: string;
 };
 
 const variantClasses = {
-  primary: "bg-hub-primary font-semibold text-white",
-  muted: "bg-hub-foreground/8 font-mono font-semibold text-hub-foreground",
-  stack:
-    "border-2 border-white bg-hub-foreground/10 font-mono font-semibold text-hub-foreground",
-  stackInverse:
-    "border-2 border-white/25 bg-white/15 font-mono font-semibold text-white",
+  primary: "font-semibold text-white",
+  muted: "font-mono font-semibold text-white",
+  stack: "border-2 border-white font-mono font-semibold text-white",
+  stackInverse: "border-2 border-white/25 font-mono font-semibold text-white",
 };
 
 const sizeClasses = {
@@ -36,21 +36,25 @@ const sizeClasses = {
 export function MemberAvatar({
   displayName,
   avatarUrl,
+  colorSeed,
   variant = "muted",
   size = "xs",
   className,
 }: MemberAvatarProps) {
   const label = displayName.trim() || "Unknown user";
+  const seed = colorSeed ?? label;
+  const initialsBackground = !avatarUrl ? memberAvatarColor(seed) : undefined;
 
   return (
-    <HubTooltip label={label} side="top">
+    <HubTooltip label={label} side="bottom">
       <span
         className={cn(
           "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full",
           sizeClasses[size],
-          variantClasses[variant],
+          !avatarUrl && variantClasses[variant],
           className,
         )}
+        style={initialsBackground ? { backgroundColor: initialsBackground } : undefined}
       >
         {avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element

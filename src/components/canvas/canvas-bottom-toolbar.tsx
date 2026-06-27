@@ -1,9 +1,13 @@
 "use client";
 
 import { forwardRef } from "react";
-import { StickyNote, Stamp } from "lucide-react";
+import { Redo2, StickyNote, Stamp, Type, Undo2 } from "lucide-react";
 
 import { CanvasGlass } from "@/components/canvas/canvas-glass";
+import {
+  CanvasLinkEmbedTool,
+  CanvasToolbarDivider,
+} from "@/components/canvas/canvas-link-embed-tool";
 import { StampPickerRadial } from "@/components/canvas/stamp-picker-radial";
 import type { CanvasPlacementTool } from "@/lib/canvas/types";
 import { cn } from "@/lib/utils";
@@ -15,8 +19,15 @@ type CanvasBottomToolbarProps = {
   onStampPickerOpenChange: (open: boolean) => void;
   onStampSelect: (stampId: import("@/lib/canvas/types").StampId) => void;
   themeMode: "dark" | "light";
+  textToolRef?: React.RefObject<HTMLButtonElement | null>;
   stickyToolRef?: React.RefObject<HTMLButtonElement | null>;
   stampToolRef?: React.RefObject<HTMLButtonElement | null>;
+  canUndo?: boolean;
+  canRedo?: boolean;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  onStartEmbedPlacement?: () => void;
+  onCancelEmbedPlacement?: () => void;
 };
 
 export function CanvasBottomToolbar({
@@ -26,14 +37,21 @@ export function CanvasBottomToolbar({
   onStampPickerOpenChange,
   onStampSelect,
   themeMode,
+  textToolRef,
   stickyToolRef,
   stampToolRef,
+  canUndo = false,
+  canRedo = false,
+  onUndo,
+  onRedo,
+  onStartEmbedPlacement,
+  onCancelEmbedPlacement,
 }: CanvasBottomToolbarProps) {
   const isLight = themeMode === "light";
 
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-4 z-30 flex justify-center px-3">
-      <div className="relative pointer-events-auto">
+      <div className="relative flex items-center gap-2 pointer-events-auto">
         {stampPickerOpen && (
           <StampPickerRadial
             onSelect={(stampId) => {
@@ -46,11 +64,38 @@ export function CanvasBottomToolbar({
         )}
 
         <CanvasGlass
-          className={cn(
-            "flex items-center gap-0.5 rounded-full p-1",
-            isLight && "border-black/12 bg-white/92 shadow-[0_4px_20px_rgba(0,0,0,0.08)]",
-          )}
+          themeMode={themeMode}
+          variant="control"
+          className="flex items-center gap-0.5 rounded-full p-1"
         >
+          <ToolIcon
+            ref={textToolRef}
+            active={placementTool === "text"}
+            label="Text"
+            isLight={isLight}
+            onClick={() =>
+              onPlacementToolChange(placementTool === "text" ? "select" : "text")
+            }
+            highlight="bg-[#7c3aed] text-white"
+          >
+            <Type className="size-4" />
+          </ToolIcon>
+
+          <CanvasLinkEmbedTool
+            variant="bottom-toolbar"
+            active={placementTool === "embed"}
+            isLight={isLight}
+            onActivate={() => {
+              if (placementTool === "embed") {
+                onCancelEmbedPlacement?.();
+              } else {
+                onStartEmbedPlacement?.();
+              }
+            }}
+          />
+
+          <CanvasToolbarDivider isLight={isLight} />
+
           <ToolIcon
             ref={stickyToolRef}
             active={placementTool === "sticky"}
@@ -74,6 +119,32 @@ export function CanvasBottomToolbar({
           >
             <Stamp className="size-4" />
           </ToolIcon>
+        </CanvasGlass>
+
+        <CanvasGlass
+          themeMode={themeMode}
+          variant="control"
+          className="flex items-center gap-0.5 rounded-full p-1"
+        >
+          <HistoryIcon
+            label="Undo"
+            shortcut="Ctrl+Z"
+            isLight={isLight}
+            disabled={!canUndo}
+            onClick={() => onUndo?.()}
+          >
+            <Undo2 className="size-4" />
+          </HistoryIcon>
+
+          <HistoryIcon
+            label="Redo"
+            shortcut="Ctrl+Shift+Z"
+            isLight={isLight}
+            disabled={!canRedo}
+            onClick={() => onRedo?.()}
+          >
+            <Redo2 className="size-4" />
+          </HistoryIcon>
         </CanvasGlass>
       </div>
     </div>
@@ -112,3 +183,41 @@ const ToolIcon = forwardRef<
     </button>
   );
 });
+
+function HistoryIcon({
+  label,
+  shortcut,
+  isLight,
+  disabled,
+  onClick,
+  children,
+}: {
+  label: string;
+  shortcut: string;
+  isLight: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      title={`${label} (${shortcut})`}
+      aria-label={label}
+      disabled={disabled}
+      onClick={onClick}
+      className={cn(
+        "inline-flex size-9 items-center justify-center rounded-full transition-colors",
+        disabled
+          ? isLight
+            ? "cursor-not-allowed text-[#1a1a1a]/25"
+            : "cursor-not-allowed text-white/25"
+          : isLight
+            ? "text-[#1a1a1a]/80 hover:bg-black/[0.08] hover:text-[#1a1a1a]"
+            : "text-white/70 hover:bg-white/10 hover:text-white",
+      )}
+    >
+      {children}
+    </button>
+  );
+}

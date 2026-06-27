@@ -46,6 +46,7 @@ export function ForYouList({ items, view = "inbox" }: ForYouListProps) {
               <MemberAvatar
                 displayName={item.comment.author.display_name}
                 avatarUrl={item.comment.author.avatar_url}
+                colorSeed={item.comment.author.id}
                 variant="muted"
                 size="md"
               />
