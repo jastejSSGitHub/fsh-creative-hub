@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   ClipboardList,
   MessageSquare,
@@ -28,6 +29,10 @@ type ForYouSidebarProps = {
     replies: number;
     assigned: number;
   };
+  className?: string;
+  onNavigate?: () => void;
+  onClose?: () => void;
+  showCloseButton?: boolean;
 };
 
 const INBOX_NAV: { id: ForYouView; label: string; icon: typeof MessageSquare }[] = [
@@ -36,7 +41,14 @@ const INBOX_NAV: { id: ForYouView; label: string; icon: typeof MessageSquare }[]
   { id: "assigned", label: "Assigned comments", icon: ClipboardList },
 ];
 
-export function ForYouSidebar({ sharedProjects, itemCounts }: ForYouSidebarProps) {
+export function ForYouSidebar({
+  sharedProjects,
+  itemCounts,
+  className,
+  onNavigate,
+  onClose,
+  showCloseButton = false,
+}: ForYouSidebarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const activeView = (searchParams.get("view") as ForYouView) || "inbox";
@@ -71,8 +83,30 @@ export function ForYouSidebar({ sharedProjects, itemCounts }: ForYouSidebarProps
 
   return (
     <>
-      <aside className="flex w-56 shrink-0 flex-col border-r border-hub-foreground/8 bg-hub-surface-muted">
-        <nav className="flex flex-col gap-0.5 p-2 pt-3" aria-label="Inbox">
+      <aside
+        className={cn(
+          "flex w-56 shrink-0 flex-col border-r border-hub-foreground/8 bg-hub-surface-muted",
+          className,
+        )}
+      >
+        {showCloseButton && onClose && (
+          <div className="flex items-center border-b border-hub-foreground/8 px-2 py-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex size-8 items-center justify-center rounded-md text-hub-foreground/60 transition-colors hover:bg-hub-foreground/6 hover:text-hub-foreground"
+              aria-label="Close sidebar"
+            >
+              <ChevronLeft className="size-4" />
+            </button>
+            <span className="ml-1 text-sm font-semibold text-hub-foreground">For you</span>
+          </div>
+        )}
+
+        <nav
+          className={cn("flex flex-col gap-0.5 p-2", showCloseButton ? "pt-2" : "pt-3")}
+          aria-label="Inbox"
+        >
           {INBOX_NAV.map((item) => {
             const active = activeView === item.id;
             const count = countForView(item.id);
@@ -82,6 +116,7 @@ export function ForYouSidebar({ sharedProjects, itemCounts }: ForYouSidebarProps
               <Link
                 key={item.id}
                 href={viewHref(item.id)}
+                onClick={onNavigate}
                 className={cn(
                   "flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors",
                   active
@@ -136,6 +171,7 @@ export function ForYouSidebar({ sharedProjects, itemCounts }: ForYouSidebarProps
                       </button>
                       <Link
                         href={project.href}
+                        onClick={onNavigate}
                         className="min-w-0 flex-1 truncate rounded-md px-1 py-1 text-sm font-medium text-hub-foreground/90 transition-colors hover:bg-hub-foreground/[0.04] hover:text-hub-foreground"
                       >
                         {project.name}
@@ -148,6 +184,7 @@ export function ForYouSidebar({ sharedProjects, itemCounts }: ForYouSidebarProps
                           <SidebarFileRow
                             key={file.id}
                             file={file}
+                            onNavigate={onNavigate}
                             onOpenMenu={(x, y) =>
                               setContextMenu({
                                 x,
@@ -200,9 +237,11 @@ export function ForYouSidebar({ sharedProjects, itemCounts }: ForYouSidebarProps
 
 function SidebarFileRow({
   file,
+  onNavigate,
   onOpenMenu,
 }: {
   file: SharedProjectNode["files"][number];
+  onNavigate?: () => void;
   onOpenMenu: (x: number, y: number) => void;
 }) {
   const rowRef = useRef<HTMLDivElement>(null);
@@ -220,6 +259,7 @@ function SidebarFileRow({
       >
         <Link
           href={file.href}
+          onClick={onNavigate}
           className={cn(
             "min-w-0 flex-1 py-1 pl-1.5",
             !file.canOpen && "opacity-70",
