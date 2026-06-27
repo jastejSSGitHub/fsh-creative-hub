@@ -16,11 +16,13 @@ import { ScrollReveal } from "@/components/landing/scroll-reveal";
 import { TrimmedLoopVideo } from "@/components/landing/trimmed-loop-video";
 import { cn } from "@/lib/utils";
 
-const EXAMPLE_LOOM_URL =
+const PROJECTS_LOOM_URL =
   "https://www.loom.com/share/8d092b28331e472db3ff064d466f977d";
 
 const APPROVAL_REJECTION_LOOM_URL =
   "https://www.loom.com/share/df5b9086b5cc482282ac29e74b1462cd";
+
+const PLACEHOLDER_LOOM_URL = PROJECTS_LOOM_URL;
 
 const FEATURES: ReadonlyArray<{
   kicker: string;
@@ -41,7 +43,7 @@ const FEATURES: ReadonlyArray<{
     index: 0,
     media: null,
     tutorial: {
-      loomUrl: EXAMPLE_LOOM_URL,
+      loomUrl: PROJECTS_LOOM_URL,
       modalTitle: "Every initiative, one home",
     },
   },
@@ -71,7 +73,7 @@ const FEATURES: ReadonlyArray<{
     index: 2,
     media: null,
     tutorial: {
-      loomUrl: EXAMPLE_LOOM_URL,
+      loomUrl: PLACEHOLDER_LOOM_URL,
       modalTitle: "Feedback that sticks",
     },
   },
@@ -84,7 +86,7 @@ const FEATURES: ReadonlyArray<{
     index: 3,
     media: null,
     tutorial: {
-      loomUrl: EXAMPLE_LOOM_URL,
+      loomUrl: PLACEHOLDER_LOOM_URL,
       modalTitle: "Brainstorm out loud",
     },
   },
