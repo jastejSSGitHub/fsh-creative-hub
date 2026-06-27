@@ -61,6 +61,7 @@ const ONBOARDING_FEATURES = [
   },
   {
     id: "present",
+    shortLabel: "Present",
     navLabel: "Full-screen presentation mode",
     nextLabel: "Workspaces",
     title: "Hand it to the room.",
@@ -224,7 +225,6 @@ export function FeatureOnboardingModal({
         <div className="flex shrink-0 flex-col gap-3 border-b border-white/[0.08] px-4 pb-3 pt-4 md:hidden">
           <div className="flex items-start justify-between gap-3">
             <h2
-              id="feature-onboarding-title-mobile"
               className="text-sm font-semibold leading-snug tracking-[-0.01em] text-white"
             >
               What&apos;s in Creative Hub
@@ -270,7 +270,7 @@ export function FeatureOnboardingModal({
                     {index + 1}
                   </span>
                   <span className="max-w-[4.25rem] truncate text-[0.6rem] leading-tight">
-                    {feature.nextLabel === "Workspaces" ? "Present" : feature.nextLabel}
+                    {feature.shortLabel}
                   </span>
                 </button>
               );
