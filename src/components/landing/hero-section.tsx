@@ -59,59 +59,63 @@ export function HeroSection({ isLoggedIn }: HeroSectionProps) {
   const reduced = !!prefersReducedMotion;
 
   return (
-    <section className="relative min-h-[100svh] overflow-hidden bg-hub-paper text-hub-foreground">
+    <section className="relative flex h-[100svh] min-h-[640px] overflow-hidden bg-hub-paper text-hub-foreground">
       <FloatingWall reduced={reduced} />
       <GrainOverlay />
 
-      <div className="relative z-20 mx-auto flex min-h-[100svh] max-w-5xl flex-col items-center justify-start px-5 pb-20 pt-12 text-center sm:px-8 sm:pb-24 sm:pt-14 lg:pt-16">
-        <motion.div
-          initial={reduced ? false : { opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <HeroIconStack className="mb-8 sm:mb-10" />
-        </motion.div>
+      <div className="relative z-20 flex h-full w-full items-center justify-center px-5 py-8 sm:px-8 sm:py-10">
+        <div className="mx-auto flex w-full max-w-5xl flex-col items-center text-center">
+          <motion.div
+            initial={reduced ? false : { opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <HeroIconStack className="mb-6 sm:mb-8" />
+          </motion.div>
 
-        <motion.p
-          className="mb-6 font-mono text-[0.65rem] uppercase tracking-[0.22em] text-hub-foreground/45"
-          initial={reduced ? false : { opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
-        >
-          Internal tool · FSH Design
-        </motion.p>
+          <motion.p
+            className="mb-5 font-mono text-[0.65rem] uppercase tracking-[0.22em] text-hub-foreground/45 sm:mb-6"
+            initial={reduced ? false : { opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+          >
+            Internal tool · FSH Design
+          </motion.p>
 
-        <motion.h1
-          className="font-display text-[clamp(2.25rem,7.5vw,4.75rem)] font-extrabold leading-[1.08] tracking-[-0.03em]"
-          initial={reduced ? false : { opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.65, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <span className="inline-flex flex-wrap items-center justify-center gap-x-3 gap-y-2">
-            <span>One place to</span>
-            <HeroVerbPill className="inline-flex items-center gap-2.5 rounded-full px-4 py-2 align-middle text-[0.92em] sm:gap-3 sm:px-5 sm:py-2.5" />
-            <span>creative work.</span>
-          </span>
-        </motion.h1>
+          <motion.h1
+            className="mx-auto max-w-4xl font-display text-[clamp(2.25rem,7.5vw,4.75rem)] font-extrabold leading-[1.08] tracking-[-0.03em]"
+            initial={reduced ? false : { opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.65, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <span className="flex flex-col items-center gap-3 sm:gap-4">
+              <span className="inline-flex flex-wrap items-center justify-center gap-x-3 gap-y-2">
+                <span>One place to</span>
+                <HeroVerbPill className="inline-flex items-center gap-2.5 rounded-full px-4 py-2 text-[0.92em] sm:gap-3 sm:px-5 sm:py-2.5" />
+              </span>
+              <span>creative work.</span>
+            </span>
+          </motion.h1>
 
-        <motion.p
-          className="mt-8 max-w-xl text-base leading-relaxed text-hub-foreground/60 sm:mt-10 sm:text-lg"
-          initial={reduced ? false : { opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-        >
-          Projects, feedback, and final picks — without chasing approvals
-          across 40 Slack messages.
-        </motion.p>
+          <motion.p
+            className="mx-auto mt-6 max-w-xl text-balance text-base leading-relaxed text-hub-foreground/60 sm:mt-8 sm:text-lg"
+            initial={reduced ? false : { opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+          >
+            Projects, feedback, and final picks — without chasing approvals
+            across 40 Slack messages.
+          </motion.p>
 
-        <motion.div
-          className="mt-10 flex justify-center sm:mt-12"
-          initial={reduced ? false : { opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.28, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <PrimaryCta isLoggedIn={isLoggedIn} size="large" />
-        </motion.div>
+          <motion.div
+            className="mt-8 flex justify-center sm:mt-10"
+            initial={reduced ? false : { opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.28, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <PrimaryCta isLoggedIn={isLoggedIn} size="large" />
+          </motion.div>
+        </div>
       </div>
     </section>
   );
