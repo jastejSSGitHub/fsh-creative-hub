@@ -25,6 +25,7 @@ const STEP_GRADIENTS = {
 const ONBOARDING_FEATURES = [
   {
     id: "projects",
+    shortLabel: "Projects",
     navLabel: "Project workspaces & teams",
     nextLabel: "Review",
     title: "Every initiative, one home.",
@@ -33,6 +34,7 @@ const ONBOARDING_FEATURES = [
   },
   {
     id: "review",
+    shortLabel: "Review",
     navLabel: "Asset review & reactions",
     nextLabel: "Comments",
     title: "Approve, reject, react.",
@@ -41,6 +43,7 @@ const ONBOARDING_FEATURES = [
   },
   {
     id: "comments",
+    shortLabel: "Comments",
     navLabel: "Threaded comments & mentions",
     nextLabel: "Ideas",
     title: "Feedback that sticks.",
@@ -49,6 +52,7 @@ const ONBOARDING_FEATURES = [
   },
   {
     id: "ideas",
+    shortLabel: "Ideas",
     navLabel: "Shared idea boards",
     nextLabel: "Present",
     title: "Brainstorm out loud.",
@@ -88,12 +92,19 @@ function CloseIcon({ className }: { className?: string }) {
 
 function OnboardingVisual({
   visual,
+  mobile = false,
 }: {
   visual: (typeof ONBOARDING_FEATURES)[number]["visual"];
+  mobile?: boolean;
 }) {
+  const frameClass = cn(
+    "w-full overflow-hidden shadow-[0_16px_48px_rgba(0,0,0,0.35)]",
+    mobile ? "max-w-none rounded-lg" : "max-w-md rounded-md",
+  );
+
   if (visual === "review") {
     return (
-      <div className="relative aspect-video w-full max-w-md overflow-hidden rounded-md shadow-[0_16px_48px_rgba(0,0,0,0.35)]">
+      <div className={cn(frameClass, "relative aspect-video")}>
         <TrimmedLoopVideo
           src="/media/Landing%20page/Approved-By.mp4"
           startAt={2}
@@ -111,7 +122,12 @@ function OnboardingVisual({
   }[visual];
 
   return (
-    <div className="w-full max-w-md shadow-[0_16px_48px_rgba(0,0,0,0.2)]">
+    <div
+      className={cn(
+        frameClass,
+        mobile ? "shadow-[0_12px_40px_rgba(0,0,0,0.28)]" : "shadow-[0_16px_48px_rgba(0,0,0,0.2)]",
+      )}
+    >
       <Illustration />
     </div>
   );
@@ -157,7 +173,7 @@ export function FeatureOnboardingModal({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 p-4 backdrop-blur-[2px] sm:p-6"
+      className="fixed inset-0 z-[100] flex items-end justify-center bg-black/55 backdrop-blur-[2px] md:items-center md:p-6"
       role="presentation"
       onClick={dismiss}
     >
@@ -166,12 +182,13 @@ export function FeatureOnboardingModal({
         aria-modal="true"
         aria-labelledby="feature-onboarding-title"
         onClick={(event) => event.stopPropagation()}
-        className="relative flex h-[min(85vh,34rem)] w-[min(100%,56rem)] overflow-hidden rounded-xl bg-[#141414] text-white shadow-[0_32px_80px_rgba(0,0,0,0.55)]"
+        className="relative flex h-[min(92dvh,100%)] w-full flex-col overflow-hidden rounded-t-2xl bg-[#141414] text-white shadow-[0_32px_80px_rgba(0,0,0,0.55)] md:h-[min(85vh,34rem)] md:w-[min(100%,56rem)] md:flex-row md:rounded-xl"
       >
-        <aside className="flex w-[12.5rem] shrink-0 flex-col border-r border-white/[0.08] px-4 py-5 sm:w-[14.5rem] sm:px-5 sm:py-6">
+        {/* Desktop sidebar */}
+        <aside className="hidden w-[14.5rem] shrink-0 flex-col border-r border-white/[0.08] px-5 py-6 md:flex">
           <h2
             id="feature-onboarding-title"
-            className="text-[0.7rem] font-semibold leading-snug tracking-[-0.01em] text-white sm:text-xs"
+            className="text-xs font-semibold leading-snug tracking-[-0.01em] text-white"
           >
             What&apos;s in Creative Hub
           </h2>
@@ -186,7 +203,7 @@ export function FeatureOnboardingModal({
                   type="button"
                   onClick={() => setActiveIndex(index)}
                   className={cn(
-                    "rounded-md px-2.5 py-1.5 text-left text-[0.65rem] leading-snug transition-colors sm:text-[0.7rem]",
+                    "rounded-md px-2.5 py-1.5 text-left text-[0.7rem] leading-snug transition-colors",
                     isActive
                       ? "bg-hub-surface/[0.1] text-white"
                       : "text-white/55 hover:bg-hub-surface/[0.05] hover:text-white/80",
@@ -197,14 +214,72 @@ export function FeatureOnboardingModal({
               );
             })}
 
-            <p className="mt-auto px-2.5 pt-3 text-[0.6rem] text-white/30 sm:text-[0.65rem]">
+            <p className="mt-auto px-2.5 pt-3 text-[0.65rem] text-white/30">
               More coming soon
             </p>
           </nav>
         </aside>
 
-        <div className="flex min-w-0 flex-1 flex-col">
-          <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden px-5 py-6 sm:px-8">
+        {/* Mobile header + feature picker */}
+        <div className="flex shrink-0 flex-col gap-3 border-b border-white/[0.08] px-4 pb-3 pt-4 md:hidden">
+          <div className="flex items-start justify-between gap-3">
+            <h2
+              id="feature-onboarding-title-mobile"
+              className="text-sm font-semibold leading-snug tracking-[-0.01em] text-white"
+            >
+              What&apos;s in Creative Hub
+            </h2>
+            <button
+              type="button"
+              onClick={dismiss}
+              aria-label="Close"
+              className="flex size-8 shrink-0 items-center justify-center rounded-md text-white/70 transition-colors hover:bg-hub-surface/10 hover:text-white"
+            >
+              <CloseIcon className="size-4" />
+            </button>
+          </div>
+
+          <nav
+            className="flex gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            aria-label="Features"
+          >
+            {ONBOARDING_FEATURES.map((feature, index) => {
+              const isActive = index === activeIndex;
+
+              return (
+                <button
+                  key={feature.id}
+                  type="button"
+                  onClick={() => setActiveIndex(index)}
+                  aria-current={isActive ? "step" : undefined}
+                  className={cn(
+                    "flex min-w-[4.5rem] shrink-0 flex-col items-center gap-1 rounded-lg px-2 py-2 transition-colors",
+                    isActive
+                      ? "bg-hub-surface/[0.12] text-white"
+                      : "text-white/45 hover:bg-hub-surface/[0.06] hover:text-white/75",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "flex size-6 items-center justify-center rounded-full text-[0.65rem] font-semibold",
+                      isActive
+                        ? STEP_GRADIENTS[feature.visual] + " text-white shadow-sm"
+                        : "bg-white/[0.08] text-white/70",
+                    )}
+                  >
+                    {index + 1}
+                  </span>
+                  <span className="max-w-[4.25rem] truncate text-[0.6rem] leading-tight">
+                    {feature.nextLabel === "Workspaces" ? "Present" : feature.nextLabel}
+                  </span>
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden px-3 py-3 sm:px-5 sm:py-6 md:px-8">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeFeature.id}
@@ -224,7 +299,7 @@ export function FeatureOnboardingModal({
               type="button"
               onClick={dismiss}
               aria-label="Close"
-              className="absolute top-3 right-3 z-10 flex size-7 items-center justify-center rounded-md text-white/70 transition-colors hover:bg-hub-surface/10 hover:text-white"
+              className="absolute top-3 right-3 z-10 hidden size-7 items-center justify-center rounded-md text-white/70 transition-colors hover:bg-hub-surface/10 hover:text-white md:flex"
             >
               <CloseIcon className="size-4" />
             </button>
@@ -236,15 +311,22 @@ export function FeatureOnboardingModal({
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className="relative z-[1] flex w-full items-center justify-center"
+                className="relative z-[1] flex h-full w-full items-center justify-center"
               >
-                <OnboardingVisual visual={activeFeature.visual} />
+                <div className="w-full md:max-w-md">
+                  <div className="md:hidden">
+                    <OnboardingVisual visual={activeFeature.visual} mobile />
+                  </div>
+                  <div className="hidden md:block">
+                    <OnboardingVisual visual={activeFeature.visual} />
+                  </div>
+                </div>
               </motion.div>
             </AnimatePresence>
           </div>
 
-          <div className="flex shrink-0 flex-col gap-3 border-t border-white/[0.08] bg-[#181818] px-5 py-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6 sm:px-6 sm:py-5">
-            <div className="min-w-0 space-y-1.5">
+          <div className="flex shrink-0 flex-col gap-3 border-t border-white/[0.08] bg-[#181818] px-4 py-3.5 sm:px-6 sm:py-5 md:flex-row md:items-end md:justify-between md:gap-6">
+            <div className="min-w-0 space-y-1">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activeFeature.id}
@@ -253,30 +335,30 @@ export function FeatureOnboardingModal({
                   exit={{ opacity: 0, y: -4 }}
                   transition={{ duration: 0.18 }}
                 >
-                  <h3 className="text-[0.8rem] font-semibold tracking-[-0.01em] text-white sm:text-sm">
+                  <h3 className="text-sm font-semibold tracking-[-0.01em] text-white md:text-sm">
                     {activeFeature.title}
                   </h3>
-                  <p className="max-w-md text-[0.65rem] leading-relaxed text-white/50 sm:text-[0.7rem]">
+                  <p className="text-[0.7rem] leading-relaxed text-white/50 md:max-w-md md:text-[0.7rem]">
                     {activeFeature.body}
                   </p>
                 </motion.div>
               </AnimatePresence>
             </div>
 
-            <div className="flex shrink-0 items-center gap-2 self-end">
+            <div className="flex shrink-0 items-center gap-2 self-stretch md:self-end">
               <button
                 type="button"
                 onClick={() =>
                   setActiveIndex((index) => (index + 1) % ONBOARDING_FEATURES.length)
                 }
-                className="rounded-md border border-white/15 px-3 py-1.5 text-[0.65rem] text-white/80 transition-colors hover:border-white/25 hover:text-white sm:text-[0.7rem]"
+                className="flex-1 rounded-md border border-white/15 px-3 py-2 text-[0.7rem] text-white/80 transition-colors hover:border-white/25 hover:text-white md:flex-none md:py-1.5"
               >
                 Next: {nextFeature.nextLabel}
               </button>
               <button
                 type="button"
                 onClick={dismiss}
-                className="rounded-md bg-hub-final px-3 py-1.5 text-[0.65rem] font-medium text-hub-foreground transition-colors hover:bg-hub-final/90 sm:text-[0.7rem]"
+                className="flex-1 rounded-md bg-hub-final px-3 py-2 text-[0.7rem] font-medium text-hub-foreground transition-colors hover:bg-hub-final/90 md:flex-none md:py-1.5"
               >
                 Get started
               </button>

@@ -587,13 +587,17 @@ export function ProjectWorkspace({
     <>
       {reviewBoard && (
         <header className="sticky top-0 z-40 border-b border-hub-foreground/8 bg-hub-paper/95 backdrop-blur-md">
-          <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-3 py-2 sm:px-6">
-            <NavBackLink
-              href={backHref ?? PROJECTS_PATH}
-              label={project.name}
-              className="min-w-0 shrink"
-            />
-            {detailToolbar}
+          <div className="mx-auto max-w-6xl px-3 py-2 sm:px-6">
+            <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+              <NavBackLink
+                href={backHref ?? PROJECTS_PATH}
+                label={project.name}
+                className="min-w-0 max-w-full shrink sm:max-w-[min(100%,14rem)]"
+              />
+              <div className="min-w-0 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] sm:overflow-visible sm:pb-0 [&::-webkit-scrollbar]:hidden">
+                {detailToolbar}
+              </div>
+            </div>
           </div>
         </header>
       )}
@@ -685,7 +689,7 @@ export function ProjectWorkspace({
                   <button
                     type="button"
                     onClick={() => setCreateInitiativeOpen(true)}
-                    className="inline-flex h-8 shrink-0 items-center justify-center rounded-[6px] border border-hub-foreground/12 bg-hub-surface px-3 text-[0.8125rem] font-medium text-hub-foreground transition-colors hover:bg-hub-foreground/[0.03] sm:ml-2"
+                    className="inline-flex h-8 w-full shrink-0 items-center justify-center rounded-[6px] border border-hub-foreground/12 bg-hub-surface px-3 text-[0.8125rem] font-medium text-hub-foreground transition-colors hover:bg-hub-foreground/[0.03] sm:ml-2 sm:w-auto"
                   >
                     + Section
                   </button>
@@ -827,7 +831,7 @@ export function ProjectWorkspace({
       {deleteError && (
         <div
           role="alert"
-          className="fixed bottom-6 right-6 z-[60] flex max-w-sm items-center gap-3 rounded-lg border border-hub-rejected/30 bg-hub-surface px-4 py-3 text-sm text-hub-rejected shadow-xl"
+          className="fixed inset-x-4 bottom-[max(1.5rem,env(safe-area-inset-bottom))] z-[60] flex max-w-sm items-center gap-3 rounded-lg border border-hub-rejected/30 bg-hub-surface px-4 py-3 text-sm text-hub-rejected shadow-xl sm:inset-x-auto sm:right-6"
         >
           <span>{deleteError}</span>
           <button
@@ -920,7 +924,7 @@ function ReviewBoardSectionAssets({
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
             {regular.map((asset) => (
               <AssetCard
                 key={asset.id}
@@ -944,7 +948,7 @@ function ReviewBoardSectionAssets({
                 </p>
                 <div className="h-px flex-1 bg-hub-foreground/10" />
               </div>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
                 {fixes.map((asset) => (
                   <AssetCard
                     key={asset.id}

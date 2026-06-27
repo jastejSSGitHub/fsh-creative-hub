@@ -44,7 +44,7 @@ export function WorkspaceViewTabs({
     <div
       className={cn(
         "flex rounded-xl border border-hub-foreground/10 bg-hub-surface shadow-sm",
-        prominent ? "w-full max-w-lg p-1.5 sm:max-w-xl" : "p-1",
+        prominent ? "w-full max-w-lg p-1 sm:max-w-xl sm:p-1.5" : "p-1",
       )}
       role="tablist"
       aria-label="Workspace views"
@@ -64,7 +64,7 @@ export function WorkspaceViewTabs({
             className={cn(
               "relative flex flex-1 items-center justify-center gap-2 rounded-lg transition-all",
               prominent
-                ? "min-h-12 px-4 text-[0.9375rem] font-semibold sm:min-h-11 sm:px-6"
+                ? "min-h-11 gap-1.5 px-2 text-xs font-semibold sm:min-h-12 sm:gap-2 sm:px-4 sm:text-[0.9375rem] lg:min-h-11 lg:px-6"
                 : "min-h-11 px-3 text-sm font-medium sm:min-h-10 sm:flex-none sm:px-5",
               active
                 ? "bg-hub-espresso text-hub-paper shadow-sm"
@@ -72,11 +72,13 @@ export function WorkspaceViewTabs({
             )}
           >
             <Icon
-              className={cn("shrink-0", prominent ? "size-[1.125rem]" : "size-4")}
+              className={cn("shrink-0", prominent ? "size-4 sm:size-[1.125rem]" : "size-4")}
               aria-hidden
             />
-            <span className={cn(!prominent && "hidden sm:inline")}>{tab.label}</span>
-            {!prominent && <span className="sm:hidden">{tab.shortLabel}</span>}
+            <>
+              <span className="hidden sm:inline">{tab.label}</span>
+              <span className="sm:hidden">{tab.shortLabel}</span>
+            </>
             {count != null && count > 0 && (
               <span
                 className={cn(

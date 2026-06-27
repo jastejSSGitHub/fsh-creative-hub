@@ -307,13 +307,13 @@ export function AssetDetailOverlay({
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-hub-foreground/90 p-0 sm:p-4 animate-in fade-in duration-150">
-      <div className="mx-auto flex h-full w-full max-w-6xl flex-col overflow-hidden rounded-none bg-hub-paper shadow-2xl sm:rounded-xl animate-in zoom-in-95 duration-200">
-        <header className="flex items-center justify-between border-b border-hub-foreground/10 px-4 py-3 sm:px-6">
-          <div className="min-w-0 pr-4">
+      <div className="mx-auto flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden rounded-none bg-hub-paper shadow-2xl sm:h-full sm:max-h-[calc(100dvh-2rem)] sm:rounded-xl animate-in zoom-in-95 duration-200">
+        <header className="flex shrink-0 items-center justify-between border-b border-hub-foreground/10 px-3 py-2.5 sm:px-6 sm:py-3">
+          <div className="min-w-0 flex-1 pr-3">
             <p className="font-mono text-[0.6rem] uppercase tracking-wider text-hub-foreground/45">
               {asset.tag} · {statusStyle.label}
             </p>
-            <h2 className="truncate font-display text-xl font-extrabold text-hub-foreground sm:text-2xl">
+            <h2 className="truncate font-display text-lg font-extrabold text-hub-foreground sm:text-2xl">
               {asset.name}
             </h2>
           </div>
@@ -321,24 +321,25 @@ export function AssetDetailOverlay({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="flex size-10 shrink-0 items-center justify-center rounded-md border border-hub-foreground/15 text-hub-foreground/60 transition-colors hover:bg-hub-foreground/5 hover:text-hub-foreground"
+            className="flex size-9 shrink-0 items-center justify-center rounded-md border border-hub-foreground/15 text-hub-foreground/60 transition-colors hover:bg-hub-foreground/5 hover:text-hub-foreground sm:size-10"
           >
             <X className="size-4" strokeWidth={2} />
           </button>
         </header>
 
-        <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
-          <div className="relative flex min-h-[40vh] flex-1 items-center justify-center bg-hub-espresso p-4 lg:min-h-0">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
+          <div className="relative flex max-h-[45vh] shrink-0 items-center justify-center bg-hub-espresso p-3 sm:max-h-[50vh] sm:p-4 lg:max-h-none lg:min-h-0 lg:flex-1">
             {!mediaLoaded && (
-              <div className="absolute inset-4 animate-pulse rounded-md bg-hub-skeleton-strong" />
+              <div className="absolute inset-3 animate-pulse rounded-md bg-hub-skeleton-strong sm:inset-4" />
             )}
             {asset.type === "video" ? (
               <video
                 src={asset.public_url}
                 controls
+                playsInline
                 onLoadedData={() => setMediaLoaded(true)}
                 className={cn(
-                  "max-h-[70vh] max-w-full rounded-md transition-opacity duration-300",
+                  "max-h-full max-w-full rounded-md transition-opacity duration-300",
                   mediaLoaded ? "opacity-100" : "opacity-0",
                 )}
               />
@@ -349,29 +350,29 @@ export function AssetDetailOverlay({
                 alt={asset.name}
                 onLoad={() => setMediaLoaded(true)}
                 className={cn(
-                  "max-h-[70vh] max-w-full rounded-md object-contain transition-opacity duration-300",
+                  "max-h-full max-w-full rounded-md object-contain transition-opacity duration-300",
                   mediaLoaded ? "opacity-100" : "opacity-0",
                 )}
               />
             )}
           </div>
 
-          <aside className="flex w-full shrink-0 flex-col overflow-hidden border-t border-hub-foreground/10 lg:w-[22rem] lg:border-t-0 lg:border-l">
-            <div className="overflow-y-auto overflow-x-hidden p-4 sm:p-6">
-              <div className="space-y-5">
+          <aside className="flex min-h-0 flex-1 flex-col overflow-hidden border-t border-hub-foreground/10 lg:w-[22rem] lg:flex-none lg:border-l lg:border-t-0">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-3 sm:p-6">
+              <div className="flex min-h-0 flex-1 flex-col space-y-4 sm:space-y-5">
                 {error && (
-                  <p className="rounded-md border border-hub-rejected/30 bg-hub-rejected/10 px-3 py-2 text-sm text-hub-rejected">
+                  <p className="shrink-0 rounded-md border border-hub-rejected/30 bg-hub-rejected/10 px-3 py-2 text-sm text-hub-rejected">
                     {error}
                   </p>
                 )}
 
                 {canEdit(role) && (
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex shrink-0 flex-wrap gap-2">
                     <button
                       type="button"
                       disabled={isPending || asset.status === "final"}
                       onClick={() => handleStatus("approved")}
-                      className={cn(buttonVariants({ variant: "outline", size: "sm" }), "min-h-10 rounded-md border-hub-approved/40")}
+                      className={cn(buttonVariants({ variant: "outline", size: "sm" }), "min-h-10 flex-1 rounded-md border-hub-approved/40 sm:flex-none")}
                     >
                       Approve
                     </button>
@@ -379,7 +380,7 @@ export function AssetDetailOverlay({
                       type="button"
                       disabled={isPending || asset.status === "final"}
                       onClick={() => handleStatus("rejected")}
-                      className={cn(buttonVariants({ variant: "outline", size: "sm" }), "min-h-10 rounded-md border-hub-rejected/40")}
+                      className={cn(buttonVariants({ variant: "outline", size: "sm" }), "min-h-10 flex-1 rounded-md border-hub-rejected/40 sm:flex-none")}
                     >
                       Reject
                     </button>
@@ -388,7 +389,7 @@ export function AssetDetailOverlay({
                         type="button"
                         disabled={isPending}
                         onClick={() => handleStatus("final")}
-                        className={cn(buttonVariants({ size: "sm" }), "min-h-10 rounded-md bg-hub-final text-hub-foreground")}
+                        className={cn(buttonVariants({ size: "sm" }), "min-h-10 w-full rounded-md bg-hub-final text-hub-foreground sm:w-auto")}
                       >
                         Final pick
                       </button>
@@ -396,7 +397,7 @@ export function AssetDetailOverlay({
                   </div>
                 )}
 
-                <div className="space-y-2">
+                <div className="shrink-0 space-y-2">
                   <p className="font-mono text-[0.65rem] uppercase tracking-wider text-hub-foreground/45">
                     Reactions
                   </p>
@@ -408,11 +409,11 @@ export function AssetDetailOverlay({
                   <ConsensusBar counts={asset.consensus} size="md" />
                 </div>
 
-                <div className="space-y-3">
-                  <p className="font-mono text-[0.65rem] uppercase tracking-wider text-hub-foreground/45">
+                <div className="flex min-h-0 flex-1 flex-col space-y-3">
+                  <p className="shrink-0 font-mono text-[0.65rem] uppercase tracking-wider text-hub-foreground/45">
                     Comments
                   </p>
-                  <div className="max-h-48 overflow-y-auto overflow-x-hidden pr-1">
+                  <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain pr-1 lg:max-h-none">
                     {commentsLoading ? (
                       <CommentsListSkeleton />
                     ) : comments.length === 0 ? (
@@ -433,7 +434,7 @@ export function AssetDetailOverlay({
                       </div>
                     )}
                   </div>
-                  <div className="space-y-2">
+                  <div className="shrink-0 space-y-2 border-t border-hub-foreground/8 pt-3">
                     {replyTo && (
                       <p className="text-xs text-hub-foreground/50">
                         Replying to thread ·{" "}
@@ -460,7 +461,7 @@ export function AssetDetailOverlay({
                       type="button"
                       disabled={isPending || !body.trim()}
                       onClick={submitComment}
-                      className={cn(buttonVariants({ size: "sm" }), "min-h-10 rounded-md bg-hub-espresso text-hub-paper")}
+                      className={cn(buttonVariants({ size: "sm" }), "min-h-10 w-full rounded-md bg-hub-espresso text-hub-paper sm:w-auto")}
                     >
                       Post comment
                     </button>

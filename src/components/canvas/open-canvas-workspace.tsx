@@ -116,17 +116,6 @@ export function OpenCanvasWorkspace({
     );
   }, [embedded, onStickyCountChange, workspace.nodes]);
 
-  useEffect(() => {
-    if (!embedded) return;
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [embedded]);
-
   const handleOnboardingStepChange = useCallback((step: CanvasIntroStep) => {
     if (step === "timer") {
       setSidebarTab("brainstorm");

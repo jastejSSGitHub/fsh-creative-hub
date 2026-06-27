@@ -44,7 +44,7 @@ export function FilterTagRow({
 
   return (
     <div
-      className={cn("-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0", className)}
+      className={cn("-mx-3 overflow-x-auto px-3 sm:mx-0 sm:px-0", className)}
       role="tablist"
       aria-label={ariaLabel}
     >

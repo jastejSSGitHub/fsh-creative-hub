@@ -58,7 +58,7 @@ export function ReactionPicker({
 
   return (
     <div>
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-4 sm:gap-2">
         {REACTIONS.map((reaction) => {
           const selected = userReaction === reaction;
           const meta = REACTION_META[reaction];
@@ -79,7 +79,7 @@ export function ReactionPicker({
                   disabled={disabled}
                   onClick={() => handleClick(reaction)}
                   className={cn(
-                    "relative flex min-h-11 w-full items-center justify-center rounded-md border text-xl transition-colors",
+                    "relative flex min-h-10 w-full items-center justify-center rounded-md border text-lg transition-colors sm:min-h-11",
                     selected
                       ? "border-hub-foreground bg-hub-foreground/10 ring-2 ring-hub-espresso/15"
                       : "border-hub-foreground/15 bg-hub-surface hover:bg-hub-foreground/5",

@@ -82,13 +82,13 @@ export function IdeasCanvasBoard({
         </p>
       </div>
 
-      <div className="relative left-1/2 w-[calc(100vw-1.5rem)] max-w-none -translate-x-1/2 px-0 sm:w-[calc(100vw-2rem)]">
+      <div className="w-full min-w-0">
         {loading ? (
-          <div className="flex min-h-[480px] items-center justify-center rounded-xl border border-hub-foreground/10 bg-hub-surface/80">
+          <div className="flex min-h-[min(480px,70dvh)] items-center justify-center rounded-xl border border-hub-foreground/10 bg-hub-surface/80">
             <p className="text-sm text-hub-foreground/55">Loading whiteboard…</p>
           </div>
         ) : error ? (
-          <div className="flex min-h-[480px] items-center justify-center rounded-xl border border-dashed border-hub-foreground/15 bg-hub-surface/70 px-6 text-center">
+          <div className="flex min-h-[min(480px,70dvh)] items-center justify-center rounded-xl border border-dashed border-hub-foreground/15 bg-hub-surface/70 px-6 text-center">
             <p className="text-sm text-hub-foreground/60">{error}</p>
           </div>
         ) : canvas ? (

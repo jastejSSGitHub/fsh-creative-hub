@@ -23,7 +23,7 @@ export function AssetUploadIndicator({ phase, message }: AssetUploadIndicatorPro
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={reduceMotion ? undefined : { opacity: 0, y: 6, scale: 0.98 }}
           transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
-          className="pointer-events-none fixed bottom-6 left-1/2 z-[70] -translate-x-1/2"
+          className="pointer-events-none fixed inset-x-4 bottom-[max(1.5rem,env(safe-area-inset-bottom))] z-[70] sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2"
           role="status"
           aria-live="polite"
         >

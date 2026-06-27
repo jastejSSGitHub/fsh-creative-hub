@@ -138,7 +138,7 @@ export function AssetUploadZone({
             }}
             onDragLeave={() => setDragging(false)}
             onDrop={handleDrop}
-            className="flex min-h-[9rem] flex-col items-center justify-center px-6 py-8 text-center md:col-span-3"
+            className="flex min-h-[7rem] flex-col items-center justify-center px-4 py-6 text-center sm:min-h-[9rem] sm:px-6 sm:py-8 md:col-span-3"
           >
             <div className="mb-1">
               <AssetDropZoneHeroIllustration active={dragging} />
@@ -181,7 +181,7 @@ export function AssetUploadZone({
             />
           </div>
 
-          <div className="flex min-h-[9rem] items-center border-t border-hub-foreground/[0.06] px-2 py-3 md:col-span-1 md:border-l md:border-t-0">
+          <div className="hidden min-h-[9rem] items-center border-t border-hub-foreground/[0.06] px-2 py-3 md:col-span-1 md:flex md:border-l md:border-t-0">
             <AssetDropIllustration />
           </div>
         </div>
