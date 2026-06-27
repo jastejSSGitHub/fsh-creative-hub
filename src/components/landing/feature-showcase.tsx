@@ -17,7 +17,7 @@ import { TrimmedLoopVideo } from "@/components/landing/trimmed-loop-video";
 import { cn } from "@/lib/utils";
 
 const PROJECTS_LOOM_URL =
-  "https://www.loom.com/share/8d092b28331e472db3ff064d466f977d";
+  "https://www.loom.com/share/0c0e1960a87848ccad0d88fb631811ec";
 
 const APPROVAL_REJECTION_LOOM_URL =
   "https://www.loom.com/share/df5b9086b5cc482282ac29e74b1462cd";
