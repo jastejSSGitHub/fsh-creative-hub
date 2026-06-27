@@ -46,6 +46,7 @@ export function findNodesInMarquee(
   if (marquee.width < 1 && marquee.height < 1) return [];
 
   return nodes
+    .filter((node) => node.type !== "section")
     .filter((node) => rectsIntersect(marquee, nodeWorldRect(node)))
     .map((node) => node.id);
 }

@@ -14,9 +14,9 @@ import { StickyNoteNode } from "@/components/canvas/nodes/sticky-note-node";
 import { TextNodeView } from "@/components/canvas/nodes/text-node";
 import type { TextFormatPatch } from "@/components/canvas/text-format-toolbar";
 import { partitionCanvasNodes, isStampPlacementActive, CANVAS_Z } from "@/lib/canvas/node-layers";
+import type { WorldRect } from "@/lib/canvas/marquee-selection";
 import { STAMP_SIZE } from "@/lib/canvas/presets";
 import { getStickyNodes, resolveStampMagnetism } from "@/lib/canvas/stamp-attachment";
-import { useCanvasMarqueeSelection } from "@/hooks/use-canvas-marquee-selection";
 import type {
   CanvasNode,
   CanvasPlacementTool,
@@ -35,6 +35,7 @@ type CanvasNodesLayerProps = {
   nodes: CanvasNode[];
   zoom: number;
   selectedIds: string[];
+  marqueeRect?: WorldRect | null;
   placementTool: CanvasPlacementTool;
   viewportTool?: "select" | "hand";
   pendingStampId?: StampId | null;
@@ -91,6 +92,7 @@ export function CanvasNodesLayer({
   nodes,
   zoom,
   selectedIds,
+  marqueeRect = null,
   placementTool,
   viewportTool = "select",
   pendingStampId,
@@ -166,27 +168,11 @@ export function CanvasNodesLayer({
 
   const stampPreviewPosition = stampMagnetism?.center ?? stampPreviewWorld;
 
-  const marqueeEnabled =
-    placementTool === "select" && viewportTool === "select";
-
-  const { marqueeRect, marqueeHandlers, surfaceRef } = useCanvasMarqueeSelection({
-    enabled: marqueeEnabled,
-    nodes,
-    clientToWorld,
-    onSelectNodes,
-    onClearSelection,
-  });
-
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const isOnlySelected = (id: string) =>
     selectedIds.length === 1 && selectedIds[0] === id;
 
   function handleLayerPointerDown(event: React.PointerEvent<HTMLDivElement>) {
-    if (placementTool === "select" && viewportTool === "select") {
-      marqueeHandlers.onPointerDown(event);
-      return;
-    }
-
     if (placementTool !== "select") {
       event.stopPropagation();
       const { x: worldX, y: worldY } = clientToWorld(event.clientX, event.clientY);
@@ -218,7 +204,6 @@ export function CanvasNodesLayer({
 
   return (
     <div
-      ref={surfaceRef}
       data-canvas-background
       className="absolute inset-0"
       style={{ minWidth: "100%", minHeight: "100%" }}

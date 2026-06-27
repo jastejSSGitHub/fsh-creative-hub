@@ -13,6 +13,7 @@ import { CanvasViewportSurface } from "@/components/canvas/canvas-viewport";
 import { InviteMembersDialog } from "@/components/projects/invite-members-dialog";
 import { useCanvasWorkspace } from "@/hooks/use-canvas-workspace";
 import { useCanvasFileDrop } from "@/hooks/use-canvas-file-drop";
+import { useCanvasMarqueeSelection } from "@/hooks/use-canvas-marquee-selection";
 import { useCanvasViewport } from "@/hooks/use-canvas-viewport";
 import type { CanvasIntroStep } from "@/lib/canvas/onboarding-steps";
 import { getCanvasTheme } from "@/lib/canvas/presets";
@@ -243,9 +244,22 @@ export function OpenCanvasWorkspace({
     return () => window.removeEventListener("pointermove", handlePointerMove);
   }, [workspace.placementTool, screenToWorld, containerRef]);
 
+  const marqueeEnabled =
+    workspace.placementTool === "select" && tool === "select";
+
+  const { marqueeRect, handlePointerDownCapture } = useCanvasMarqueeSelection({
+    enabled: marqueeEnabled,
+    containerRef,
+    nodes: workspace.nodes,
+    clientToWorld: screenToWorld,
+    onSelectNodes: workspace.selectNodes,
+    onClearSelection: workspace.clearSelection,
+  });
+
   const mergedHandlers = {
     ...viewportHandlers,
     ...fileDrop.handlers,
+    onPointerDownCapture: handlePointerDownCapture,
     onPointerDown: (event: React.PointerEvent<HTMLDivElement>) => {
       if (workspace.placementTool !== "select" && tool === "select" && event.button === 0) {
         const { x, y } = screenToWorld(event.clientX, event.clientY);
@@ -277,6 +291,16 @@ export function OpenCanvasWorkspace({
 
       if (event.key === "Escape" && pendingStampId) {
         cancelStampPlacement();
+        event.preventDefault();
+        return;
+      }
+
+      if (
+        event.key === "Escape" &&
+        workspace.placementTool === "select" &&
+        workspace.selectedIds.length > 0
+      ) {
+        workspace.clearSelection();
         event.preventDefault();
         return;
       }
@@ -382,6 +406,7 @@ export function OpenCanvasWorkspace({
             nodes={workspace.nodes}
             zoom={viewport.zoom}
             selectedIds={workspace.selectedIds}
+            marqueeRect={marqueeRect}
             viewportTool={tool}
             placementTool={workspace.placementTool}
             pendingStampId={pendingStampId}

@@ -18,7 +18,9 @@ import {
   readAuthTransition,
 } from "@/lib/auth/transition-storage";
 import type { AuthTransitionKind } from "@/lib/auth/transition-stages";
-import { LOGIN_PATH, PROJECTS_PATH } from "@/lib/routes";
+import { LANDING_PATH, LOGIN_PATH, PROJECTS_PATH } from "@/lib/routes";
+
+const AUTH_CALLBACK_PATH = "/auth/callback";
 
 type AuthTransitionContextValue = {
   beginAuthTransition: (
@@ -65,32 +67,54 @@ export function AuthTransitionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const stored = readAuthTransition();
-    if (stored?.kind) {
-      setKind(stored.kind);
-      setStartedAt(stored.startedAt);
+    if (typeof window === "undefined") return;
+
+    const path = window.location.pathname;
+
+    if (path === LANDING_PATH) {
+      clearAuthTransition();
+      return;
     }
+
+    const stored = readAuthTransition();
+    if (!stored?.kind) return;
+
+    if (path === LOGIN_PATH) {
+      if (stored.kind === "enter-hub" || stored.kind === "open-hub") {
+        setKind(stored.kind);
+        setStartedAt(stored.startedAt);
+      } else {
+        clearAuthTransition();
+      }
+      return;
+    }
+
+    setKind(stored.kind);
+    setStartedAt(stored.startedAt);
   }, []);
 
   useEffect(() => {
     if (!kind) return;
 
-    if (pathname === LOGIN_PATH) {
-      const params =
-        typeof window !== "undefined"
-          ? new URLSearchParams(window.location.search)
-          : null;
-      if (params?.get("error")) {
-        endAuthTransition();
-        return;
-      }
+    if (pathname === AUTH_CALLBACK_PATH && kind === "complete-sign-in") {
+      return;
+    }
 
+    if (pathname === LANDING_PATH) {
+      endAuthTransition();
+      return;
+    }
+
+    if (pathname === LOGIN_PATH) {
       if (kind === "enter-hub") {
         const timer = window.setTimeout(() => {
           endAuthTransition();
         }, 160);
         return () => window.clearTimeout(timer);
       }
+
+      endAuthTransition();
+      return;
     }
 
     if (isHubDestination(pathname)) {
@@ -100,6 +124,18 @@ export function AuthTransitionProvider({ children }: { children: ReactNode }) {
       return () => window.clearTimeout(timer);
     }
   }, [endAuthTransition, kind, pathname]);
+
+  useEffect(() => {
+    function handlePageShow(event: PageTransitionEvent) {
+      if (!event.persisted) return;
+      if (pathname === LANDING_PATH || pathname === LOGIN_PATH) {
+        endAuthTransition();
+      }
+    }
+
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, [endAuthTransition, pathname]);
 
   const value = useMemo(
     () => ({

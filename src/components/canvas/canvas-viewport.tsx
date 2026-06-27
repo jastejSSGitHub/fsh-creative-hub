@@ -15,7 +15,8 @@ type CanvasViewportSurfaceProps = {
   nodesLayer?: React.ReactNode;
   dropOverlay?: React.ReactNode;
   handlers: {
-    onPointerDown: (event: React.PointerEvent<HTMLDivElement>) => void;
+    onPointerDown?: (event: React.PointerEvent<HTMLDivElement>) => void;
+    onPointerDownCapture?: (event: React.PointerEvent<HTMLDivElement>) => void;
     onPointerMove: (event: React.PointerEvent<HTMLDivElement>) => void;
     onPointerUp: (event: React.PointerEvent<HTMLDivElement>) => void;
     onPointerCancel: (event: React.PointerEvent<HTMLDivElement>) => void;

@@ -11,20 +11,28 @@ import type { CanvasNode } from "@/lib/canvas/types";
 
 const MARQUEE_DRAG_THRESHOLD_PX = 4;
 
-function isMarqueeBlockedTarget(target: HTMLElement, surface: HTMLElement) {
-  if (target === surface) return false;
+export function shouldStartCanvasMarquee(
+  target: HTMLElement,
+  container: HTMLElement,
+): boolean {
+  if (!container.contains(target)) return false;
 
-  if (target.closest("[data-canvas-node]")) return true;
+  if (target.closest("[data-canvas-node]")) return false;
 
-  return Boolean(
+  if (
     target.closest(
-      "[data-sticky-toolbar], [data-sticky-toolbar-popover], [data-text-toolbar], [data-text-toolbar-popover], [data-stamp-toolbar], [data-embed-toolbar], [data-embed-interactive], [data-canvas-marquee]",
-    ),
-  );
+      "[data-sticky-toolbar], [data-sticky-toolbar-popover], [data-text-toolbar], [data-text-toolbar-popover], [data-stamp-toolbar], [data-embed-toolbar], [data-embed-interactive], [data-canvas-resize], [data-canvas-marquee], [data-canvas-ui]",
+    )
+  ) {
+    return false;
+  }
+
+  return true;
 }
 
 type UseCanvasMarqueeSelectionOptions = {
   enabled: boolean;
+  containerRef: React.RefObject<HTMLDivElement | null>;
   nodes: CanvasNode[];
   clientToWorld: (clientX: number, clientY: number) => { x: number; y: number };
   onSelectNodes: (ids: string[], options?: { additive?: boolean }) => void;
@@ -33,13 +41,13 @@ type UseCanvasMarqueeSelectionOptions = {
 
 export function useCanvasMarqueeSelection({
   enabled,
+  containerRef,
   nodes,
   clientToWorld,
   onSelectNodes,
   onClearSelection,
 }: UseCanvasMarqueeSelectionOptions) {
   const [marqueeRect, setMarqueeRect] = useState<WorldRect | null>(null);
-  const surfaceRef = useRef<HTMLDivElement>(null);
   const nodesRef = useRef(nodes);
   nodesRef.current = nodes;
 
@@ -63,13 +71,15 @@ export function useCanvasMarqueeSelection({
     cancelMarquee();
   }, [cancelMarquee, enabled]);
 
-  const handlePointerDown = useCallback(
+  const handlePointerDownCapture = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
       if (!enabled || event.button !== 0) return;
 
-      const surface = surfaceRef.current ?? event.currentTarget;
+      const container = containerRef.current;
+      if (!container) return;
+
       const target = event.target as HTMLElement;
-      if (isMarqueeBlockedTarget(target, surface)) return;
+      if (!shouldStartCanvasMarquee(target, container)) return;
 
       const startWorld = clientToWorld(event.clientX, event.clientY);
       const session = {
@@ -84,7 +94,6 @@ export function useCanvasMarqueeSelection({
       sessionRef.current = session;
 
       event.stopPropagation();
-      event.preventDefault();
 
       function handleWindowPointerMove(moveEvent: PointerEvent) {
         const activeSession = sessionRef.current;
@@ -145,14 +154,11 @@ export function useCanvasMarqueeSelection({
       window.addEventListener("pointerup", finishSession);
       window.addEventListener("pointercancel", finishSession);
     },
-    [cancelMarquee, clientToWorld, enabled, onClearSelection, onSelectNodes],
+    [cancelMarquee, clientToWorld, containerRef, enabled, onClearSelection, onSelectNodes],
   );
 
   return {
-    surfaceRef,
     marqueeRect,
-    marqueeHandlers: {
-      onPointerDown: handlePointerDown,
-    },
+    handlePointerDownCapture,
   };
 }

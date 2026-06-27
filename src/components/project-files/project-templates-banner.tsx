@@ -1,8 +1,11 @@
 "use client";
 
-import { ClipboardList, Lightbulb, X } from "lucide-react";
+import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import {
+  TEMPLATE_THUMBNAIL_ILLUSTRATIONS,
+} from "@/components/project-files/project-template-thumbnail-illustrations";
 import { cn } from "@/lib/utils";
 
 type TemplateCategory = "brainstorm" | "reviews";
@@ -14,46 +17,51 @@ type ProjectTemplatesBannerProps = {
 
 const TEMPLATE_CARDS: Record<
   TemplateCategory,
-  { id: string; title: string; gradient: string; icon: typeof Lightbulb }[]
+  {
+    id: keyof typeof TEMPLATE_THUMBNAIL_ILLUSTRATIONS;
+    title: string;
+    gradient: string;
+    titleClassName: string;
+  }[]
 > = {
   brainstorm: [
     {
       id: "idea-sprint",
       title: "Idea sprint",
-      gradient: "from-[#fff4d6] via-[#ffe8a3] to-[#ffd76a]",
-      icon: Lightbulb,
+      gradient: "from-[#FFD166] via-[#FCBF49] to-[#F77F00]",
+      titleClassName: "text-[#1F1408]",
     },
     {
       id: "mood-board",
       title: "Mood board",
-      gradient: "from-[#f3e8ff] via-[#e9d5ff] to-[#d8b4fe]",
-      icon: Lightbulb,
+      gradient: "from-[#9333EA] via-[#7E22CE] to-[#581C87]",
+      titleClassName: "text-white",
     },
     {
       id: "concept-map",
       title: "Concept map",
-      gradient: "from-[#e0f2fe] via-[#bae6fd] to-[#7dd3fc]",
-      icon: Lightbulb,
+      gradient: "from-[#2563EB] via-[#1D4ED8] to-[#1E3A8A]",
+      titleClassName: "text-white",
     },
   ],
   reviews: [
     {
       id: "asset-review",
       title: "Asset review",
-      gradient: "from-[#dcfce7] via-[#bbf7d0] to-[#86efac]",
-      icon: ClipboardList,
+      gradient: "from-[#4ADE80] via-[#16A34A] to-[#14532D]",
+      titleClassName: "text-[#052E16]",
     },
     {
       id: "campaign-checklist",
       title: "Campaign checklist",
-      gradient: "from-[#ffe4e6] via-[#fecdd3] to-[#fda4af]",
-      icon: ClipboardList,
+      gradient: "from-[#F9A8D4] via-[#EC4899] to-[#9D174D]",
+      titleClassName: "text-[#500724]",
     },
     {
       id: "client-signoff",
       title: "Client sign-off",
-      gradient: "from-[#e0e7ff] via-[#c7d2fe] to-[#a5b4fc]",
-      icon: ClipboardList,
+      gradient: "from-[#6366F1] via-[#4F46E5] to-[#312E81]",
+      titleClassName: "text-white",
     },
   ],
 };
@@ -88,7 +96,7 @@ export function ProjectTemplatesBanner({
   const cards = TEMPLATE_CARDS[category];
 
   return (
-    <section className="overflow-hidden rounded-md border border-hub-foreground/10 bg-hub-surface/80">
+    <section className="overflow-hidden rounded-md bg-hub-surface-muted">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3">
         <h2 className="font-display text-sm font-bold text-hub-foreground">
           Jump in with a template
@@ -124,33 +132,32 @@ export function ProjectTemplatesBanner({
 
       <div className="grid grid-cols-1 gap-3 p-4 min-[540px]:grid-cols-3">
         {cards.map((card) => {
-          const Icon = card.icon;
+          const Illustration = TEMPLATE_THUMBNAIL_ILLUSTRATIONS[card.id];
 
           return (
             <button
               key={card.id}
               type="button"
+              aria-label={card.title}
               onClick={() => onUseTemplate?.(category)}
               className="group overflow-hidden rounded-md border border-hub-foreground/10 bg-hub-surface text-left shadow-sm transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hub-primary/40"
             >
               <div
                 className={cn(
-                  "relative flex aspect-[16/10] items-center justify-center bg-gradient-to-br",
+                  "relative aspect-[16/10] overflow-hidden bg-gradient-to-br",
                   card.gradient,
                 )}
               >
-                <Icon
-                  className="size-8 text-hub-foreground/25 transition-transform group-hover:scale-105"
-                  aria-hidden
-                />
-              </div>
-              <div className="flex items-center gap-2 border-t border-hub-foreground/8 px-3 py-2.5">
-                <span className="flex size-5 shrink-0 items-center justify-center rounded-[3px] bg-hub-primary/10 text-hub-primary">
-                  <Icon className="size-3" aria-hidden />
-                </span>
-                <span className="truncate text-[0.8125rem] font-medium text-hub-foreground">
+                <p
+                  className={cn(
+                    "absolute left-3.5 top-3.5 z-10 max-w-[75%] font-display text-[clamp(1.0625rem,3.8vw,1.3125rem)] font-bold leading-snug tracking-tight",
+                    card.titleClassName,
+                  )}
+                >
                   {card.title}
-                </span>
+                </p>
+
+                <Illustration className="transition-transform duration-300 group-hover:translate-y-[-2px]" />
               </div>
             </button>
           );

@@ -218,7 +218,7 @@ export function LoginForm() {
     setIsSuccess(false);
     setIsPending(true);
     setSignInMode("google");
-    beginAuthTransition("sign-in");
+    beginAuthTransition("sign-in", { persist: false });
 
     try {
       const supabase = createClient();

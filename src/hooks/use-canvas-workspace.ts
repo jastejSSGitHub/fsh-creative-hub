@@ -203,6 +203,8 @@ export function useCanvasWorkspace({
     useState<CanvasPlacementTool>("select");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const selectedId = selectedIds[selectedIds.length - 1] ?? null;
+  const selectedIdsRef = useRef(selectedIds);
+  selectedIdsRef.current = selectedIds;
   const [recentDropIds, setRecentDropIds] = useState<string[]>([]);
   const [templatePickerOpen, setTemplatePickerOpen] = useState(
     () => parsed.nodes.length === 0 && !parsed.templateApplied,
@@ -624,7 +626,51 @@ export function useCanvasWorkspace({
 
   const moveNode = useCallback((id: string, x: number, y: number) => {
     const node = nodesRef.current.find((n) => n.id === id);
-    if (!node) return;
+    if (!node || node.type === "section") return;
+
+    const selected = selectedIdsRef.current;
+    const movableSelected = selected.filter((sid) => {
+      const entry = nodesRef.current.find((n) => n.id === sid);
+      return entry && entry.type !== "section";
+    });
+
+    const isGroupDrag =
+      movableSelected.length > 1 && movableSelected.includes(id);
+
+    if (isGroupDrag) {
+      const dx = x - node.x;
+      const dy = y - node.y;
+      if (dx === 0 && dy === 0) return;
+
+      const movingStickyIds = new Set(
+        movableSelected.filter((sid) => {
+          const entry = nodesRef.current.find((n) => n.id === sid);
+          return entry?.type === "sticky";
+        }),
+      );
+
+      setNodes((current) =>
+        current.map((entry) => {
+          if (movableSelected.includes(entry.id)) {
+            if (entry.id === id) {
+              return { ...entry, x, y };
+            }
+            return { ...entry, x: entry.x + dx, y: entry.y + dy };
+          }
+
+          if (
+            entry.type === "stamp" &&
+            entry.attachedStickyId &&
+            movingStickyIds.has(entry.attachedStickyId)
+          ) {
+            return { ...entry, x: entry.x + dx, y: entry.y + dy };
+          }
+
+          return entry;
+        }),
+      );
+      return;
+    }
 
     if (node.type === "sticky") {
       const sections = getSectionNodes(nodesRef.current);
