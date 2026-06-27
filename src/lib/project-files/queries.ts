@@ -25,7 +25,25 @@ export async function getProjectFiles(
   if (error) throw error;
   if (!files?.length) return [];
 
-  const fileIds = files.map((f) => f.id);
+  const { data: ideasCanvasRows } = await supabase
+    .from("hub_initiatives")
+    .select("ideas_canvas_id")
+    .eq("project_id", projectId)
+    .not("ideas_canvas_id", "is", null);
+
+  const ideasCanvasIds = new Set(
+    (ideasCanvasRows ?? [])
+      .map((row) => row.ideas_canvas_id as string)
+      .filter(Boolean),
+  );
+
+  const visibleFiles = (files as HubProjectFile[]).filter(
+    (file) => !ideasCanvasIds.has(file.id),
+  );
+
+  if (!visibleFiles.length) return [];
+
+  const fileIds = visibleFiles.map((f) => f.id);
 
   const { data: initiatives } = await supabase
     .from("hub_initiatives")
@@ -68,7 +86,7 @@ export async function getProjectFiles(
     );
   }
 
-  return (files as HubProjectFile[]).map((file) => {
+  return visibleFiles.map((file) => {
     const sectionIds = initiativesByBoard.get(file.id) ?? [];
     const fileAssets = assets.filter((a) => sectionIds.includes(a.initiative_id));
 

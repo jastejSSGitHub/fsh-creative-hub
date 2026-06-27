@@ -40,6 +40,22 @@ async function requireEditor(projectId: string) {
   return { supabase, user, role };
 }
 
+async function requireAdmin(projectId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("You must be signed in.");
+
+  const role = await getProjectMembership(supabase, projectId, user.id);
+  if (role !== "admin") {
+    throw new Error("Admin access required.");
+  }
+
+  return { supabase, user, role };
+}
+
 type CreateReviewBoardInput = {
   projectId: string;
   name: string;
@@ -414,6 +430,73 @@ export async function toggleProjectFileFavoriteAction(
     return {
       ok: false,
       error: toUserFacingError(error, "We couldn't update your favorite. Please try again."),
+    };
+  }
+}
+
+export async function deleteProjectFileAction(
+  projectId: string,
+  fileId: string,
+): Promise<ActionResult> {
+  try {
+    const { supabase } = await requireAdmin(projectId);
+
+    if (!fileId) {
+      return { ok: false, error: "File is required." };
+    }
+
+    const { data: linkedInitiative } = await supabase
+      .from("hub_initiatives")
+      .select("id")
+      .eq("ideas_canvas_id", fileId)
+      .maybeSingle();
+
+    if (linkedInitiative) {
+      return {
+        ok: false,
+        error: "This whiteboard belongs to a review board section and can't be deleted here.",
+      };
+    }
+
+    const { data: file } = await supabase
+      .from("hub_project_files")
+      .select("id, type, name")
+      .eq("id", fileId)
+      .eq("project_id", projectId)
+      .maybeSingle();
+
+    if (!file) {
+      return { ok: false, error: "File not found in this project." };
+    }
+
+    const { error } = await supabase
+      .from("hub_project_files")
+      .delete()
+      .eq("id", fileId)
+      .eq("project_id", projectId);
+
+    if (error) {
+      return {
+        ok: false,
+        error: toUserFacingError(error.message, "We couldn't delete that file. Please try again."),
+      };
+    }
+
+    revalidatePath(projectPath(projectId));
+
+    if (file.type === "canvas") {
+      revalidatePath(canvasPath(projectId, fileId));
+    } else if (file.type === "text_document") {
+      revalidatePath(textDocumentPath(projectId, fileId));
+    } else {
+      revalidatePath(reviewBoardPath(projectId, fileId));
+    }
+
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error: toUserFacingError(error, "We couldn't delete that file. Please try again."),
     };
   }
 }

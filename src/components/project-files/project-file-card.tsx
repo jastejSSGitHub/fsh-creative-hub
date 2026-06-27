@@ -2,6 +2,7 @@
 
 import { ClipboardList, FileText, PenTool, Star } from "lucide-react";
 import { ProjectFileThumbnail } from "@/components/project-files/project-file-thumbnail";
+import { ProjectFileOptionsMenu } from "@/components/project-files/project-file-options-menu";
 import { useRouter } from "next/navigation";
 import { useCallback, useRef } from "react";
 
@@ -78,6 +79,8 @@ type ProjectFileCardProps = {
   onSelect?: (fileId: string) => void;
   onFavoriteToggle?: (fileId: string, favorite: boolean) => void;
   onContextMenu: (file: ProjectFileWithMeta, x: number, y: number) => void;
+  canDelete?: boolean;
+  onDelete?: (file: ProjectFileWithMeta) => void;
   favoriteButtonRef?: React.RefObject<HTMLButtonElement | null>;
   forceFavoriteVisible?: boolean;
 };
@@ -92,6 +95,8 @@ export function ProjectFileCard({
   onSelect,
   onFavoriteToggle,
   onContextMenu,
+  canDelete = false,
+  onDelete,
   favoriteButtonRef,
   forceFavoriteVisible = false,
 }: ProjectFileCardProps) {
@@ -207,6 +212,14 @@ export function ProjectFileCard({
     >
       <div className="relative aspect-[16/10] overflow-hidden bg-hub-foreground/5">
         <ProjectFileThumbnail type={file.type} fileId={file.id} />
+
+        {canDelete && onDelete && (
+          <ProjectFileOptionsMenu
+            canDelete={canDelete}
+            onDelete={() => onDelete(file)}
+            className="absolute top-2.5 left-2.5"
+          />
+        )}
 
         {onFavoriteToggle && (
           <button

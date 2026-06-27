@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="FSH Creative Hub">
+  <rect width="32" height="32" rx="8" fill="#fbf7ee"/>
+  <rect x="5" y="5" width="22" height="22" rx="7" fill="#ffc94b"/>
+  <path
+    fill="#0b0b0b"
+    d="M10.5 10h3.2v5.1h4.6V10h3.2v12h-3.2v-4.9h-4.6V22h-3.2V10z"
+  />
+</svg>

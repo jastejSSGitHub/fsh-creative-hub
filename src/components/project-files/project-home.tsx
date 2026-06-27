@@ -3,13 +3,14 @@
 import { LayoutGroup, motion, useReducedMotion } from "framer-motion";
 import { Star } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, type RefObject } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 
 import { ProjectCreateMenu } from "@/components/project-files/project-create-menu";
 import {
   navigateToProjectFile,
   ProjectFileCard,
 } from "@/components/project-files/project-file-card";
+import { ProjectFileDeleteConfirmDialog } from "@/components/project-files/project-file-delete-confirm-dialog";
 import {
   ProjectContextMenu,
   type ProjectContextMenuItem,
@@ -22,8 +23,9 @@ import {
 import { ProjectTemplatesBanner } from "@/components/project-files/project-templates-banner";
 import { ProjectInlineTitle } from "@/components/projects/project-inline-title";
 import { NavBackLink } from "@/components/ui/nav-back-link";
+import { UndoToast } from "@/components/ui/undo-toast";
 import { HubSelect } from "@/components/ui/hub-select";
-import { toggleProjectFileFavoriteAction } from "@/lib/project-files/actions";
+import { deleteProjectFileAction, toggleProjectFileFavoriteAction } from "@/lib/project-files/actions";
 import type { ProjectTemplateId } from "@/lib/project-files/project-templates";
 import type { ProjectFileWithMeta } from "@/lib/project-files/queries";
 import { canAdmin, canEdit } from "@/lib/permissions";
@@ -48,6 +50,8 @@ const FILE_LAYOUT_TRANSITION = {
   },
 };
 
+const FILE_DELETE_UNDO_MS = 5000;
+
 const SECTION_TRANSITION = {
   duration: 0.4,
   ease: [0.4, 0, 0.2, 1] as const,
@@ -58,6 +62,11 @@ type FileContextMenuState = {
   x: number;
   y: number;
 } | null;
+
+type PendingFileDelete = {
+  file: ProjectFileWithMeta;
+  timeoutId: ReturnType<typeof setTimeout>;
+};
 
 type ProjectHomeProps = {
   project: HubProject;
@@ -122,6 +131,8 @@ type AnimatedFileCardProps = {
   onSelect: (fileId: string) => void;
   onFavoriteToggle: (fileId: string, favorite: boolean) => void;
   onContextMenu: (file: ProjectFileWithMeta, x: number, y: number) => void;
+  canDelete: boolean;
+  onDelete: (file: ProjectFileWithMeta) => void;
   favoriteButtonRef?: RefObject<HTMLButtonElement | null>;
   forceFavoriteVisible?: boolean;
 };
@@ -175,13 +186,17 @@ export function ProjectHome({
   const reduceMotion = useReducedMotion();
   const animateLayout = !reduceMotion;
   const canCreate = canEdit(role);
+  const canDeleteFiles = canAdmin(role);
   const [localFiles, setLocalFiles] = useState(files);
   const [sortField, setSortField] = useState<FileSortField>("last_modified");
   const [sortOrder, setSortOrder] = useState<FileSortOrder>("newest");
   const [typeFilter, setTypeFilter] = useState<FileTypeFilter>("all");
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<FileContextMenuState>(null);
+  const [deleteConfirmFile, setDeleteConfirmFile] = useState<ProjectFileWithMeta | null>(null);
+  const [deleteToastVisible, setDeleteToastVisible] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const pendingDeleteRef = useRef<PendingFileDelete | null>(null);
 
   useEffect(() => {
     setLocalFiles(files);
@@ -215,6 +230,74 @@ export function ProjectHome({
   function showToast(message: string) {
     setToast(message);
     window.setTimeout(() => setToast(null), 2200);
+  }
+
+  const commitPendingDelete = useCallback(
+    async (options?: { keepToast?: boolean }) => {
+      const pending = pendingDeleteRef.current;
+      if (!pending) return;
+
+      clearTimeout(pending.timeoutId);
+      pendingDeleteRef.current = null;
+      if (!options?.keepToast) {
+        setDeleteToastVisible(false);
+      }
+
+      const result = await deleteProjectFileAction(project.id, pending.file.id);
+
+      if (!result.ok) {
+        setLocalFiles((current) => {
+          if (current.some((file) => file.id === pending.file.id)) return current;
+          return [...current, pending.file];
+        });
+        showToast(result.error ?? "Could not delete file.");
+        return;
+      }
+
+      router.refresh();
+    },
+    [project.id, router],
+  );
+
+  function queueFileDelete(file: ProjectFileWithMeta) {
+    void commitPendingDelete({ keepToast: true });
+
+    setLocalFiles((current) => current.filter((item) => item.id !== file.id));
+    if (selectedFileId === file.id) {
+      setSelectedFileId(null);
+    }
+    setDeleteToastVisible(true);
+
+    const timeoutId = setTimeout(() => {
+      void commitPendingDelete();
+    }, FILE_DELETE_UNDO_MS);
+
+    pendingDeleteRef.current = { file, timeoutId };
+  }
+
+  function undoFileDelete() {
+    const pending = pendingDeleteRef.current;
+    if (!pending) return;
+
+    clearTimeout(pending.timeoutId);
+    pendingDeleteRef.current = null;
+    setDeleteToastVisible(false);
+    setLocalFiles((current) => {
+      if (current.some((item) => item.id === pending.file.id)) return current;
+      return [...current, pending.file];
+    });
+  }
+
+  function handleFileDeleteRequest(file: ProjectFileWithMeta) {
+    if (!canDeleteFiles) return;
+    setDeleteConfirmFile(file);
+  }
+
+  function confirmFileDelete() {
+    if (!deleteConfirmFile) return;
+    const file = deleteConfirmFile;
+    setDeleteConfirmFile(null);
+    queueFileDelete(file);
   }
 
   function toggleFavorite(fileId: string, favorite: boolean) {
@@ -269,6 +352,17 @@ export function ProjectHome({
         onSelect: () => toggleFavorite(file.id, !file.isFavorite),
         separatorBefore: true,
       },
+      ...(canDeleteFiles
+        ? [
+            {
+              id: "delete",
+              label: "Delete",
+              onSelect: () => handleFileDeleteRequest(file),
+              destructive: true,
+              separatorBefore: true,
+            } satisfies ProjectContextMenuItem,
+          ]
+        : []),
     ];
   }
 
@@ -288,6 +382,8 @@ export function ProjectHome({
         onContextMenu={(target, x, y) =>
           setContextMenu({ file: target, x, y })
         }
+        canDelete={canDeleteFiles}
+        onDelete={handleFileDeleteRequest}
         favoriteButtonRef={isOnboardingTarget ? favoriteButtonRef : undefined}
         forceFavoriteVisible={isOnboardingTarget && favoriteForceVisible}
       />
@@ -474,6 +570,19 @@ export function ProjectHome({
       y={contextMenu?.y ?? 0}
       items={contextMenu ? buildFileContextMenuItems(contextMenu.file) : []}
       onClose={() => setContextMenu(null)}
+    />
+
+    <ProjectFileDeleteConfirmDialog
+      open={deleteConfirmFile != null}
+      fileName={deleteConfirmFile?.name}
+      onClose={() => setDeleteConfirmFile(null)}
+      onConfirm={confirmFileDelete}
+    />
+
+    <UndoToast
+      message="File deleted"
+      visible={deleteToastVisible}
+      onUndo={undoFileDelete}
     />
 
     {toast && (

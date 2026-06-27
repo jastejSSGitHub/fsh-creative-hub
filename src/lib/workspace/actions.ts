@@ -707,7 +707,6 @@ export async function getInitiativeIdeasCanvasAction(
       return { ok: false, error: "Could not create ideas whiteboard." };
     }
 
-    revalidateProject(projectId);
     return { ok: true, canvas };
   } catch (e) {
     return { ok: false, error: toUserFacingError(e, "Something went wrong. Please try again.") };

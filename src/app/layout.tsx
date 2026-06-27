@@ -3,8 +3,12 @@ import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
 
 import { AuthTransitionProvider } from "@/components/auth/auth-transition-provider";
 import { ThemeProvider } from "@/components/theme-provider";
+import { getSiteUrl } from "@/lib/site-url";
 
 import "./globals.css";
+
+const siteDescription =
+  "Internal creative collaboration for FSH Design — projects, initiatives, assets, and team consensus.";
 
 const bricolage = Bricolage_Grotesque({
   variable: "--font-bricolage",
