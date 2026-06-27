@@ -8,11 +8,30 @@ import { FeatureIllustrationFrame } from "@/components/landing/feature-illustrat
 import { IdeasWorkflowIllustration } from "@/components/landing/ideas-workflow-illustration";
 import { PresentWorkflowIllustration } from "@/components/landing/present-workflow-illustration";
 import { ProjectsWorkflowIllustration } from "@/components/landing/projects-workflow-illustration";
+import {
+  FeatureTutorialLink,
+  type FeatureTutorialConfig,
+} from "@/components/landing/feature-tutorial-link";
 import { ScrollReveal } from "@/components/landing/scroll-reveal";
 import { TrimmedLoopVideo } from "@/components/landing/trimmed-loop-video";
 import { cn } from "@/lib/utils";
 
-const FEATURES = [
+const EXAMPLE_LOOM_URL =
+  "https://www.loom.com/share/8d092b28331e472db3ff064d466f977d";
+
+const APPROVAL_REJECTION_LOOM_URL =
+  "https://www.loom.com/share/df5b9086b5cc482282ac29e74b1462cd";
+
+const FEATURES: ReadonlyArray<{
+  kicker: string;
+  headline: string;
+  body: string;
+  visualLabel: string;
+  visualAspect: "wide" | "video" | "portrait";
+  index: number;
+  media: { type: "video"; src: string; startAt?: number } | null;
+  tutorial: FeatureTutorialConfig | null;
+}> = [
   {
     kicker: "PROJECTS",
     headline: "Every initiative, one home.",
@@ -21,18 +40,26 @@ const FEATURES = [
     visualAspect: "wide" as const,
     index: 0,
     media: null,
+    tutorial: {
+      loomUrl: EXAMPLE_LOOM_URL,
+      modalTitle: "Every initiative, one home",
+    },
   },
   {
     kicker: "REVIEW",
     headline: "Approve, reject, react.",
     body: "Open any asset full-screen. Vote with 🔥 👍 🤔 ❌. Watch consensus form in real time.",
     visualLabel: "Asset lightbox",
-    visualAspect: "video" as const,
+    visualAspect: "video",
     index: 1,
     media: {
-      type: "video" as const,
+      type: "video",
       src: "/media/Landing%20page/Approved-By.mp4",
       startAt: 2,
+    },
+    tutorial: {
+      loomUrl: APPROVAL_REJECTION_LOOM_URL,
+      modalTitle: "Approve, reject, react",
     },
   },
   {
@@ -40,29 +67,38 @@ const FEATURES = [
     headline: "Feedback that sticks.",
     body: "Threaded comments, @mentions, and resolve checkmarks. Nothing gets lost.",
     visualLabel: "Comments panel · Screenshot placeholder",
-    visualAspect: "portrait" as const,
+    visualAspect: "portrait",
     index: 2,
     media: null,
+    tutorial: {
+      loomUrl: EXAMPLE_LOOM_URL,
+      modalTitle: "Feedback that sticks",
+    },
   },
   {
     kicker: "IDEAS",
     headline: "Brainstorm out loud.",
     body: "Drop ideas on a shared board. Upvote the best. Let the room decide.",
     visualLabel: "Ideas board · Screenshot placeholder",
-    visualAspect: "wide" as const,
+    visualAspect: "wide",
     index: 3,
     media: null,
+    tutorial: {
+      loomUrl: EXAMPLE_LOOM_URL,
+      modalTitle: "Brainstorm out loud",
+    },
   },
   {
     kicker: "PRESENT",
     headline: "Hand it to the room.",
     body: "One click to a clean, full-screen reel of approved and final picks. Meeting-ready.",
     visualLabel: "Presentation mode · Screenshot placeholder",
-    visualAspect: "video" as const,
+    visualAspect: "video",
     index: 4,
     media: null,
+    tutorial: null,
   },
-] as const;
+];
 
 const ILLUSTRATION_FRAMES = {
   PROJECTS: "bg-gradient-to-br from-[#7B2CBF] via-[#C77DFF] to-[#E0AAFF]",
@@ -204,6 +240,9 @@ export function FeatureShowcase() {
                   <p className="max-w-md text-base leading-relaxed text-hub-foreground/60 sm:text-lg">
                     {feature.body}
                   </p>
+                  {feature.tutorial ? (
+                    <FeatureTutorialLink tutorial={feature.tutorial} />
+                  ) : null}
                 </div>
 
                 <div className="w-full">
