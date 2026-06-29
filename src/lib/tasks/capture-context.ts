@@ -12,6 +12,16 @@ const STORAGE_KEY = "fsh-quick-add-capture";
 export const QUICK_ADD_CAPTURE_CHANGED = "fsh-quick-add-capture-changed";
 export const OPEN_QUICK_ADD_REQUEST = "fsh-open-quick-add-request";
 
+let quickAddOpen = false;
+
+export function setQuickAddOpenState(open: boolean): void {
+  quickAddOpen = open;
+}
+
+export function isQuickAddOpen(): boolean {
+  return quickAddOpen;
+}
+
 export function setQuickAddCaptureContext(ctx: QuickAddCaptureContext): void {
   if (typeof window === "undefined") return;
   try {

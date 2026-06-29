@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { readMockCollaborationData } from "@/lib/dev-tools/storage";
+import { isE2ePresenceUser } from "@/lib/e2e/is-e2e-test-user";
 
 import {
   joinProjectPresenceRoom,
@@ -94,7 +95,10 @@ export function useProjectPresence(options: {
     options.taskId,
   ]);
 
-  return useMemo(() => others, [others]);
+  return useMemo(
+    () => others.filter((user) => !isE2ePresenceUser(user)),
+    [others],
+  );
 }
 
 export function useTaskViewers(

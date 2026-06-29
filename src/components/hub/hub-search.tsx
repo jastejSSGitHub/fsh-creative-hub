@@ -8,7 +8,7 @@ import {
   useState,
   type KeyboardEvent,
 } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   ClipboardList,
   FileText,
@@ -31,6 +31,7 @@ import {
 } from "@/lib/intelligence/project-options-client";
 import { HubIntelligenceLoading } from "@/components/hub/hub-intelligence-loading";
 import { HubIntelligenceResult } from "@/components/hub/hub-intelligence-result";
+import { HUB_ECOSYSTEM_ROOT_ATTR } from "@/components/hub/hub-ecosystem-constants";
 import {
   HubSearchEmptyState,
   type SearchHint,
@@ -44,7 +45,7 @@ import type {
   IntelligenceView,
   ProjectBrief,
 } from "@/lib/intelligence/types";
-import { projectIdFromPathname } from "@/lib/routes";
+import { navigateHubContent } from "@/lib/hub/navigate-hub-content";
 import type { SearchResult } from "@/lib/search/queries";
 import { cn } from "@/lib/utils";
 
@@ -77,8 +78,6 @@ function ResultIcon({ result }: { result: SearchResult }) {
 
 export function HubSearch() {
   const router = useRouter();
-  const pathname = usePathname();
-  const projectId = projectIdFromPathname(pathname);
   const listboxId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -96,14 +95,9 @@ export function HubSearch() {
   const [expandedPromptId, setExpandedPromptId] =
     useState<IntelligenceTemplateId | null>(null);
   const [showGlobalPicker, setShowGlobalPicker] = useState(false);
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
-    null,
-  );
   const [placeholder, setPlaceholder] = useState(
     "Search projects, files, assets, tasks",
   );
-
-  const effectiveProjectId = projectId ?? selectedProjectId;
 
   const [intelligenceLoading, setIntelligenceLoading] = useState(false);
   const [intelligenceError, setIntelligenceError] = useState<string | null>(
@@ -205,12 +199,13 @@ export function HubSearch() {
       const trimmed = prompt.trim();
       if (!trimmed && !templateId) return;
 
-      const targetProjectId =
-        explicitProjectId ?? projectId ?? selectedProjectId;
+      const targetProjectId = explicitProjectId ?? null;
 
       if (!targetProjectId) {
         setShowGlobalPicker(true);
-        setExpandedPromptId(null);
+        if (!templateId) {
+          setExpandedPromptId(null);
+        }
         setIntelligenceError(null);
         return;
       }
@@ -259,7 +254,6 @@ export function HubSearch() {
           return;
         }
 
-        setSelectedProjectId(targetProjectId);
         setBrief(payload.brief);
         setView(payload.view);
         setFromCache(payload.fromCache);
@@ -273,7 +267,7 @@ export function HubSearch() {
         setIntelligenceLoading(false);
       }
     },
-    [projectId, selectedProjectId],
+    [],
   );
 
   const rebuildBrief = useCallback(async () => {
@@ -331,10 +325,12 @@ export function HubSearch() {
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
-      if (!containerRef.current?.contains(event.target as Node)) {
-        setOpen(false);
-        setFocused(false);
-      }
+      const target = event.target as Element;
+      if (containerRef.current?.contains(target)) return;
+      if (target.closest(`[${HUB_ECOSYSTEM_ROOT_ATTR}]`)) return;
+      if (target.closest("dialog[open]")) return;
+      setOpen(false);
+      setFocused(false);
     }
 
     window.addEventListener("mousedown", handlePointerDown);
@@ -373,9 +369,7 @@ export function HubSearch() {
     setShowGlobalPicker(false);
     setPlaceholder(
       mode === "intelligence"
-        ? effectiveProjectId
-          ? "Ask about this project…"
-          : "Ask about a project…"
+        ? "Ask about a project…"
         : "Search projects, files, assets, tasks",
     );
     inputRef.current?.blur();
@@ -395,9 +389,7 @@ export function HubSearch() {
     setShowGlobalPicker(false);
     setPlaceholder(
       next === "intelligence"
-        ? effectiveProjectId
-          ? "Ask about this project…"
-          : "Ask about a project…"
+        ? "Ask about a project…"
         : "Search projects, files, assets, tasks",
     );
     setOpen(true);
@@ -420,27 +412,19 @@ export function HubSearch() {
     setActivePromptId(prompt.id);
     setPlaceholder(prompt.example);
     setIntelligenceError(null);
+    setBrief(null);
+    setView(null);
+    setFromCache(false);
     setOpen(true);
     setFocused(true);
-
-    if (effectiveProjectId) {
-      setExpandedPromptId(null);
-      setShowGlobalPicker(false);
-      void runIntelligence(prompt.label, prompt.id, effectiveProjectId);
-      return;
-    }
-
     setShowGlobalPicker(false);
-    setExpandedPromptId((current) =>
-      current === prompt.id ? null : prompt.id,
-    );
+    setExpandedPromptId(prompt.id);
   }
 
   function handleProjectSelect(
     project: IntelligenceProjectOption,
     prompt: IntelligencePrompt | null,
   ) {
-    setSelectedProjectId(project.id);
     setExpandedPromptId(null);
     setShowGlobalPicker(false);
 
@@ -455,7 +439,11 @@ export function HubSearch() {
     if (newTab) {
       window.open(result.href, "_blank", "noopener,noreferrer");
     } else {
-      router.push(result.href);
+      navigateHubContent(router, {
+        href: result.href,
+        label: result.name,
+        kindHint: result.kind === "file" ? "file" : result.kind,
+      });
     }
     setQuery("");
     setResults([]);
@@ -463,7 +451,7 @@ export function HubSearch() {
   }
 
   function submitIntelligence() {
-    void runIntelligence(query, activePromptId, effectiveProjectId);
+    void runIntelligence(query, activePromptId, null);
   }
 
   function handleInputKeyDown(event: KeyboardEvent<HTMLInputElement>) {
@@ -575,9 +563,7 @@ export function HubSearch() {
               setShowGlobalPicker(false);
               setPlaceholder(
                 mode === "intelligence"
-                  ? effectiveProjectId
-                    ? "Ask about this project…"
-                    : "Ask about a project…"
+                  ? "Ask about a project…"
                   : "Search projects, files, assets, tasks",
               );
             }
@@ -664,7 +650,7 @@ export function HubSearch() {
               projectOptionsError={projectOptionsError}
               onPromptSelect={handlePromptSelect}
               onProjectSelect={handleProjectSelect}
-              projectScoped={Boolean(effectiveProjectId)}
+              projectScoped={false}
             />
           )}
 
@@ -739,6 +725,7 @@ export function HubSearch() {
                   onRebuild={rebuildBrief}
                   rebuilding={rebuilding}
                   compact
+                  onNavigate={closeSearchPanel}
                 />
               )}
             </>

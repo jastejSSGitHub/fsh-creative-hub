@@ -1,14 +1,11 @@
-import { readSimulateNewUser, readMockCollaborationData } from "@/lib/dev-tools/storage";
 import type { CollaborationOnboardingFeatureId } from "@/lib/collaboration-onboarding/types";
 
-export const COLLABORATION_ONBOARDING_MAX_VIEWS = 2;
+export const COLLABORATION_ONBOARDING_MAX_VIEWS = 1;
 
 export function shouldShowCollaborationOnboarding(
   featureId: CollaborationOnboardingFeatureId,
   userId: string,
 ): boolean {
-  if (readSimulateNewUser()) return true;
-  if (readMockCollaborationData()) return true;
   if (typeof window === "undefined") return false;
   try {
     const raw = localStorage.getItem(

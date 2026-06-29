@@ -771,4 +771,69 @@ body[data-hub-for-you-drawer-open] [data-hub-mobile-chrome] {
     width: 0;
     height: 0;
   }
+
+  .hub-check-circle {
+    animation: hub-check-pop 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .hub-check-stroke {
+    stroke-dasharray: 24;
+    stroke-dashoffset: 24;
+    animation: hub-check-draw 0.35s 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .hub-quick-add-spinner {
+    animation: hub-quick-add-spin 0.9s linear infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hub-quick-add-spinner {
+      animation: none;
+      border-top-color: rgb(24 160 251 / 0.55);
+    }
+
+    .hub-quick-add-progress {
+      animation: none;
+      width: 66%;
+      transform: none;
+    }
+  }
+
+  .hub-quick-add-progress {
+    animation: hub-quick-add-shimmer 1.35s ease-in-out infinite;
+  }
+}
+
+@keyframes hub-check-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.65);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes hub-check-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes hub-quick-add-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes hub-quick-add-shimmer {
+  0% {
+    transform: translateX(-120%);
+  }
+
+  100% {
+    transform: translateX(320%);
+  }
 }

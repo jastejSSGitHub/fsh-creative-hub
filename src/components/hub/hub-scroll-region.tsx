@@ -21,6 +21,7 @@ export function HubScrollRegion({ children }: HubScrollRegionProps) {
         "flex min-h-0 flex-1 flex-col",
         fillLayout ? "overflow-hidden" : "fsh-scroll overflow-y-auto",
         !hideBottomNav &&
+          !fillLayout &&
           "max-lg:mb-[calc(3.75rem+env(safe-area-inset-bottom))]",
       )}
     >

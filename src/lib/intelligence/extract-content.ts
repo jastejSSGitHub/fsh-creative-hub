@@ -7,6 +7,10 @@ import {
   projectFileHref,
   textDocumentBlockHref,
 } from "@/lib/intelligence/deep-links";
+import {
+  resolveBriefItemMediaType,
+  resolveBriefItemThumbnail,
+} from "@/lib/intelligence/brief-thumbnails";
 import type { BriefItem, ContentIndexRow } from "@/lib/intelligence/types";
 
 const URL_PATTERN = /https?:\/\/[^\s<>"')\]]+/gi;
@@ -125,12 +129,17 @@ export function extractCanvasContent(
     if (node.type === "image") {
       const label = imageLabelFromUrl(node.imageUrl);
       const href = canvasNodeHref(projectId, canvasId, node.id);
+      const thumbnailUrl = resolveBriefItemThumbnail(node.imageUrl);
       collaterals.push({
         id: `canvas-image:${node.id}`,
         kind: "canvas_node",
         label,
         excerpt: canvasName,
         href,
+        thumbnailUrl: thumbnailUrl ?? undefined,
+        mediaType: thumbnailUrl
+          ? resolveBriefItemMediaType(node.imageUrl)
+          : undefined,
         meta: {
           width: node.naturalWidth ?? 0,
           height: node.naturalHeight ?? 0,

@@ -1,4 +1,5 @@
 import { MemberAvatar } from "@/components/projects/member-avatar";
+import { filterE2eTestUsers } from "@/lib/e2e/is-e2e-test-user";
 import { cn } from "@/lib/utils";
 import type { ProjectMemberPreview } from "@/lib/projects/queries";
 
@@ -16,10 +17,11 @@ export function MemberAvatarStack({
   className,
   inverse = false,
 }: MemberAvatarStackProps) {
-  const visible = members.slice(0, max);
-  const overflow = members.length - visible.length;
+  const visibleMembers = filterE2eTestUsers(members);
+  const visible = visibleMembers.slice(0, max);
+  const overflow = visibleMembers.length - visible.length;
 
-  if (members.length === 0) {
+  if (visibleMembers.length === 0) {
     return (
       <span className={cn("font-mono text-[0.65rem] text-hub-foreground/40", className)}>
         No members

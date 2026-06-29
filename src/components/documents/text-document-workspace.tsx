@@ -20,6 +20,7 @@ import {
 import { DocumentBreadcrumbs } from "@/components/documents/document-breadcrumbs";
 import { DocumentRevisionsMenu } from "@/components/documents/document-revisions-menu";
 import { DocumentScrollSpy } from "@/components/documents/document-scroll-spy";
+import { HubContentNavigationEndOnMount } from "@/components/hub/hub-content-navigation-end-on-mount";
 import { HubIconToolbar } from "@/components/ui/hub-icon-toolbar";
 import { HubSplitButton } from "@/components/ui/hub-split-button";
 import { NavBackLink } from "@/components/ui/nav-back-link";
@@ -225,6 +226,7 @@ export function TextDocumentWorkspace({
 
   return (
     <div className="relative min-h-[100dvh] pb-24">
+      <HubContentNavigationEndOnMount />
       <header className="sticky top-0 z-40 border-b border-hub-foreground/8 bg-hub-paper/95 backdrop-blur-md">
         <div className="flex items-center justify-between gap-3 px-4 py-2.5 sm:px-6">
           <div className="flex min-w-0 flex-1 items-center gap-3">

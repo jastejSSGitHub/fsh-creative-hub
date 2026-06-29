@@ -2,6 +2,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { computeContentHash } from "@/lib/intelligence/content-hash";
 import {
+  resolveBriefItemMediaType,
+  resolveBriefItemThumbnail,
+} from "@/lib/intelligence/brief-thumbnails";
+import {
+  assetCommentHref,
   assetHref,
   projectFileHref,
   taskHref,
@@ -15,6 +20,7 @@ import type {
   ContentIndexRow,
   InitiativeReviewStats,
   ProjectBrief,
+  ReviewCommentBrief,
   ReviewSummary,
 } from "@/lib/intelligence/types";
 import { PROJECT_BRIEF_VERSION } from "@/lib/intelligence/types";
@@ -47,6 +53,29 @@ function emptyReviewSummary(): ReviewSummary {
     final: 0,
     byInitiative: [],
     recentCommentCount: 0,
+    recentComments: [],
+    reviewBoardId: null,
+  };
+}
+
+export function normalizeReviewSummary(
+  summary: Partial<ReviewSummary> & Pick<ReviewSummary, "total" | "approved" | "rejected" | "pending" | "final" | "byInitiative" | "recentCommentCount">,
+): ReviewSummary {
+  return {
+    ...emptyReviewSummary(),
+    ...summary,
+    recentComments: summary.recentComments ?? [],
+    reviewBoardId: summary.reviewBoardId ?? null,
+  };
+}
+
+function normalizeProjectBrief(brief: ProjectBrief): ProjectBrief {
+  return {
+    ...brief,
+    sections: {
+      ...brief.sections,
+      reviewSummary: normalizeReviewSummary(brief.sections.reviewSummary),
+    },
   };
 }
 
@@ -151,6 +180,8 @@ export async function buildProjectBrief(
     name: string;
     tag: string;
     status: string;
+    type: string;
+    public_url: string | null;
     initiative_id: string;
     created_at: string;
   }> = [];
@@ -158,7 +189,7 @@ export async function buildProjectBrief(
   if (initiativeIds.length > 0) {
     const { data: assetRows } = await supabase
       .from("hub_assets")
-      .select("id, name, tag, status, initiative_id, created_at")
+      .select("id, name, tag, status, type, public_url, initiative_id, created_at")
       .in("initiative_id", initiativeIds)
       .is("variant_of", null);
 
@@ -166,10 +197,6 @@ export async function buildProjectBrief(
   }
 
   const openTasks = (tasks ?? []).filter((task) => !task.completed);
-  const assetMaxUpdatedAt = assets.reduce<string | null>((max, asset) => {
-    if (!asset.created_at) return max;
-    return !max || asset.created_at > max ? asset.created_at : max;
-  }, null);
 
   const taskMaxUpdatedAt = openTasks.reduce<string | null>((max, task) => {
     const created = task.created_at as string | undefined;
@@ -184,8 +211,11 @@ export async function buildProjectBrief(
       updated_at: (file as { created_at?: string }).created_at,
       configLength: JSON.stringify(file.config ?? {}).length,
     })),
-    assetCount: assets.length,
-    assetMaxUpdatedAt,
+    assets: assets.map((asset) => ({
+      id: asset.id,
+      public_url: asset.public_url,
+      created_at: asset.created_at,
+    })),
     openTaskCount: openTasks.length,
     taskMaxUpdatedAt,
   });
@@ -194,7 +224,7 @@ export async function buildProjectBrief(
   if (!options.force && cached?.content_hash === contentHash && cached.snapshot) {
     emit(onProgress, "complete", "Snapshot ready.");
     return {
-      brief: cached.snapshot,
+      brief: normalizeProjectBrief(cached.snapshot),
       fromCache: true,
       contentHash,
       progress,
@@ -295,12 +325,22 @@ export async function buildProjectBrief(
     initiativeStats.set(initiativeId, existing);
 
     const href = assetHref(projectId, initiativeId, asset.id);
+    const thumbnailUrl = resolveBriefItemThumbnail(asset.public_url);
+    const mediaType = thumbnailUrl
+      ? resolveBriefItemMediaType(
+          asset.public_url ?? "",
+          asset.type === "video" ? "video" : "image",
+        )
+      : undefined;
+
     collaterals.push({
       id: `asset:${asset.id}`,
       kind: "asset",
       label: asset.name,
       excerpt: asset.tag,
       href,
+      thumbnailUrl: thumbnailUrl ?? undefined,
+      mediaType,
       meta: { status: asset.status },
     });
 
@@ -320,16 +360,68 @@ export async function buildProjectBrief(
     a.name.localeCompare(b.name),
   );
 
+  const reviewBoardFile = visibleFiles.find((file) => file.type === "review_board");
+  reviewSummary.reviewBoardId = reviewBoardFile?.id ?? null;
+
   if (assets.length > 0) {
     const assetIds = assets.map((asset) => asset.id);
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const { count } = await supabase
+    const { data: commentRows, count } = await supabase
       .from("hub_comments")
-      .select("id", { count: "exact", head: true })
+      .select(
+        `
+        id,
+        body,
+        created_at,
+        asset_id,
+        author:hub_profiles (display_name),
+        asset:hub_assets (
+          id,
+          name,
+          initiative_id
+        )
+      `,
+        { count: "exact" },
+      )
       .in("asset_id", assetIds)
-      .gte("created_at", weekAgo);
+      .gte("created_at", weekAgo)
+      .order("created_at", { ascending: false })
+      .limit(50);
 
     reviewSummary.recentCommentCount = count ?? 0;
+
+    const recentComments: ReviewCommentBrief[] = [];
+    for (const row of commentRows ?? []) {
+      const rawAsset = row.asset as
+        | { id: string; name: string; initiative_id: string }
+        | { id: string; name: string; initiative_id: string }[]
+        | null;
+      const asset = Array.isArray(rawAsset) ? rawAsset[0] : rawAsset;
+      if (!asset) continue;
+
+      const rawAuthor = row.author as
+        | { display_name: string }
+        | { display_name: string }[]
+        | null;
+      const author = Array.isArray(rawAuthor) ? rawAuthor[0] : rawAuthor;
+
+      recentComments.push({
+        id: row.id as string,
+        body: (row.body as string) ?? "",
+        createdAt: row.created_at as string,
+        authorName: author?.display_name ?? "Teammate",
+        assetId: asset.id,
+        assetName: asset.name,
+        href: assetCommentHref(
+          projectId,
+          asset.initiative_id,
+          asset.id,
+          row.id as string,
+        ),
+      });
+    }
+
+    reviewSummary.recentComments = recentComments;
   }
 
   emit(onProgress, "pulling_tasks", "Pulling open tasks…");
@@ -407,10 +499,10 @@ export async function buildProjectBrief(
     },
   };
 
-  const brief: ProjectBrief = {
+  const brief: ProjectBrief = normalizeProjectBrief({
     ...partialBrief,
     headline: buildHeadline(partialBrief),
-  };
+  });
 
   emit(onProgress, "indexing", "Saving project index…");
 

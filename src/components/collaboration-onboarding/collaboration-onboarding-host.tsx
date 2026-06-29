@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { CollaborationOnboardingModal } from "@/components/collaboration-onboarding/collaboration-onboarding-modal";
 import { COLLABORATION_ONBOARDING_REQUEST } from "@/lib/collaboration-onboarding/events";
 import { shouldShowCollaborationOnboarding } from "@/lib/collaboration-onboarding/storage";
+import { isQuickAddOpen } from "@/lib/tasks/capture-context";
 import type { CollaborationOnboardingFeatureId } from "@/lib/collaboration-onboarding/types";
 import { DEV_TOOLS_MOCK_COLLABORATION_CHANGED } from "@/lib/dev-tools/events";
 import { FOR_YOU_PATH } from "@/lib/routes";
@@ -22,6 +23,7 @@ export function CollaborationOnboardingHost({ userId }: CollaborationOnboardingH
 
   const tryShow = useCallback(
     (featureId: CollaborationOnboardingFeatureId) => {
+      if (isQuickAddOpen()) return false;
       if (shouldShowCollaborationOnboarding(featureId, userId)) {
         setActiveFeature(featureId);
         return true;

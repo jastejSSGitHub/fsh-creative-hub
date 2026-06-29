@@ -245,7 +245,6 @@ export function ForYouList({ items, lens }: ForYouListProps) {
 
   function openFollowUpQuickAdd(item: ForYouItem) {
     requestOpenQuickAdd(deriveCaptureFromForYouItem(item));
-    requestCollaborationOnboarding("smart-capture");
   }
 
   async function maybeCreateFollowUpTask(item: ForYouItem, body: string) {

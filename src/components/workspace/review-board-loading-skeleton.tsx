@@ -6,7 +6,7 @@ import { useMemo } from "react";
 import { AssetGridLoading } from "@/components/workspace/asset-grid-loading";
 import { NavBackLinkSkeleton } from "@/components/ui/nav-back-link";
 import { SkeletonBone } from "@/components/ui/skeleton-primitives";
-import { readReviewBoardNavigationSnapshot } from "@/lib/projects/review-board-snapshot";
+import { useReviewBoardNavigationSnapshot } from "@/lib/projects/use-review-board-navigation-snapshot";
 import { cn } from "@/lib/utils";
 
 function ReviewBoardHeaderSkeleton({
@@ -92,10 +92,10 @@ export function ReviewBoardLoadingSkeleton() {
   const pathname = usePathname();
 
   const boardPath = useMemo(() => parseReviewBoardPath(pathname), [pathname]);
-  const snapshot = useMemo(() => {
-    if (!boardPath) return null;
-    return readReviewBoardNavigationSnapshot(boardPath.projectId, boardPath.boardId);
-  }, [boardPath]);
+  const snapshot = useReviewBoardNavigationSnapshot(
+    boardPath?.projectId,
+    boardPath?.boardId,
+  );
 
   const hasInitiatives = snapshot ? snapshot.sectionCount > 0 : false;
 

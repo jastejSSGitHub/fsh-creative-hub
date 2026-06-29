@@ -8,7 +8,7 @@ import { GrainOverlay } from "@/components/landing/grain-overlay";
 import { IdeasWorkflowIllustration } from "@/components/landing/ideas-workflow-illustration";
 import { PresentWorkflowIllustration } from "@/components/landing/present-workflow-illustration";
 import { ProjectsWorkflowIllustration } from "@/components/landing/projects-workflow-illustration";
-import { TrimmedLoopVideo } from "@/components/landing/trimmed-loop-video";
+import { ReviewWorkflowIllustration } from "@/components/landing/review-workflow-illustration";
 import {
   FEATURE_VISUAL_ART_BACKGROUNDS,
   landingArtBackgroundStyle,
@@ -96,25 +96,9 @@ function ChevronIcon({
 }
 
 function ShowcaseVisual({ visual }: { visual: SlideVisual }) {
-  if (visual === "review") {
-    return (
-      <div
-        className={cn(
-          "relative aspect-video overflow-hidden rounded-lg",
-          ILLUSTRATION_SIZE_CLASS,
-        )}
-      >
-        <TrimmedLoopVideo
-          src="/media/Landing%20page/Approved-By.mp4"
-          startAt={2}
-          label="Asset lightbox"
-        />
-      </div>
-    );
-  }
-
   const Illustration = {
     projects: ProjectsWorkflowIllustration,
+    review: ReviewWorkflowIllustration,
     comments: CommentsWorkflowIllustration,
     ideas: IdeasWorkflowIllustration,
     present: PresentWorkflowIllustration,

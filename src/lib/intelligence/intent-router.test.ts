@@ -56,6 +56,8 @@ const sampleBrief: ProjectBrief = {
       final: 0,
       byInitiative: [],
       recentCommentCount: 2,
+      recentComments: [],
+      reviewBoardId: null,
     },
     tasks: {
       open: 1,

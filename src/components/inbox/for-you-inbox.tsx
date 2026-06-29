@@ -187,7 +187,7 @@ export function ForYouInbox({
         </Suspense>
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col bg-hub-paper">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-hub-paper">
         <div className="border-b border-hub-foreground/8 px-3 py-3 sm:px-6">
           <div className="flex items-start gap-2 sm:gap-3">
             <button
@@ -242,7 +242,7 @@ export function ForYouInbox({
           </nav>
         </div>
 
-        <div className="fsh-scroll flex-1 overflow-y-auto">
+        <div className="fsh-scroll min-h-0 flex-1 overflow-y-auto pb-[calc(4.75rem+env(safe-area-inset-bottom))] lg:pb-6">
           <ForYouList items={items} lens={lens} />
         </div>
       </div>

@@ -15,6 +15,8 @@ export type BriefItem = {
   excerpt?: string;
   href: string;
   openInNewTab?: boolean;
+  thumbnailUrl?: string;
+  mediaType?: "image" | "video";
   meta?: Record<string, string | number>;
 };
 
@@ -28,6 +30,16 @@ export type InitiativeReviewStats = {
   final: number;
 };
 
+export type ReviewCommentBrief = {
+  id: string;
+  body: string;
+  createdAt: string;
+  authorName: string;
+  assetId: string;
+  assetName: string;
+  href: string;
+};
+
 export type ReviewSummary = {
   total: number;
   approved: number;
@@ -36,6 +48,8 @@ export type ReviewSummary = {
   final: number;
   byInitiative: InitiativeReviewStats[];
   recentCommentCount: number;
+  recentComments: ReviewCommentBrief[];
+  reviewBoardId: string | null;
 };
 
 export type ProjectBrief = {

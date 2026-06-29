@@ -11,6 +11,7 @@ import { CanvasNodesLayer } from "@/components/canvas/canvas-nodes-layer";
 import { CanvasOnboarding } from "@/components/canvas/canvas-onboarding";
 import { CanvasTemplatePicker } from "@/components/canvas/canvas-template-picker";
 import { CanvasViewportSurface } from "@/components/canvas/canvas-viewport";
+import { HubContentNavigationEndOnMount } from "@/components/hub/hub-content-navigation-end-on-mount";
 import { InviteMembersDialog } from "@/components/projects/invite-members-dialog";
 import { useCanvasPinchZoom } from "@/hooks/use-canvas-pinch-zoom";
 import { useCanvasWorkspace } from "@/hooks/use-canvas-workspace";
@@ -406,6 +407,7 @@ export function OpenCanvasWorkspace({
 
   return (
     <CanvasFontProvider>
+    <HubContentNavigationEndOnMount />
     <div
       className={cn(
         "relative w-full overflow-hidden",

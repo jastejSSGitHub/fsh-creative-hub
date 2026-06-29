@@ -23,11 +23,7 @@ export function HubContentFrame({ children }: HubContentFrameProps) {
 
   if (isInboxLayoutPath(pathname)) {
     return (
-      <main
-        className={cn(
-          "flex min-h-0 flex-1 flex-col overflow-hidden pb-[calc(3.75rem+env(safe-area-inset-bottom))] lg:pb-0",
-        )}
-      >
+      <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
         {children}
       </main>
     );

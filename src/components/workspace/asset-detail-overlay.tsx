@@ -324,7 +324,6 @@ export function AssetDetailOverlay({
       initialValue: `Follow up: ${asset.name}`,
     });
     requestOpenQuickAdd();
-    requestCollaborationOnboarding("smart-capture");
   }
 
   function submitComment() {

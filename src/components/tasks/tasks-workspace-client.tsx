@@ -7,12 +7,14 @@ import { LayoutGrid, List } from "lucide-react";
 import { ProjectPresenceStack } from "@/components/presence/project-presence-stack";
 import { TaskBoardView } from "@/components/tasks/board/task-board-view";
 import { TaskDetailOverlay } from "@/components/tasks/detail/task-detail-overlay";
+import { TaskDetailLoadingOverlay } from "@/components/tasks/detail/task-detail-loading-overlay";
 import { TaskListView } from "@/components/tasks/list/task-list-view";
 import { TasksBrowseView } from "@/components/tasks/tasks-browse-view";
 import { QuickAddHost, QuickAddPanel } from "@/components/tasks/quick-add/quick-add-panel";
 import { QuickAddTriggerButton } from "@/components/tasks/quick-add/quick-add-trigger-button";
 import { TasksMobileViewTabs } from "@/components/tasks/mobile/tasks-mobile-view-tabs";
 import { TasksNavigationProvider } from "@/components/tasks/tasks-navigation-context";
+import { HubContentNavigationEndOnMount } from "@/components/hub/hub-content-navigation-end-on-mount";
 import { TasksSidebar } from "@/components/tasks/tasks-sidebar";
 import { FilterBuilderDialog } from "@/components/tasks/filters/filter-builder-dialog";
 import { NavBackLink } from "@/components/ui/nav-back-link";
@@ -34,7 +36,9 @@ import {
 import { deriveTaskCreateDefaults } from "@/lib/tasks/derive-task-defaults";
 import { projectTaskScopeFromSearch } from "@/lib/tasks/main-view-config";
 import { requestCollaborationOnboarding } from "@/lib/collaboration-onboarding/events";
-import { nestTasks } from "@/lib/tasks/queries";
+import { getTaskById, nestTasks } from "@/lib/tasks/queries";
+import { consumeTaskDeepLinkName } from "@/lib/tasks/task-added-feedback";
+import { createClient } from "@/lib/supabase/client";
 import { getTeamLabelColor, teamAddTaskPlaceholder } from "@/lib/tasks/team-label-colors";
 import type { SectionWithTasks, TasksLayout, TasksViewKind, TaskWithMeta } from "@/lib/tasks/types";
 import type { HubFilter, HubLabel, HubProfile, HubProject, HubRole } from "@/types/database";
@@ -79,6 +83,10 @@ export function TasksWorkspaceClient({
 }: TasksWorkspaceClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const deepLinkTaskId = searchParams.get("task");
+  const initialDeepLinkMatch = deepLinkTaskId
+    ? initialTasks.find((task) => task.id === deepLinkTaskId) ?? null
+    : null;
   const [tasks, setTasks] = useState(initialTasks);
   const [sections, setSections] = useState(initialSections);
 
@@ -87,7 +95,15 @@ export function TasksWorkspaceClient({
   }, [initialSections]);
 
   const [layout, setLayout] = useState<TasksLayout>("list");
-  const [selectedTask, setSelectedTask] = useState<TaskWithMeta | null>(null);
+  const [selectedTask, setSelectedTask] = useState<TaskWithMeta | null>(
+    initialDeepLinkMatch,
+  );
+  const [deepLinkLoading, setDeepLinkLoading] = useState(
+    () => Boolean(deepLinkTaskId && !initialDeepLinkMatch),
+  );
+  const [deepLinkTaskName, setDeepLinkTaskName] = useState<string | undefined>(
+    () => (deepLinkTaskId ? (consumeTaskDeepLinkName() ?? undefined) : undefined),
+  );
 
   useEffect(() => {
     if (viewKind === "project" && layout === "board") {
@@ -131,10 +147,45 @@ export function TasksWorkspaceClient({
 
   useEffect(() => {
     const taskId = searchParams.get("task");
-    if (!taskId) return;
-    const match = tasks.find((t) => t.id === taskId);
-    if (match) setSelectedTask(match);
-  }, [searchParams, tasks]);
+    if (!taskId) {
+      setDeepLinkLoading(false);
+      return;
+    }
+
+    const match = tasks.find((task) => task.id === taskId);
+    if (match) {
+      setSelectedTask(match);
+      setDeepLinkLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setDeepLinkLoading(true);
+    setSelectedTask(null);
+
+    void (async () => {
+      const supabase = createClient();
+      const fetched = await getTaskById(supabase, taskId);
+      if (cancelled) return;
+
+      if (fetched) {
+        setSelectedTask(fetched);
+        setTasks((prev) =>
+          prev.some((task) => task.id === fetched.id) ? prev : [...prev, fetched],
+        );
+      } else {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("task");
+        router.replace(url.pathname + url.search);
+      }
+
+      setDeepLinkLoading(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router, searchParams, tasks]);
 
   const editable = project ? canEdit(role ?? null) : true;
 
@@ -416,6 +467,7 @@ export function TasksWorkspaceClient({
 
   return (
     <TasksNavigationProvider>
+    <HubContentNavigationEndOnMount />
     <div className="flex min-h-0 flex-1 flex-col pb-6 lg:pb-0">
       {viewKind !== "project" && <TasksMobileViewTabs />}
       <div className="flex flex-1 flex-col gap-6 lg:flex-row lg:gap-8">
@@ -568,7 +620,6 @@ export function TasksWorkspaceClient({
         defaultProjectId={project?.id}
         initialValue={quickAddInitialValue}
         onCreated={() => {
-          setTaskNotice({ type: "success", message: "Task added" });
           refresh();
         }}
       />
@@ -583,13 +634,16 @@ export function TasksWorkspaceClient({
           defaultProjectId={project?.id}
           initialValue={quickAddInitialValue}
           onCreated={() => {
-            setTaskNotice({ type: "success", message: "Task added" });
             refresh();
           }}
         />
       )}
 
-      {selectedTask && (
+      {deepLinkLoading && deepLinkTaskId ? (
+        <TaskDetailLoadingOverlay taskName={deepLinkTaskName ?? selectedTask?.name} />
+      ) : null}
+
+      {selectedTask && !deepLinkLoading ? (
         <TaskDetailOverlay
           task={selectedTask}
           role={role ?? null}
@@ -610,7 +664,7 @@ export function TasksWorkspaceClient({
           }}
           onUpdated={refresh}
         />
-      )}
+      ) : null}
 
       <FilterBuilderDialog
         open={filterDialogOpen}

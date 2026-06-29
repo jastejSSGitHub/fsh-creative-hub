@@ -17,6 +17,7 @@ import {
   type AssetUploadIndicatorPhase,
 } from "@/components/workspace/asset-upload-indicator";
 import { CreateInitiativeDialog } from "@/components/workspace/create-initiative-dialog";
+import { HubContentNavigationEndOnMount } from "@/components/hub/hub-content-navigation-end-on-mount";
 import { FireLeaders } from "@/components/workspace/fire-leaders";
 import { IdeasCanvasBoard } from "@/components/workspace/ideas-canvas-board";
 import { PresentationMode } from "@/components/workspace/presentation-mode";
@@ -33,7 +34,8 @@ import { UndoToast } from "@/components/ui/undo-toast";
 import { canAdmin, canDeleteOwnAsset, canEdit } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/client";
 import { captureWorkspaceSnapshot } from "@/lib/projects/workspace-snapshot";
-import { captureReviewBoardNavigationSnapshot, readReviewBoardNavigationSnapshot } from "@/lib/projects/review-board-snapshot";
+import { captureReviewBoardNavigationSnapshot } from "@/lib/projects/review-board-snapshot";
+import { useReviewBoardNavigationSnapshot } from "@/lib/projects/use-review-board-navigation-snapshot";
 import type { ProjectCardData } from "@/lib/projects/queries";
 import { PROJECTS_PATH, reviewBoardPath } from "@/lib/routes";
 import { scrollToAssetCardWhenReady } from "@/lib/workspace/scroll-to-asset";
@@ -567,9 +569,11 @@ export function ProjectWorkspace({
     [members],
   );
 
-  const assetCountHint = reviewBoard
-    ? readReviewBoardNavigationSnapshot(project.id, reviewBoard.id)?.assetCount
-    : undefined;
+  const reviewBoardSnapshot = useReviewBoardNavigationSnapshot(
+    reviewBoard ? project.id : undefined,
+    reviewBoard?.id,
+  );
+  const assetCountHint = reviewBoardSnapshot?.assetCount;
 
   const showAssetsChrome = workspaceView === "assets";
   const showInitiativeChrome = workspaceView === "assets" || workspaceView === "ideas";
@@ -602,6 +606,7 @@ export function ProjectWorkspace({
 
   return (
     <>
+      <HubContentNavigationEndOnMount />
       {reviewBoard && (
         <header className="sticky top-0 z-40 border-b border-hub-foreground/8 bg-hub-paper/95 backdrop-blur-md">
           <div className="mx-auto max-w-6xl px-3 py-2 sm:px-6">

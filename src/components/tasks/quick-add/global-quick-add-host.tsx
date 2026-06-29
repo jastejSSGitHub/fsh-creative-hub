@@ -4,15 +4,14 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { FolderPlus, ListPlus, Plus } from "lucide-react";
 
-import { CollaborationOnboardingModal } from "@/components/collaboration-onboarding/collaboration-onboarding-modal";
 import { CreateProjectDialog } from "@/components/projects/create-project-dialog";
-import { requestCollaborationOnboarding } from "@/lib/collaboration-onboarding/events";
-import { shouldShowCollaborationOnboarding } from "@/lib/collaboration-onboarding/storage";
+import { markCollaborationOnboardingSeen } from "@/lib/collaboration-onboarding/storage";
 import { QuickAddPanel } from "@/components/tasks/quick-add/quick-add-panel";
 import {
   OPEN_QUICK_ADD_REQUEST,
   QUICK_ADD_CAPTURE_CHANGED,
   consumeQuickAddCaptureContext,
+  setQuickAddOpenState,
 } from "@/lib/tasks/capture-context";
 import { createClient } from "@/lib/supabase/client";
 import { getLabels, getUserProjectsForTasks } from "@/lib/tasks/queries";
@@ -29,7 +28,6 @@ export function GlobalQuickAddHost({ userId }: GlobalQuickAddHostProps) {
   const [open, setOpen] = useState(false);
   const [fabMenuOpen, setFabMenuOpen] = useState(false);
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
-  const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
   const [labels, setLabels] = useState<HubLabel[]>([]);
   const [members, setMembers] = useState<Pick<HubProfile, "id" | "display_name">[]>([]);
@@ -56,9 +54,10 @@ export function GlobalQuickAddHost({ userId }: GlobalQuickAddHostProps) {
     setCaptureInitialValue(ctx.initialValue ?? "");
     setLinkAssetId(ctx.linkAssetOnCreate ? (ctx.assetId ?? null) : null);
     if (ctx.projectId || ctx.assetId) {
-      requestCollaborationOnboarding("smart-capture");
+      markCollaborationOnboardingSeen("smart-capture", userId, true);
+      markCollaborationOnboardingSeen("global-quick-add", userId, true);
     }
-  }, [pathProjectId]);
+  }, [pathProjectId, userId]);
 
   const loadContext = useCallback(async () => {
     if (loaded) return;
@@ -79,9 +78,7 @@ export function GlobalQuickAddHost({ userId }: GlobalQuickAddHostProps) {
     void loadContext();
     applyCaptureContext();
     setOpen(true);
-    if (shouldShowCollaborationOnboarding("global-quick-add", userId)) {
-      setOnboardingOpen(true);
-    }
+    markCollaborationOnboardingSeen("global-quick-add", userId, true);
   }, [applyCaptureContext, loadContext, userId]);
 
   const handleFabClick = useCallback(() => {
@@ -95,6 +92,11 @@ export function GlobalQuickAddHost({ userId }: GlobalQuickAddHostProps) {
   useEffect(() => {
     setFabMenuOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    setQuickAddOpenState(open);
+    return () => setQuickAddOpenState(false);
+  }, [open]);
 
   useEffect(() => {
     if (hidden) return;
@@ -234,15 +236,8 @@ export function GlobalQuickAddHost({ userId }: GlobalQuickAddHostProps) {
         defaultProjectId={defaultProjectId}
         initialValue={captureInitialValue}
         linkAssetId={linkAssetId}
-        onCreated={() => setOpen(false)}
       />
 
-      <CollaborationOnboardingModal
-        featureId="global-quick-add"
-        userId={userId}
-        open={onboardingOpen}
-        onClose={() => setOnboardingOpen(false)}
-      />
     </>
   );
 }

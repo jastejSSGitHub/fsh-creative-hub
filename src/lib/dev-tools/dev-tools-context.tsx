@@ -116,11 +116,17 @@ export function DevToolsProvider({
     router.refresh();
   }, [router]);
 
-  const setSimulateNewUser = useCallback((on: boolean) => {
-    writeSimulateNewUser(on);
-    setSimulateNewUserState(on);
-    dispatchDevToolsSimulateChanged(on);
-  }, []);
+  const setSimulateNewUser = useCallback(
+    (on: boolean) => {
+      writeSimulateNewUser(on);
+      setSimulateNewUserState(on);
+      dispatchDevToolsSimulateChanged(on);
+      if (on) {
+        resetCollaborationOnboarding(userId);
+      }
+    },
+    [userId],
+  );
 
   const setMockCollaborationData = useCallback(
     (on: boolean) => {

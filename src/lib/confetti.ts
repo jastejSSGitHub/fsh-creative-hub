@@ -92,6 +92,25 @@ export function fireDevToolsUnlockConfetti() {
   });
 }
 
+/** Brief burst when a task is created via quick add. */
+export function fireTaskAddedConfetti() {
+  if (typeof window === "undefined") return;
+
+  const colors = ["#22c55e", "#18a0fb", "#ffc94b", "#a855f7"];
+
+  void confetti({
+    particleCount: 14,
+    spread: 58,
+    startVelocity: 18,
+    scalar: 0.5,
+    ticks: 60,
+    gravity: 0.9,
+    origin: { x: 0.5, y: 0.48 },
+    colors,
+    disableForReducedMotion: true,
+  });
+}
+
 /** Medium celebration — e.g. restoring a project. Kept brief and light. */
 export function fireConfetti() {
   if (typeof window === "undefined") return;

@@ -12,6 +12,7 @@ import { IdeasWorkflowIllustration } from "@/components/landing/ideas-workflow-i
 import { PresentWorkflowIllustration } from "@/components/landing/present-workflow-illustration";
 import { ProjectsWorkflowIllustration } from "@/components/landing/projects-workflow-illustration";
 import { QuickTasksWorkflowIllustration } from "@/components/landing/quick-tasks-workflow-illustration";
+import { ReviewWorkflowIllustration } from "@/components/landing/review-workflow-illustration";
 import {
   FeatureTutorialLink,
   type FeatureTutorialConfig,
@@ -19,7 +20,7 @@ import {
 import { ScrollReveal } from "@/components/landing/scroll-reveal";
 import { TrimmedLoopVideo } from "@/components/landing/trimmed-loop-video";
 import { COLLABORATION_FEATURE_LOOMS, featureTutorial } from "@/lib/landing/feature-looms";
-import { LANDING_ART_BACKGROUNDS } from "@/lib/landing/art-backgrounds";
+import { FEATURE_VISUAL_ART_BACKGROUNDS, LANDING_ART_BACKGROUNDS } from "@/lib/landing/art-backgrounds";
 import { cn } from "@/lib/utils";
 
 const SLIDE_DURATION_MS = 7000;
@@ -66,11 +67,7 @@ const FEATURES: ReadonlyArray<{
     visualLabel: "Asset lightbox",
     visualAspect: "video",
     index: 1,
-    media: {
-      type: "video",
-      src: "/media/Landing%20page/Approved-By.mp4",
-      startAt: 2,
-    },
+    media: null,
     tutorial: {
       loomUrl: APPROVAL_REJECTION_LOOM_URL,
       modalTitle: "Approve, reject, react",
@@ -155,6 +152,7 @@ const FEATURES: ReadonlyArray<{
 
 const ILLUSTRATION_BACKGROUNDS = {
   PROJECTS: LANDING_ART_BACKGROUNDS.art1,
+  REVIEW: FEATURE_VISUAL_ART_BACKGROUNDS.review,
   COMMENTS: LANDING_ART_BACKGROUNDS.art2,
   IDEAS: LANDING_ART_BACKGROUNDS.art3,
   PRESENT: LANDING_ART_BACKGROUNDS.art4,
@@ -167,6 +165,14 @@ function ProjectsVisual() {
   return (
     <FeatureIllustrationFrame backgroundImage={ILLUSTRATION_BACKGROUNDS.PROJECTS}>
       <ProjectsWorkflowIllustration />
+    </FeatureIllustrationFrame>
+  );
+}
+
+function ReviewVisual() {
+  return (
+    <FeatureIllustrationFrame backgroundImage={ILLUSTRATION_BACKGROUNDS.REVIEW}>
+      <ReviewWorkflowIllustration />
     </FeatureIllustrationFrame>
   );
 }
@@ -221,7 +227,7 @@ function CollaborationVisual() {
 
 const FEATURE_VISUALS: Record<string, () => ReactNode> = {
   PROJECTS: ProjectsVisual,
-  REVIEW: () => null,
+  REVIEW: ReviewVisual,
   COMMENTS: CommentsVisual,
   IDEAS: IdeasVisual,
   PRESENT: PresentVisual,

@@ -10,7 +10,9 @@ import { MockCollaborationBanner } from "@/components/dev-tools/mock-collaborati
 import { FeatureOnboardingHost } from "@/components/onboarding/feature-onboarding-host";
 import { CollaborationOnboardingHost } from "@/components/collaboration-onboarding/collaboration-onboarding-host";
 import { GlobalQuickAddHost } from "@/components/tasks/quick-add/global-quick-add-host";
+import { TaskAddedToastHost } from "@/components/tasks/task-added-toast-host";
 import { DevToolsProvider } from "@/lib/dev-tools/dev-tools-context";
+import { HubContentNavigationProvider } from "@/components/hub/hub-content-navigation-provider";
 import { ProjectNavigationProvider } from "@/components/projects/project-navigation-provider";
 import { getForYouCount } from "@/lib/inbox/queries";
 import { isMockCollaborationEnabledServer } from "@/lib/dev-tools/mock-collaboration-cookie";
@@ -37,28 +39,31 @@ export async function HubShell({ children }: HubShellProps) {
         userId={session.userId}
       >
         <ProjectNavigationProvider>
-          <HubTabNavigationProvider>
-            <div className="flex h-dvh flex-col overflow-hidden bg-hub-paper">
-              <MockCollaborationBanner />
-              <HubHeader
-                forYouCount={forYouCount}
-                displayName={session.displayName}
-                email={session.email}
-                avatarUrl={session.avatarUrl}
-              />
+          <HubContentNavigationProvider>
+            <HubTabNavigationProvider>
+              <div className="flex h-dvh flex-col overflow-hidden bg-hub-paper">
+                <MockCollaborationBanner />
+                <HubHeader
+                  forYouCount={forYouCount}
+                  displayName={session.displayName}
+                  email={session.email}
+                  avatarUrl={session.avatarUrl}
+                />
 
-              <HubScrollRegion>
-                <HubContentFrame>{children}</HubContentFrame>
-              </HubScrollRegion>
+                <HubScrollRegion>
+                  <HubContentFrame>{children}</HubContentFrame>
+                </HubScrollRegion>
 
-              <FeatureOnboardingHost userId={session.userId} />
-              <CollaborationOnboardingHost userId={session.userId} />
-              <GlobalQuickAddHost userId={session.userId} />
-              <HubMobileBottomNav forYouCount={forYouCount} />
-              <HubOriginReturnHost />
-              <DevToolsHost />
-            </div>
-          </HubTabNavigationProvider>
+                <FeatureOnboardingHost userId={session.userId} />
+                <CollaborationOnboardingHost userId={session.userId} />
+                <GlobalQuickAddHost userId={session.userId} />
+                <TaskAddedToastHost />
+                <HubMobileBottomNav forYouCount={forYouCount} />
+                <HubOriginReturnHost />
+                <DevToolsHost />
+              </div>
+            </HubTabNavigationProvider>
+          </HubContentNavigationProvider>
         </ProjectNavigationProvider>
       </DevToolsProvider>
     </HubDetailToolbarProvider>

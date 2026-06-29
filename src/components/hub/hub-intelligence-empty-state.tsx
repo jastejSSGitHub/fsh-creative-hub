@@ -113,7 +113,7 @@ export function HubIntelligenceEmptyState({
         {INTELLIGENCE_PROMPTS.map((prompt, index) => {
           const Icon = prompt.icon;
           const isActive = activePromptId === prompt.id;
-          const isExpanded = expandedPromptId === prompt.id && !projectScoped;
+          const isExpanded = expandedPromptId === prompt.id;
 
           return (
             <motion.li
@@ -184,7 +184,7 @@ export function HubIntelligenceEmptyState({
         })}
       </ul>
 
-      {showGlobalPicker && !projectScoped && (
+      {showGlobalPicker && (
         <div className="mt-2">
           <HubIntelligenceProjectPicker
             projects={projectOptions}

@@ -51,6 +51,23 @@ export function assetHref(
   return assetPath(projectId, initiativeId, assetId);
 }
 
+export function assetCommentHref(
+  projectId: string,
+  initiativeId: string,
+  assetId: string,
+  commentId: string,
+): string {
+  return `${assetPath(projectId, initiativeId, assetId)}?comment=${encodeURIComponent(commentId)}`;
+}
+
+export function reviewBoardStatusHref(
+  projectId: string,
+  boardId: string,
+  status: "pending" | "approved" | "rejected" | "final",
+): string {
+  return `${reviewBoardPath(projectId, boardId)}?filter=${encodeURIComponent(status)}`;
+}
+
 export function projectTasksHref(projectId: string): string {
   return projectTasksPath(projectId);
 }

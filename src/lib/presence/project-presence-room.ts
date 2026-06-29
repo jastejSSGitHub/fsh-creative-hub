@@ -1,6 +1,7 @@
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 import { createClient } from "@/lib/supabase/client";
+import { isE2ePresenceUser } from "@/lib/e2e/is-e2e-test-user";
 
 import type { HubPresenceUser } from "./use-hub-presence";
 
@@ -52,7 +53,9 @@ function othersForConsumer(
   consumer: PresenceConsumer,
 ): HubPresenceUser[] {
   const state = room.channel.presenceState<PresencePayload>();
-  return parsePresenceState(state).filter((user) => user.userId !== consumer.userId);
+  return parsePresenceState(state).filter(
+    (user) => user.userId !== consumer.userId && !isE2ePresenceUser(user),
+  );
 }
 
 function notifyRoom(room: ProjectPresenceRoom) {
