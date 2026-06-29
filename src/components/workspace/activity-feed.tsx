@@ -4,6 +4,8 @@ import { ChevronDown } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { MemberAvatar } from "@/components/projects/member-avatar";
+import { HubSelect } from "@/components/ui/hub-select";
+import { isE2eTestUser } from "@/lib/e2e/is-e2e-test-user";
 import { formatRelativeTime } from "@/lib/format-relative-time";
 import { createClient } from "@/lib/supabase/client";
 import { ACTIVITY_VERB_META } from "@/lib/workspace/activity-meta";
@@ -17,9 +19,16 @@ import { isMockProjectId } from "@/lib/dev-tools/mock-collaboration-data";
 import { readMockCollaborationData } from "@/lib/dev-tools/storage";
 import { cn } from "@/lib/utils";
 
+type ActivityMember = {
+  id: string;
+  display_name: string;
+  avatar_url: string | null;
+};
+
 type ActivityFeedProps = {
   activities: ActivityWithActor[];
   projectId: string;
+  members?: ActivityMember[];
 };
 
 function ActivityRow({
@@ -127,8 +136,13 @@ function ActivityDateSection({ group }: { group: ActivityDateGroup }) {
   );
 }
 
-export function ActivityFeed({ activities: initialActivities, projectId }: ActivityFeedProps) {
+export function ActivityFeed({
+  activities: initialActivities,
+  projectId,
+  members = [],
+}: ActivityFeedProps) {
   const [activities, setActivities] = useState(initialActivities);
+  const [actorFilterId, setActorFilterId] = useState("all");
   const mockDemo =
     readMockCollaborationData() && isMockProjectId(projectId);
 
@@ -136,10 +150,35 @@ export function ActivityFeed({ activities: initialActivities, projectId }: Activ
     setActivities(initialActivities);
   }, [initialActivities]);
 
+  const actorOptions = useMemo(() => {
+    const byId = new Map<string, ActivityMember>();
+
+    for (const member of members) {
+      byId.set(member.id, member);
+    }
+
+    for (const activity of activities) {
+      if (!byId.has(activity.actor.id)) {
+        byId.set(activity.actor.id, activity.actor);
+      }
+    }
+
+    return [...byId.values()]
+      .filter((member) => !isE2eTestUser({ display_name: member.display_name }))
+      .sort((a, b) => a.display_name.localeCompare(b.display_name));
+  }, [activities, members]);
+
+  const filteredActivities = useMemo(() => {
+    if (actorFilterId === "all") return activities;
+    return activities.filter((activity) => activity.actor_id === actorFilterId);
+  }, [activities, actorFilterId]);
+
   const groups = useMemo(
-    () => groupActivitiesByDate(activities),
-    [activities],
+    () => groupActivitiesByDate(filteredActivities),
+    [filteredActivities],
   );
+
+  const selectedActor = actorOptions.find((member) => member.id === actorFilterId);
 
   const refresh = useCallback(async () => {
     if (mockDemo) {
@@ -188,21 +227,94 @@ export function ActivityFeed({ activities: initialActivities, projectId }: Activ
     );
   }
 
+  if (filteredActivities.length === 0) {
+    return (
+      <div className="overflow-hidden rounded-xl border border-hub-foreground/10 bg-hub-surface shadow-sm">
+        <ActivityFeedHeader
+          actorFilterId={actorFilterId}
+          actorOptions={actorOptions}
+          onActorFilterChange={setActorFilterId}
+        />
+        <div className="border-t border-hub-foreground/8 px-6 py-14 text-center">
+          <p className="font-display text-lg font-bold text-hub-foreground">
+            No activity from {selectedActor?.display_name ?? "this person"} yet
+          </p>
+          <p className="mx-auto mt-2 max-w-sm text-sm text-hub-foreground/55">
+            Browsing and viewing don&apos;t appear here — only uploads, votes, comments, and
+            approvals.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="overflow-hidden rounded-xl border border-hub-foreground/10 bg-hub-surface shadow-sm">
-      <div className="border-b border-hub-foreground/8 px-4 py-3.5 sm:px-5">
-        <p className="font-mono text-[0.62rem] uppercase tracking-[0.14em] text-hub-foreground/45">
-          Project activity
-        </p>
-        <p className="mt-0.5 text-xs text-hub-foreground/55">
-          Grouped by day — expand a section to browse uploads, votes, and comments.
-        </p>
-      </div>
+      <ActivityFeedHeader
+        actorFilterId={actorFilterId}
+        actorOptions={actorOptions}
+        onActorFilterChange={setActorFilterId}
+        filteredCount={filteredActivities.length}
+        totalCount={activities.length}
+      />
 
       <div>
         {groups.map((group) => (
           <ActivityDateSection key={group.id} group={group} />
         ))}
+      </div>
+    </div>
+  );
+}
+
+function ActivityFeedHeader({
+  actorFilterId,
+  actorOptions,
+  onActorFilterChange,
+  filteredCount,
+  totalCount,
+}: {
+  actorFilterId: string;
+  actorOptions: ActivityMember[];
+  onActorFilterChange: (value: string) => void;
+  filteredCount?: number;
+  totalCount?: number;
+}) {
+  const showFilter = actorOptions.length > 0;
+
+  return (
+    <div className="border-b border-hub-foreground/8 px-4 py-3.5 sm:px-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <p className="font-mono text-[0.62rem] uppercase tracking-[0.14em] text-hub-foreground/45">
+            Project activity
+          </p>
+          <p className="mt-0.5 text-xs text-hub-foreground/55">
+            {actorFilterId === "all"
+              ? "Grouped by day — expand a section to browse uploads, votes, and comments."
+              : filteredCount !== undefined && totalCount !== undefined
+                ? `Showing ${filteredCount} of ${totalCount} events for this person.`
+                : "Filtered to one teammate."}
+          </p>
+        </div>
+
+        {showFilter ? (
+          <div className="w-full shrink-0 sm:w-[min(100%,14rem)]">
+            <HubSelect
+              aria-label="Filter activity by person"
+              value={actorFilterId}
+              onChange={onActorFilterChange}
+              options={[
+                { value: "all", label: "Everyone" },
+                ...actorOptions.map((member) => ({
+                  value: member.id,
+                  label: member.display_name,
+                })),
+              ]}
+              variant="field"
+            />
+          </div>
+        ) : null}
       </div>
     </div>
   );

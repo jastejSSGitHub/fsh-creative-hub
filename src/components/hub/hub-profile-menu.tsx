@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { profileInitials } from "@/lib/hub/profile-initials";
+import { normalizeExternalAvatarUrl } from "@/lib/hub/avatar-url";
 import { cn } from "@/lib/utils";
 
 const MUTE_STORAGE_KEY = "hub.notifications.muted";
@@ -46,6 +47,7 @@ export function HubProfileMenu({
   const [showNameTooltip, setShowNameTooltip] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const initials = profileInitials(displayName);
+  const resolvedAvatarUrl = avatarUrl ? normalizeExternalAvatarUrl(avatarUrl) : null;
   const activeTheme = theme === "system" ? resolvedTheme : theme;
 
   useEffect(() => {
@@ -119,9 +121,14 @@ export function HubProfileMenu({
         )}
 
         <span className="inline-flex size-7 items-center justify-center overflow-hidden rounded-full bg-hub-surface/15 text-[0.65rem] font-semibold text-white">
-          {avatarUrl ? (
+          {resolvedAvatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={avatarUrl} alt="" className="size-full object-cover" />
+            <img
+              src={resolvedAvatarUrl}
+              alt=""
+              referrerPolicy="no-referrer"
+              className="size-full object-cover"
+            />
           ) : (
             initials
           )}
@@ -143,9 +150,14 @@ export function HubProfileMenu({
           <div className="border-b border-hub-foreground/8 px-4 py-3">
             <div className="flex items-center gap-2.5">
               <span className="inline-flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-hub-primary/12 text-xs font-semibold text-hub-primary">
-                {avatarUrl ? (
+                {resolvedAvatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={avatarUrl} alt="" className="size-full object-cover" />
+                  <img
+                    src={resolvedAvatarUrl}
+                    alt=""
+                    referrerPolicy="no-referrer"
+                    className="size-full object-cover"
+                  />
                 ) : (
                   initials
                 )}

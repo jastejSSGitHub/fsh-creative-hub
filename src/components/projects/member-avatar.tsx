@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { HubTooltip } from "@/components/ui/hub-tooltip";
+import { normalizeExternalAvatarUrl } from "@/lib/hub/avatar-url";
 import { memberAvatarColor } from "@/lib/hub/member-avatar-color";
 import { cn } from "@/lib/utils";
 
@@ -45,36 +46,44 @@ export function MemberAvatar({
 }: MemberAvatarProps) {
   const label = displayName.trim() || "Unknown user";
   const seed = colorSeed ?? label;
+  const resolvedUrl = avatarUrl ? normalizeExternalAvatarUrl(avatarUrl) : null;
+  const [imageLoaded, setImageLoaded] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
-  const showImage = Boolean(avatarUrl) && !imageFailed;
-  const initialsBackground = !showImage ? memberAvatarColor(seed) : undefined;
+  const showPhoto = Boolean(resolvedUrl) && !imageFailed;
+  const initialsBackground = memberAvatarColor(seed);
 
   useEffect(() => {
+    setImageLoaded(false);
     setImageFailed(false);
-  }, [avatarUrl]);
+  }, [resolvedUrl]);
 
   return (
     <HubTooltip label={label} side="bottom">
       <span
         className={cn(
-          "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full",
+          "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full",
           sizeClasses[size],
-          !showImage && variantClasses[variant],
+          variantClasses[variant],
           className,
         )}
-        style={initialsBackground ? { backgroundColor: initialsBackground } : undefined}
+        style={{ backgroundColor: initialsBackground }}
       >
-        {showImage ? (
+        {memberInitials(label)}
+        {showPhoto ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={avatarUrl ?? undefined}
+            src={resolvedUrl ?? undefined}
             alt=""
-            className="size-full object-cover"
+            decoding="async"
+            referrerPolicy="no-referrer"
+            className={cn(
+              "absolute inset-0 size-full object-cover transition-opacity duration-150",
+              imageLoaded ? "opacity-100" : "opacity-0",
+            )}
+            onLoad={() => setImageLoaded(true)}
             onError={() => setImageFailed(true)}
           />
-        ) : (
-          memberInitials(label)
-        )}
+        ) : null}
       </span>
     </HubTooltip>
   );

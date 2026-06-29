@@ -791,7 +791,15 @@ export function ProjectWorkspace({
             )}
 
             {workspaceView === "activity" && (
-              <ActivityFeed activities={activities} projectId={project.id} />
+              <ActivityFeed
+                activities={activities}
+                projectId={project.id}
+                members={members.map((member) => ({
+                  id: member.id,
+                  display_name: member.display_name,
+                  avatar_url: member.avatar_url,
+                }))}
+              />
             )}
           </>
         )}

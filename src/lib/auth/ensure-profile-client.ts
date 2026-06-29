@@ -2,6 +2,7 @@ import type { User } from "@supabase/supabase-js";
 
 import { createClient } from "@/lib/supabase/client";
 import type { HubProfile } from "@/types/database";
+import { avatarUrlFromMetadata } from "@/lib/hub/avatar-url";
 
 export async function ensureHubProfileClient(
   user: User,
@@ -17,7 +18,7 @@ export async function ensureHubProfileClient(
     id: user.id,
     email: user.email ?? "",
     display_name: displayName,
-    avatar_url: (metadata.avatar_url as string | undefined) ?? null,
+    avatar_url: avatarUrlFromMetadata(metadata),
   };
 
   const supabase = createClient();
