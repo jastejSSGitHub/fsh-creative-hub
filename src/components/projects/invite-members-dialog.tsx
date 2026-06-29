@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { copyProjectLink } from "@/components/projects/project-card";
+import { HubConfirmDialog } from "@/components/ui/hub-confirm-dialog";
 import { HubDialog } from "@/components/projects/hub-dialog";
 import { MemberAvatar } from "@/components/projects/member-avatar";
 import { HubSelect } from "@/components/ui/hub-select";
@@ -57,6 +58,10 @@ export function InviteMembersDialog({
   const [message, setMessage] = useState<string | null>(null);
   const [pendingAdminAction, setPendingAdminAction] =
     useState<PendingAdminAction | null>(null);
+  const [removeTarget, setRemoveTarget] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const open = project != null;
@@ -69,6 +74,7 @@ export function InviteMembersDialog({
     setError(null);
     setMessage(null);
     setPendingAdminAction(null);
+    setRemoveTarget(null);
     onClose();
   }
 
@@ -181,13 +187,19 @@ export function InviteMembersDialog({
 
   function removeMember(memberUserId: string) {
     if (!project) return;
+    const member = project.members.find((m) => m.id === memberUserId);
+    setRemoveTarget({ id: memberUserId, name: member?.display_name ?? "this member" });
+  }
+
+  function confirmRemoveMember() {
+    if (!project || !removeTarget) return;
 
     setError(null);
     setMessage(null);
 
     const formData = new FormData();
     formData.set("projectId", project.id);
-    formData.set("memberUserId", memberUserId);
+    formData.set("memberUserId", removeTarget.id);
 
     startTransition(async () => {
       const result = await removeProjectMemberAction(formData);
@@ -198,11 +210,13 @@ export function InviteMembersDialog({
       }
 
       setMessage("Member removed.");
+      setRemoveTarget(null);
       router.refresh();
     });
   }
 
   return (
+    <>
     <HubDialog
       open={open}
       onClose={handleClose}
@@ -309,6 +323,10 @@ export function InviteMembersDialog({
                 {isPending ? "Inviting…" : "Invite"}
               </button>
             </div>
+            <p className="text-[0.6875rem] leading-snug text-hub-foreground/50">
+              Invites must use an @{inviteEmailDomain()} email for now. External collaborators
+              will need a separate share link (coming soon).
+            </p>
           </form>
 
           <div className="space-y-1.5">
@@ -381,5 +399,25 @@ export function InviteMembersDialog({
         </div>
       )}
     </HubDialog>
+
+    <HubConfirmDialog
+      open={removeTarget != null}
+      title="Remove member?"
+      description={
+        removeTarget ? (
+          <>
+            Remove <span className="font-medium text-hub-foreground">{removeTarget.name}</span>{" "}
+            from this project? They will lose access immediately.
+          </>
+        ) : (
+          ""
+        )
+      }
+      confirmLabel="Remove member"
+      tone="danger"
+      onClose={() => setRemoveTarget(null)}
+      onConfirm={confirmRemoveMember}
+    />
+    </>
   );
 }

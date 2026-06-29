@@ -16,10 +16,15 @@ import type {
 } from "@/types/database";
 
 import { buildConsensusCounts, type ConsensusCounts } from "../assets/consensus";
+import {
+  getAssetVersionCounts,
+  resolveAssetThreadRootId,
+} from "@/lib/workspace/asset-versions";
 
 export type AssetWithVotes = HubAsset & {
   votes: HubVote[];
   consensus: ConsensusCounts;
+  versionCount?: number;
 };
 
 export type CommentWithAuthor = HubComment & {
@@ -141,12 +146,17 @@ export async function getAssetsForInitiative(
   if (!assets?.length) return [];
 
   const assetIds = assets.map((a) => a.id);
-  const { data: votes } = await supabase
-    .from("hub_votes")
-    .select("*")
-    .in("asset_id", assetIds);
+  const [{ data: votes }, versionCounts] = await Promise.all([
+    supabase.from("hub_votes").select("*").in("asset_id", assetIds),
+    getAssetVersionCounts(supabase, assetIds),
+  ]);
 
-  return attachVotesToAssets(assets as HubAsset[], votes as HubVote[] | null);
+  return attachVotesToAssets(assets as HubAsset[], votes as HubVote[] | null).map(
+    (asset) => ({
+      ...asset,
+      versionCount: versionCounts[asset.id] ?? 1,
+    }),
+  );
 }
 
 export async function getAssetsForInitiatives(
@@ -170,15 +180,18 @@ export async function getAssetsForInitiatives(
   if (!assets?.length) return empty;
 
   const assetIds = assets.map((a) => a.id);
-  const { data: votes } = await supabase
-    .from("hub_votes")
-    .select("*")
-    .in("asset_id", assetIds);
+  const [{ data: votes }, versionCounts] = await Promise.all([
+    supabase.from("hub_votes").select("*").in("asset_id", assetIds),
+    getAssetVersionCounts(supabase, assetIds),
+  ]);
 
   const assetsWithVotes = attachVotesToAssets(
     assets as HubAsset[],
     votes as HubVote[] | null,
-  );
+  ).map((asset) => ({
+    ...asset,
+    versionCount: versionCounts[asset.id] ?? 1,
+  }));
 
   const grouped: Record<string, AssetWithVotes[]> = { ...empty };
   for (const asset of assetsWithVotes) {
@@ -200,17 +213,29 @@ export async function getAssetDetail(
 
   if (!asset) return null;
 
+  const rootId = resolveAssetThreadRootId(asset as HubAsset);
+  const detailId = rootId === asset.id ? asset.id : rootId;
+
+  const { data: rootAsset } =
+    detailId === asset.id
+      ? { data: asset }
+      : await supabase.from("hub_assets").select("*").eq("id", detailId).maybeSingle();
+
+  if (!rootAsset) return null;
+
   const { data: votes } = await supabase
     .from("hub_votes")
     .select("*")
-    .eq("asset_id", assetId);
+    .eq("asset_id", detailId);
 
   const assetVotes = (votes ?? []) as HubVote[];
+  const versionCounts = await getAssetVersionCounts(supabase, [detailId]);
 
   return {
-    ...(asset as HubAsset),
+    ...(rootAsset as HubAsset),
     votes: assetVotes,
     consensus: buildConsensusCounts(assetVotes.map((v) => v.reaction)),
+    versionCount: versionCounts[detailId] ?? 1,
   };
 }
 

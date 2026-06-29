@@ -41,6 +41,7 @@ type ProjectHomeClientProps = {
   files: ProjectFileWithMeta[];
   projectCard: ProjectCardData;
   currentUserId: string;
+  openTaskCount?: number;
 };
 
 export function ProjectHomeClient({
@@ -49,6 +50,7 @@ export function ProjectHomeClient({
   files,
   projectCard,
   currentUserId,
+  openTaskCount = 0,
 }: ProjectHomeClientProps) {
   const [createBoardOpen, setCreateBoardOpen] = useState(false);
   const [createCanvasOpen, setCreateCanvasOpen] = useState(false);
@@ -208,6 +210,7 @@ export function ProjectHomeClient({
         files={files}
         projectCard={projectCard}
         currentUserId={currentUserId}
+        openTaskCount={openTaskCount}
         onCreateReviewBoard={() => {
           clearPendingTemplate();
           setCreateBoardOpen(true);

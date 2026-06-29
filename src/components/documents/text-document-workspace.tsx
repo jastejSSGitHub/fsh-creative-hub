@@ -18,6 +18,7 @@ import {
   DocumentIconPicker,
 } from "@/components/documents/document-icon-picker";
 import { DocumentBreadcrumbs } from "@/components/documents/document-breadcrumbs";
+import { DocumentRevisionsMenu } from "@/components/documents/document-revisions-menu";
 import { DocumentScrollSpy } from "@/components/documents/document-scroll-spy";
 import { HubIconToolbar } from "@/components/ui/hub-icon-toolbar";
 import { HubSplitButton } from "@/components/ui/hub-split-button";
@@ -288,6 +289,21 @@ export function TextDocumentWorkspace({
                 },
               ]}
             />
+
+            {editable && (
+              <DocumentRevisionsMenu
+                projectId={project.id}
+                docId={doc.id}
+                config={config}
+                editable={editable}
+                onRestore={(restoredConfig) => {
+                  updateConfig(restoredConfig);
+                }}
+                onRevisionSaved={(revisions) => {
+                  updateConfig({ ...config, revisions });
+                }}
+              />
+            )}
 
             {editable ? (
               <HubSplitButton

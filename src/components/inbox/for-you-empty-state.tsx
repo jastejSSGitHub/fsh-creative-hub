@@ -2,13 +2,13 @@
 
 import { motion, useReducedMotion } from "framer-motion";
 
-import type { ForYouView } from "@/lib/inbox/views";
+import type { ForYouLens } from "@/lib/routes";
 
 const EMPTY_COPY: Record<
-  ForYouView,
+  ForYouLens,
   { title: string; body: string; gradient: string; shadow: string }
 > = {
-  inbox: {
+  "needs-you": {
     title: "You're all caught up",
     body: "@mentions and unresolved feedback on your uploads will appear here.",
     gradient: "from-hub-primary via-[#3db4ff] to-[#7c3aed]",
@@ -26,15 +26,33 @@ const EMPTY_COPY: Record<
     gradient: "from-[#d97706] via-hub-final to-[#fbbf24]",
     shadow: "shadow-[0_12px_40px_rgba(255,201,75,0.35)]",
   },
+  "waiting-on-others": {
+    title: "Nothing pending from others",
+    body: "Delegated tasks and uploads waiting on feedback will show up here.",
+    gradient: "from-[#0891b2] via-[#0ea5e9] to-[#60a5fa]",
+    shadow: "shadow-[0_12px_40px_rgba(14,165,233,0.28)]",
+  },
+  following: {
+    title: "No following updates",
+    body: "Threads and tasks you follow will appear as soon as they change.",
+    gradient: "from-[#06b6d4] via-[#6366f1] to-[#8b5cf6]",
+    shadow: "shadow-[0_12px_40px_rgba(99,102,241,0.28)]",
+  },
+  "your-uploads": {
+    title: "No upload threads yet",
+    body: "New feedback on files you uploaded appears here automatically.",
+    gradient: "from-[#22c55e] via-[#14b8a6] to-[#06b6d4]",
+    shadow: "shadow-[0_12px_40px_rgba(16,185,129,0.3)]",
+  },
 };
 
 type ForYouEmptyStateProps = {
-  view?: ForYouView;
+  lens?: ForYouLens;
 };
 
-export function ForYouEmptyState({ view = "inbox" }: ForYouEmptyStateProps) {
+export function ForYouEmptyState({ lens = "needs-you" }: ForYouEmptyStateProps) {
   const reduced = useReducedMotion();
-  const copy = EMPTY_COPY[view];
+  const copy = EMPTY_COPY[lens];
 
   return (
     <div className="flex min-h-[min(60vh,32rem)] flex-col items-center justify-center px-6 py-16 text-center">
@@ -59,7 +77,7 @@ export function ForYouEmptyState({ view = "inbox" }: ForYouEmptyStateProps) {
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: "spring", stiffness: 260, damping: 22 }}
         >
-          <EmptyIllustration view={view} reduced={Boolean(reduced)} />
+          <EmptyIllustration lens={lens} reduced={Boolean(reduced)} />
         </motion.div>
 
         {!reduced && (
@@ -96,18 +114,24 @@ export function ForYouEmptyState({ view = "inbox" }: ForYouEmptyStateProps) {
 }
 
 function EmptyIllustration({
-  view,
+  lens,
   reduced,
 }: {
-  view: ForYouView;
+  lens: ForYouLens;
   reduced: boolean;
 }) {
-  switch (view) {
+  switch (lens) {
     case "replies":
       return <RepliesIllustration reduced={reduced} />;
     case "assigned":
       return <AssignedIllustration reduced={reduced} />;
-    case "inbox":
+    case "waiting-on-others":
+      return <WaitingIllustration reduced={reduced} />;
+    case "following":
+      return <FollowingIllustration reduced={reduced} />;
+    case "your-uploads":
+      return <UploadsIllustration reduced={reduced} />;
+    case "needs-you":
     default:
       return <InboxIllustration reduced={reduced} />;
   }
@@ -240,6 +264,109 @@ function AssignedIllustration({ reduced }: { reduced: boolean }) {
         transition={{ duration: 0.4, delay: 0.45, ease: "easeOut" }}
       />
       <circle cx="12" cy="14" r="4" fill="white" fillOpacity="0.4" />
+    </svg>
+  );
+}
+
+function WaitingIllustration({ reduced }: { reduced: boolean }) {
+  return (
+    <svg viewBox="0 0 48 48" className="size-11" fill="none" aria-hidden>
+      <motion.circle
+        cx="24"
+        cy="24"
+        r="14"
+        stroke="white"
+        strokeOpacity="0.75"
+        strokeWidth="2.6"
+        initial={reduced ? false : { pathLength: 0 }}
+        animate={{ pathLength: 1 }}
+        transition={{ duration: 0.7, ease: "easeOut" }}
+      />
+      <motion.path
+        d="M24 16v8l5 3"
+        stroke="#ffc94b"
+        strokeWidth="2.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        initial={reduced ? false : { pathLength: 0 }}
+        animate={{ pathLength: 1 }}
+        transition={{ duration: 0.45, delay: 0.22, ease: "easeOut" }}
+      />
+      <circle cx="35" cy="15" r="3" fill="white" fillOpacity="0.35" />
+    </svg>
+  );
+}
+
+function FollowingIllustration({ reduced }: { reduced: boolean }) {
+  return (
+    <svg viewBox="0 0 48 48" className="size-11" fill="none" aria-hidden>
+      <motion.path
+        d="M9 30c4-8 10-12 17-12s12 4 13 12"
+        stroke="white"
+        strokeWidth="2.8"
+        strokeLinecap="round"
+        initial={reduced ? false : { pathLength: 0 }}
+        animate={{ pathLength: 1 }}
+        transition={{ duration: 0.55 }}
+      />
+      <motion.circle
+        cx="24"
+        cy="16"
+        r="5"
+        fill="white"
+        fillOpacity="0.9"
+        initial={reduced ? false : { y: 4, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.35, delay: 0.15 }}
+      />
+      <motion.path
+        d="M34 29l4 4 6-7"
+        stroke="#ffc94b"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        initial={reduced ? false : { pathLength: 0 }}
+        animate={{ pathLength: 1 }}
+        transition={{ duration: 0.4, delay: 0.35 }}
+      />
+    </svg>
+  );
+}
+
+function UploadsIllustration({ reduced }: { reduced: boolean }) {
+  return (
+    <svg viewBox="0 0 48 48" className="size-11" fill="none" aria-hidden>
+      <motion.rect
+        x="10"
+        y="11"
+        width="28"
+        height="26"
+        rx="5"
+        fill="white"
+        fillOpacity="0.2"
+        initial={reduced ? false : { scale: 0.85, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 260, damping: 20 }}
+      />
+      <motion.path
+        d="M24 31V18m0 0l-5 5m5-5l5 5"
+        stroke="white"
+        strokeWidth="2.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        initial={reduced ? false : { pathLength: 0 }}
+        animate={{ pathLength: 1 }}
+        transition={{ duration: 0.45, delay: 0.18 }}
+      />
+      <motion.path
+        d="M16 33h16"
+        stroke="#ffc94b"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        initial={reduced ? false : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.35, delay: 0.45 }}
+      />
     </svg>
   );
 }

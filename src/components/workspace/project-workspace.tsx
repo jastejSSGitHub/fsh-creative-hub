@@ -20,6 +20,7 @@ import { CreateInitiativeDialog } from "@/components/workspace/create-initiative
 import { FireLeaders } from "@/components/workspace/fire-leaders";
 import { IdeasCanvasBoard } from "@/components/workspace/ideas-canvas-board";
 import { PresentationMode } from "@/components/workspace/presentation-mode";
+import { ShareLinkDialog } from "@/components/workspace/share-link-dialog";
 import { WorkspaceDetailToolbar } from "@/components/workspace/workspace-detail-toolbar";
 import {
   WorkspaceViewTabs,
@@ -114,6 +115,7 @@ export function ProjectWorkspace({
   const [inviteOpen, setInviteOpen] = useState(false);
   const [presentationOpen, setPresentationOpen] = useState(false);
   const [presentationIndex, setPresentationIndex] = useState(0);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [overlayAssetId, setOverlayAssetId] = useState<string | null>(openAssetId);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>(initialFilter);
   const [localInitiativeId, setLocalInitiativeId] = useState<string | null>(
@@ -556,6 +558,7 @@ export function ProjectWorkspace({
     : undefined;
 
   const showAssetsChrome = workspaceView === "assets";
+  const showInitiativeChrome = workspaceView === "assets" || workspaceView === "ideas";
   const showPresent = showAssetsChrome && presentationAssets.length > 0;
 
   const detailToolbar = useMemo(
@@ -674,7 +677,7 @@ export function ProjectWorkspace({
               />
             </div>
 
-            {showAssetsChrome && (
+            {showInitiativeChrome && (
               <div className="flex flex-col gap-3 border-b border-hub-foreground/8 pb-4 sm:flex-row sm:items-center sm:justify-between">
                 <FilterTagRow
                   aria-label="Section"
@@ -764,6 +767,7 @@ export function ProjectWorkspace({
                 currentUserId={userId}
                 role={role}
                 onStickyCountChange={setIdeaCount}
+                onViewAssets={() => setWorkspaceViewInstant("assets")}
               />
             )}
 
@@ -792,6 +796,8 @@ export function ProjectWorkspace({
       {overlayAsset && (
         <AssetDetailOverlay
           asset={overlayAsset}
+          projectId={project.id}
+          boardId={reviewBoard?.id}
           initialComments={
             overlayAssetId === openAssetId ? openAssetComments : []
           }
@@ -800,6 +806,10 @@ export function ProjectWorkspace({
           userId={userId}
           onClose={closeAssetOverlay}
           onAssetChange={patchAssetInGrid}
+          onOpenIdeas={() => {
+            closeAssetOverlay();
+            setWorkspaceViewInstant("ideas");
+          }}
         />
       )}
 
@@ -810,6 +820,19 @@ export function ProjectWorkspace({
           initiativeName={activeInitiative?.name}
           initialIndex={presentationIndex}
           onClose={() => setPresentationOpen(false)}
+          onShare={canEdit(role) && activeInitiative ? () => setShareDialogOpen(true) : undefined}
+        />
+      )}
+
+      {shareDialogOpen && activeInitiative && (
+        <ShareLinkDialog
+          open={shareDialogOpen}
+          onClose={() => setShareDialogOpen(false)}
+          projectId={project.id}
+          scopeType="presentation"
+          scopeId={activeInitiative.id}
+          defaultLabel={`${activeInitiative.name} reel`}
+          assetIds={presentationAssets.map((a) => a.id)}
         />
       )}
 

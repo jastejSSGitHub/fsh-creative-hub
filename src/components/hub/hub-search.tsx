@@ -9,7 +9,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import { useRouter } from "next/navigation";
-import { ClipboardList, FileText, FolderKanban, PenTool, Search } from "lucide-react";
+import { ClipboardList, FileText, FolderKanban, ImageIcon, PenTool, Search } from "lucide-react";
 
 import type { SearchResult } from "@/lib/search/queries";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,12 @@ const DEBOUNCE_MS = 200;
 function ResultIcon({ result }: { result: SearchResult }) {
   if (result.kind === "project") {
     return <FolderKanban className="size-3.5 shrink-0 text-hub-primary" />;
+  }
+  if (result.kind === "asset") {
+    return <ImageIcon className="size-3.5 shrink-0 text-amber-600" />;
+  }
+  if (result.kind === "task") {
+    return <ClipboardList className="size-3.5 shrink-0 text-emerald-600" />;
   }
   if (result.fileType === "canvas") {
     return <PenTool className="size-3.5 shrink-0 text-purple-500" />;
@@ -38,6 +44,7 @@ export function HubSearch() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(-1);
 
   const runSearch = useCallback(async (value: string) => {
@@ -45,16 +52,22 @@ export function HubSearch() {
     if (trimmed.length < 1) {
       setResults([]);
       setLoading(false);
+      setSearchError(null);
       return;
     }
 
     setLoading(true);
+    setSearchError(null);
     try {
       const response = await fetch(
         `/api/search?q=${encodeURIComponent(trimmed)}`,
       );
       if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
         setResults([]);
+        setSearchError(payload?.error ?? "Search failed. Try again.");
         return;
       }
       const data = (await response.json()) as { results: SearchResult[] };
@@ -62,6 +75,7 @@ export function HubSearch() {
       setActiveIndex(data.results?.length ? 0 : -1);
     } catch {
       setResults([]);
+      setSearchError("Search failed. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -160,14 +174,15 @@ export function HubSearch() {
             if (!value.trim()) {
               setResults([]);
               setOpen(false);
+              setSearchError(null);
             } else {
               setOpen(true);
             }
           }}
           onFocus={() => query.trim() && setOpen(true)}
           onKeyDown={handleInputKeyDown}
-          placeholder="Search"
-          aria-label="Search projects and files"
+          placeholder="Search projects, files, assets, tasks"
+          aria-label="Search projects, files, assets, and tasks"
           aria-expanded={showDropdown}
           aria-controls={showDropdown ? listboxId : undefined}
           aria-autocomplete="list"
@@ -184,11 +199,13 @@ export function HubSearch() {
           className="absolute top-[calc(100%+6px)] right-0 left-0 z-50 overflow-hidden rounded-xl border border-hub-foreground/10 bg-hub-surface shadow-[0_16px_48px_rgba(11,11,11,0.18)]"
           role="presentation"
         >
-          {loading && results.length === 0 ? (
+          {loading && results.length === 0 && !searchError ? (
             <p className="px-3 py-3 text-sm text-hub-foreground/45">Searching…</p>
+          ) : searchError ? (
+            <p className="px-3 py-3 text-sm text-hub-rejected">{searchError}</p>
           ) : results.length === 0 ? (
             <p className="px-3 py-3 text-sm text-hub-foreground/45">
-              No projects or files match &ldquo;{query.trim()}&rdquo;
+              No matches for &ldquo;{query.trim()}&rdquo;
             </p>
           ) : (
             <ul id={listboxId} role="listbox" className="max-h-72 overflow-y-auto py-1">

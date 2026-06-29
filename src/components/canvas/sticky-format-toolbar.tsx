@@ -1,6 +1,6 @@
 "use client";
 
-import { Bold, Check, ChevronDown, Copy, List, Strikethrough, Trash2 } from "lucide-react";
+import { Bold, Check, ChevronDown, Copy, List, ListTodo, Strikethrough, Trash2 } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -36,6 +36,7 @@ type StickyFormatToolbarProps = {
   onAddLink?: () => void;
   showLinkEmbed?: boolean;
   onCopy?: () => void;
+  onCreateTask?: () => void;
   canDelete?: boolean;
   onDelete: () => void;
 };
@@ -64,6 +65,7 @@ export function StickyFormatToolbar({
   onAddLink,
   showLinkEmbed = true,
   onCopy,
+  onCreateTask,
   canDelete = true,
   onDelete,
 }: StickyFormatToolbarProps) {
@@ -109,6 +111,19 @@ export function StickyFormatToolbar({
       </ToolbarButton>
 
       <CanvasToolbarDivider />
+
+      {onCreateTask ? (
+        <ToolbarButton
+          label="Create task"
+          tooltip="Create task from sticky"
+          onClick={(event) => {
+            event.stopPropagation();
+            onCreateTask();
+          }}
+        >
+          <ListTodo className="size-3.5" />
+        </ToolbarButton>
+      ) : null}
 
       {onCopy ? (
         <ToolbarButton

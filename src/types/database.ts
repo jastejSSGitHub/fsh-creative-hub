@@ -9,8 +9,34 @@ export type ActivityVerb =
   | "commented"
   | "uploaded"
   | "voted"
-  | "final";
+  | "final"
+  | "restored"
+  | "shared";
 export type ActivityTargetType = "asset" | "idea" | "initiative";
+
+export type ShareLinkScopeType = "presentation" | "asset" | "board";
+
+export type ShareLinkConfig = {
+  showComments?: boolean;
+  statusFilter?: string;
+  assetIds?: string[];
+  label?: string;
+};
+
+export type HubShareLink = {
+  id: string;
+  project_id: string;
+  created_by: string;
+  token: string;
+  scope_type: ShareLinkScopeType;
+  scope_id: string;
+  config: ShareLinkConfig;
+  expires_at: string | null;
+  revoked_at: string | null;
+  view_count: number;
+  last_viewed_at: string | null;
+  created_at: string;
+};
 
 export type HubProfile = {
   id: string;
@@ -99,6 +125,7 @@ export type HubComment = {
   body: string;
   mentions: string[];
   resolved: boolean;
+  linked_task_id?: string | null;
   created_at: string;
 };
 
@@ -142,6 +169,66 @@ export type HubActivity = {
   created_at: string;
 };
 
+export type HubSection = {
+  id: string;
+  project_id: string;
+  name: string;
+  sort_order: number;
+  created_at: string;
+};
+
+export type HubTask = {
+  id: string;
+  project_id: string | null;
+  section_id: string | null;
+  parent_id: string | null;
+  name: string;
+  description: string | null;
+  due_at: string | null;
+  priority: 1 | 2 | 3 | 4;
+  assignee_id: string | null;
+  recurring_rule: string | null;
+  completed: boolean;
+  completed_at: string | null;
+  created_by: string;
+  sort_order: number;
+  created_at: string;
+};
+
+export type HubLabel = {
+  id: string;
+  name: string;
+  color: string;
+  scope: "workspace";
+  created_at: string;
+};
+
+export type HubTaskLabel = {
+  id: string;
+  task_id: string;
+  label_id: string;
+};
+
+export type HubFilter = {
+  id: string;
+  owner_id: string | null;
+  name: string;
+  query: string;
+  color: string;
+  is_favorite: boolean;
+  is_preset: boolean;
+  created_at: string;
+};
+
+export type HubTaskComment = {
+  id: string;
+  task_id: string;
+  author_id: string;
+  body: string;
+  mentions: string[];
+  created_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -157,6 +244,13 @@ export type Database = {
       hub_ideas: { Row: HubIdea; Insert: Partial<HubIdea> & Pick<HubIdea, "initiative_id" | "author_id" | "body">; Update: Partial<HubIdea> };
       hub_idea_votes: { Row: HubIdeaVote; Insert: Partial<HubIdeaVote> & Pick<HubIdeaVote, "idea_id" | "user_id">; Update: Partial<HubIdeaVote> };
       hub_activity: { Row: HubActivity; Insert: Partial<HubActivity> & Pick<HubActivity, "project_id" | "actor_id" | "verb" | "target_type" | "target_id" | "summary">; Update: Partial<HubActivity> };
+      hub_sections: { Row: HubSection; Insert: Partial<HubSection> & Pick<HubSection, "project_id" | "name">; Update: Partial<HubSection> };
+      hub_tasks: { Row: HubTask; Insert: Partial<HubTask> & Pick<HubTask, "name" | "created_by">; Update: Partial<HubTask> };
+      hub_labels: { Row: HubLabel; Insert: Partial<HubLabel> & Pick<HubLabel, "name">; Update: Partial<HubLabel> };
+      hub_task_labels: { Row: HubTaskLabel; Insert: Partial<HubTaskLabel> & Pick<HubTaskLabel, "task_id" | "label_id">; Update: Partial<HubTaskLabel> };
+      hub_filters: { Row: HubFilter; Insert: Partial<HubFilter> & Pick<HubFilter, "name" | "query">; Update: Partial<HubFilter> };
+      hub_task_comments: { Row: HubTaskComment; Insert: Partial<HubTaskComment> & Pick<HubTaskComment, "task_id" | "author_id" | "body">; Update: Partial<HubTaskComment> };
+      hub_share_links: { Row: HubShareLink; Insert: Partial<HubShareLink> & Pick<HubShareLink, "project_id" | "created_by" | "scope_type" | "scope_id">; Update: Partial<HubShareLink> };
     };
   };
 };

@@ -1,99 +1,500 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
+import { ChevronDown } from "lucide-react";
 
 import { ForYouEmptyState } from "@/components/inbox/for-you-empty-state";
 import { MemberAvatar } from "@/components/projects/member-avatar";
+import { MentionComposer } from "@/components/workspace/mention-composer";
+import { buttonVariants } from "@/components/ui/button";
 import { formatRelativeTime } from "@/lib/format-relative-time";
+import {
+  SNOOZE_OPTIONS,
+  isForYouItemHandled,
+  isForYouItemSnoozed,
+  markForYouItemHandled,
+  snoozeForYouItem,
+} from "@/lib/inbox/triage-storage";
+import { parseMentionIds } from "@/lib/mentions/utils";
 import type { ForYouItem } from "@/lib/inbox/queries";
-import type { ForYouView } from "@/lib/inbox/views";
-import { assetPath } from "@/lib/routes";
+import { createClient } from "@/lib/supabase/client";
+import { requestCollaborationOnboarding } from "@/lib/collaboration-onboarding/events";
+import { addTaskCommentAction, createFollowUpTaskAction } from "@/lib/tasks/actions";
+import {
+  deriveCaptureFromForYouItem,
+  requestOpenQuickAdd,
+} from "@/lib/tasks/capture-context";
+import { addCommentAction } from "@/lib/workspace/actions";
+import { getMockMembers, MOCK_PREFIX } from "@/lib/dev-tools/mock-collaboration-data";
+import { readMockCollaborationData } from "@/lib/dev-tools/storage";
+import { assetPath, taskDeepLinkPath, type ForYouLens } from "@/lib/routes";
+import type { HubProfile } from "@/types/database";
 import { cn } from "@/lib/utils";
 
 type ForYouListProps = {
   items: ForYouItem[];
-  view?: ForYouView;
+  lens: ForYouLens;
 };
 
-function itemLabel(kind: ForYouItem["kind"]): string {
-  return kind === "mention" ? "Mention" : "Your upload";
+const BADGE_STYLES: Record<ForYouItem["kind"], string> = {
+  mention: "border-hub-primary/25 bg-hub-primary/10 text-hub-primary",
+  upload_thread: "border-hub-foreground/20 bg-hub-foreground/6 text-hub-foreground/75",
+  upload_stale: "border-hub-final/35 bg-hub-final/18 text-hub-foreground/80",
+  task_mention: "border-hub-primary/25 bg-hub-primary/10 text-hub-primary",
+  task_assigned: "border-emerald-400/35 bg-emerald-500/12 text-emerald-800",
+  task_overdue: "border-rose-400/35 bg-rose-500/12 text-rose-700",
+  vote_requested: "border-violet-400/35 bg-violet-500/12 text-violet-700",
+  task_waiting: "border-amber-400/35 bg-amber-500/14 text-amber-800",
+  following: "border-sky-400/35 bg-sky-500/12 text-sky-700",
+  resolve_suggested: "border-hub-approved/35 bg-hub-approved/15 text-hub-approved",
+};
+
+const KIND_LABELS: Record<ForYouItem["kind"], string> = {
+  mention: "Mention",
+  upload_thread: "Upload thread",
+  upload_stale: "Upload stale",
+  task_mention: "Task mention",
+  task_assigned: "Task assigned",
+  task_overdue: "Task overdue",
+  vote_requested: "Vote requested",
+  task_waiting: "Waiting on others",
+  following: "Following",
+  resolve_suggested: "Resolve suggested",
+};
+
+function isAssetLinkedItem(item: ForYouItem) {
+  return (
+    item.kind === "mention" ||
+    item.kind === "upload_thread" ||
+    item.kind === "upload_stale" ||
+    item.kind === "vote_requested" ||
+    item.kind === "resolve_suggested" ||
+    (item.kind === "following" && "asset" in item)
+  );
 }
 
-function itemDescription(kind: ForYouItem["kind"]): string {
-  return kind === "mention"
-    ? "Someone tagged you in feedback"
-    : "New thread on something you uploaded";
+function itemHref(item: ForYouItem): string {
+  if (
+    "task" in item &&
+    (item.kind === "task_mention" ||
+      item.kind === "task_assigned" ||
+      item.kind === "task_overdue" ||
+      item.kind === "task_waiting" ||
+      item.kind === "following")
+  ) {
+    return taskDeepLinkPath(item.task.id, item.task.project_id ?? null);
+  }
+
+  if ("asset" in item && "initiative" in item) {
+    return assetPath(item.project.id, item.initiative.id, item.asset.id);
+  }
+
+  return "/for-you";
 }
 
-export function ForYouList({ items, view = "inbox" }: ForYouListProps) {
-  if (items.length === 0) {
-    return <ForYouEmptyState view={view} />;
+function itemActor(item: ForYouItem): { id: string; name: string; avatarUrl: string | null } {
+  if ("comment" in item && "author" in item.comment) {
+    return {
+      id: item.comment.author.id,
+      name: item.comment.author.display_name,
+      avatarUrl: item.comment.author.avatar_url,
+    };
+  }
+
+  if ("assigner" in item && item.assigner) {
+    return {
+      id: item.assigner.id,
+      name: item.assigner.display_name,
+      avatarUrl: item.assigner.avatar_url,
+    };
+  }
+
+  return { id: "system", name: "Creative Hub", avatarUrl: null };
+}
+
+function itemContext(item: ForYouItem): string {
+  if ("initiative" in item) {
+    return `${item.project.name} · ${item.initiative.name}`;
+  }
+  if ("project" in item && item.project) {
+    return item.project.name;
+  }
+  return "Tasks";
+}
+
+function itemTitle(item: ForYouItem): string {
+  if ("task" in item) return item.task.name;
+  if ("asset" in item) return item.asset.name;
+  return "For you";
+}
+
+function itemDescription(item: ForYouItem): string {
+  switch (item.kind) {
+    case "mention":
+      return "You were tagged in feedback.";
+    case "upload_thread":
+      return "New thread on your upload.";
+    case "upload_stale":
+      return "Your upload still needs input.";
+    case "task_mention":
+      return "You were mentioned on a task.";
+    case "task_assigned":
+      return "A task was assigned to you.";
+    case "task_overdue":
+      return "Assigned task is overdue.";
+    case "vote_requested":
+      return "Your vote is requested.";
+    case "task_waiting":
+      return "Waiting on someone else to complete this task.";
+    case "following":
+      return "Activity on something you are following.";
+    case "resolve_suggested":
+      return "Linked task is complete, review resolving this thread.";
+    default:
+      return "";
+  }
+}
+
+function itemBody(item: ForYouItem): string {
+  if ("comment" in item) return item.comment.body;
+  if ("task" in item) return item.task.name;
+  if ("asset" in item) return item.asset.name;
+  return "";
+}
+
+export function ForYouList({ items, lens }: ForYouListProps) {
+  const [userId, setUserId] = useState<string | null>(null);
+  const [members, setMembers] = useState<HubProfile[]>([]);
+  const [replyOpenById, setReplyOpenById] = useState<Record<string, boolean>>({});
+  const [draftById, setDraftById] = useState<Record<string, string>>({});
+  const [errorById, setErrorById] = useState<Record<string, string>>({});
+  const [pendingById, setPendingById] = useState<Record<string, boolean>>({});
+  const [triageRefresh, setTriageRefresh] = useState(0);
+  const [snoozeMenuId, setSnoozeMenuId] = useState<string | null>(null);
+  const [followUpById, setFollowUpById] = useState<Record<string, boolean>>({});
+  const snoozeMenuRef = useRef<HTMLDivElement>(null);
+  const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    let mounted = true;
+    const supabase = createClient();
+    void supabase.auth.getUser().then(({ data }) => {
+      if (!mounted) return;
+      setUserId(data.user?.id ?? null);
+    });
+    if (readMockCollaborationData()) {
+      setMembers(getMockMembers() as HubProfile[]);
+    } else {
+      void supabase
+        .from("hub_profiles")
+        .select("id, display_name, avatar_url, email, is_hub_admin, created_at")
+        .order("display_name")
+        .then(({ data }) => {
+          if (mounted && data) setMembers(data as HubProfile[]);
+        });
+    }
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!snoozeMenuId) return;
+
+    function handlePointerDown(event: MouseEvent) {
+      if (snoozeMenuRef.current?.contains(event.target as Node)) return;
+      setSnoozeMenuId(null);
+    }
+
+    window.addEventListener("mousedown", handlePointerDown);
+    return () => window.removeEventListener("mousedown", handlePointerDown);
+  }, [snoozeMenuId]);
+
+  const visibleItems = useMemo(() => {
+    if (!userId) return items;
+    return items.filter((item) => {
+      if (isForYouItemHandled(userId, item.id)) return false;
+      if (isForYouItemSnoozed(userId, item.id)) return false;
+      return true;
+    });
+  }, [items, userId, triageRefresh]);
+
+  function markHandled(itemId: string) {
+    if (!userId) return;
+    markForYouItemHandled(userId, itemId);
+    setTriageRefresh((value) => value + 1);
+  }
+
+  function snoozeItem(itemId: string, optionIndex: number) {
+    if (!userId) return;
+    const option = SNOOZE_OPTIONS[optionIndex];
+    if (!option) return;
+    const wakeAt = new Date(Date.now() + option.hours * 60 * 60 * 1000);
+    snoozeForYouItem(userId, itemId, wakeAt);
+    setSnoozeMenuId(null);
+    setTriageRefresh((value) => value + 1);
+    requestCollaborationOnboarding("for-you-triage");
+  }
+
+  function openFollowUpQuickAdd(item: ForYouItem) {
+    requestOpenQuickAdd(deriveCaptureFromForYouItem(item));
+    requestCollaborationOnboarding("smart-capture");
+  }
+
+  async function maybeCreateFollowUpTask(item: ForYouItem, body: string) {
+    if (!followUpById[item.id]) return;
+
+    const capture = deriveCaptureFromForYouItem(item);
+    await createFollowUpTaskAction({
+      name: body.slice(0, 120) || "Follow-up",
+      projectId: capture.projectId ?? null,
+      assetId: capture.assetId ?? null,
+      description: body,
+    });
+  }
+
+  function submitInlineReply(item: ForYouItem) {
+    const body = (draftById[item.id] ?? "").trim();
+    if (!body) return;
+
+    setPendingById((prev) => ({ ...prev, [item.id]: true }));
+    setErrorById((prev) => ({ ...prev, [item.id]: "" }));
+
+    startTransition(async () => {
+      if (item.id.startsWith(MOCK_PREFIX)) {
+        await new Promise((resolve) => setTimeout(resolve, 400));
+        setDraftById((prev) => ({ ...prev, [item.id]: "" }));
+        setReplyOpenById((prev) => ({ ...prev, [item.id]: false }));
+        setPendingById((prev) => ({ ...prev, [item.id]: false }));
+        return;
+      }
+
+      if (
+        "task" in item &&
+        (item.kind === "task_mention" ||
+          item.kind === "task_assigned" ||
+          item.kind === "task_overdue" ||
+          item.kind === "task_waiting" ||
+          item.kind === "following")
+      ) {
+        const result = await addTaskCommentAction({
+          taskId: item.task.id,
+          body,
+          mentions: parseMentionIds(body, members),
+        });
+        if (!result.ok) {
+          setErrorById((prev) => ({
+            ...prev,
+            [item.id]: result.error ?? "Could not post comment.",
+          }));
+          setPendingById((prev) => ({ ...prev, [item.id]: false }));
+          return;
+        }
+      } else if (isAssetLinkedItem(item) && "asset" in item) {
+        const result = await addCommentAction({
+          assetId: item.asset.id,
+          body,
+          parentId: "comment" in item ? item.comment.id : null,
+          mentions: parseMentionIds(body, members),
+        });
+        if (!result.ok) {
+          setErrorById((prev) => ({
+            ...prev,
+            [item.id]: result.error ?? "Could not post comment.",
+          }));
+          setPendingById((prev) => ({ ...prev, [item.id]: false }));
+          return;
+        }
+      }
+
+      await maybeCreateFollowUpTask(item, body);
+      requestCollaborationOnboarding("for-you-inline-reply");
+      requestCollaborationOnboarding("task-watch");
+
+      setDraftById((prev) => ({ ...prev, [item.id]: "" }));
+      setReplyOpenById((prev) => ({ ...prev, [item.id]: false }));
+      setFollowUpById((prev) => ({ ...prev, [item.id]: false }));
+      setPendingById((prev) => ({ ...prev, [item.id]: false }));
+    });
+  }
+
+  if (visibleItems.length === 0) {
+    return <ForYouEmptyState lens={lens} />;
   }
 
   return (
     <ul className="divide-y divide-hub-foreground/6">
-      {items.map((item) => {
-        const href = assetPath(
-          item.project.id,
-          item.initiative.id,
-          item.asset.id,
-        );
+      {visibleItems.map((item) => {
+        const actor = itemActor(item);
+        const open = Boolean(replyOpenById[item.id]);
+        const pending = Boolean(pendingById[item.id]) || isPending;
+        const draft = draftById[item.id] ?? "";
 
         return (
-          <li key={item.id}>
-            <Link
-              href={href}
-              className="group flex gap-3 px-4 py-4 transition-colors hover:bg-hub-foreground/[0.02] sm:gap-4 sm:px-6 sm:py-4"
-            >
+          <li key={item.id} className="px-4 py-4 sm:px-6">
+            <div className="flex gap-3 sm:gap-4">
               <MemberAvatar
-                displayName={item.comment.author.display_name}
-                avatarUrl={item.comment.author.avatar_url}
-                colorSeed={item.comment.author.id}
+                displayName={actor.name}
+                avatarUrl={actor.avatarUrl}
+                colorSeed={actor.id}
                 variant="muted"
                 size="md"
               />
 
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <span className="text-sm font-semibold text-hub-foreground">
-                    {item.comment.author.display_name}
-                  </span>
+                  <span className="text-sm font-semibold text-hub-foreground">{actor.name}</span>
                   <span
                     className={cn(
                       "rounded-md border px-2 py-0.5 font-mono text-[0.58rem] uppercase tracking-[0.08em]",
-                      item.kind === "mention"
-                        ? "border-hub-primary/25 bg-hub-primary/10 text-hub-primary"
-                        : "border-hub-final/40 bg-hub-final/20 text-hub-foreground/75",
+                      BADGE_STYLES[item.kind],
                     )}
                   >
-                    {itemLabel(item.kind)}
+                    {KIND_LABELS[item.kind]}
                   </span>
                   <span className="font-mono text-[0.58rem] text-hub-foreground/35">
-                    {formatRelativeTime(item.comment.created_at)}
+                    {formatRelativeTime(item.sort_at)}
                   </span>
                 </div>
 
-                <p className="mt-0.5 text-xs text-hub-foreground/45">
-                  {itemDescription(item.kind)}
-                </p>
+                <p className="mt-0.5 text-xs text-hub-foreground/45">{itemDescription(item)}</p>
 
-                <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-hub-foreground/75">
-                  {item.comment.body}
-                </p>
+                <Link
+                  href={itemHref(item)}
+                  className="group mt-2 block rounded-md border border-transparent p-1.5 -mx-1.5 hover:border-hub-foreground/8 hover:bg-hub-foreground/[0.02]"
+                >
+                  <p className="line-clamp-2 text-sm leading-relaxed text-hub-foreground/75">
+                    {itemBody(item)}
+                  </p>
+                  <p className="mt-2 inline-flex max-w-full flex-wrap items-center gap-x-1.5 font-mono text-[0.58rem] uppercase tracking-[0.08em] text-hub-foreground/40">
+                    <span className="truncate">{itemContext(item)}</span>
+                    <span aria-hidden className="text-hub-foreground/20">
+                      ·
+                    </span>
+                    <span className="truncate text-hub-foreground/55 group-hover:text-hub-foreground/70">
+                      {itemTitle(item)}
+                    </span>
+                  </p>
+                </Link>
 
-                <p className="mt-3 inline-flex max-w-full flex-wrap items-center gap-x-1.5 font-mono text-[0.58rem] uppercase tracking-[0.08em] text-hub-foreground/40">
-                  <span className="truncate">{item.project.name}</span>
-                  <span aria-hidden className="text-hub-foreground/20">
-                    ·
-                  </span>
-                  <span className="truncate">{item.initiative.name}</span>
-                  <span aria-hidden className="text-hub-foreground/20">
-                    ·
-                  </span>
-                  <span className="truncate text-hub-foreground/55 group-hover:text-hub-foreground/70">
-                    {item.asset.name}
-                  </span>
-                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !open;
+                      setReplyOpenById((prev) => ({ ...prev, [item.id]: next }));
+                      if (next) requestCollaborationOnboarding("for-you-inline-reply");
+                    }}
+                    className={cn(
+                      buttonVariants({ variant: "ghost", size: "sm" }),
+                      "h-8 rounded-md px-2.5 text-xs",
+                    )}
+                  >
+                    {open ? "Cancel" : "Reply"}
+                  </button>
+                  <div className="relative" ref={snoozeMenuId === item.id ? snoozeMenuRef : undefined}>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSnoozeMenuId((current) =>
+                          current === item.id ? null : item.id,
+                        )
+                      }
+                      className={cn(
+                        buttonVariants({ variant: "ghost", size: "sm" }),
+                        "h-8 gap-1 rounded-md px-2.5 text-xs text-hub-foreground/60 hover:text-hub-foreground",
+                      )}
+                    >
+                      Snooze
+                      <ChevronDown className="size-3" />
+                    </button>
+                    {snoozeMenuId === item.id && (
+                      <div className="absolute left-0 top-full z-20 mt-1 min-w-[9rem] overflow-hidden rounded-md border border-hub-foreground/10 bg-hub-paper py-1 shadow-lg">
+                        {SNOOZE_OPTIONS.map((option, index) => (
+                          <button
+                            key={option.id}
+                            type="button"
+                            onClick={() => snoozeItem(item.id, index)}
+                            className="block w-full px-3 py-1.5 text-left text-xs text-hub-foreground/80 transition-colors hover:bg-hub-foreground/[0.04]"
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => openFollowUpQuickAdd(item)}
+                    className={cn(
+                      buttonVariants({ variant: "ghost", size: "sm" }),
+                      "h-8 rounded-md px-2.5 text-xs text-hub-foreground/60 hover:text-hub-foreground",
+                    )}
+                  >
+                    Add task
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => markHandled(item.id)}
+                    className={cn(
+                      buttonVariants({ variant: "ghost", size: "sm" }),
+                      "h-8 rounded-md px-2.5 text-xs text-hub-foreground/60 hover:text-hub-foreground",
+                    )}
+                  >
+                    Mark handled
+                  </button>
+                </div>
+
+                {open && (
+                  <div className="mt-3 space-y-2 rounded-md border border-hub-foreground/10 bg-hub-surface p-3">
+                    <MentionComposer
+                      value={draft}
+                      onChange={(value) => setDraftById((prev) => ({ ...prev, [item.id]: value }))}
+                      members={members}
+                      currentUserId={userId ?? undefined}
+                      rows={2}
+                      disabled={pending}
+                      placeholder="Reply… Type @ to mention"
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+                          event.preventDefault();
+                          submitInlineReply(item);
+                        }
+                      }}
+                    />
+                    <label className="flex cursor-pointer items-center gap-2 text-xs text-hub-foreground/65">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(followUpById[item.id])}
+                        onChange={(event) =>
+                          setFollowUpById((prev) => ({
+                            ...prev,
+                            [item.id]: event.target.checked,
+                          }))
+                        }
+                        className="size-3.5 rounded border-hub-foreground/20"
+                      />
+                      Also create follow-up task
+                    </label>
+                    {errorById[item.id] && (
+                      <p className="text-xs text-hub-rejected">{errorById[item.id]}</p>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => submitInlineReply(item)}
+                      disabled={pending || !draft.trim()}
+                      className={cn(
+                        buttonVariants({ size: "sm" }),
+                        "h-8 rounded-md bg-hub-espresso px-3 text-xs text-hub-paper",
+                      )}
+                    >
+                      Send reply
+                    </button>
+                  </div>
+                )}
               </div>
-            </Link>
+            </div>
           </li>
         );
       })}

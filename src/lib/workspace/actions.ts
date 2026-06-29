@@ -4,13 +4,15 @@ import { revalidatePath } from "next/cache";
 
 import { toUserFacingError } from "@/lib/errors/user-facing";
 import { canAdmin, canEdit } from "@/lib/permissions";
-import { PROJECTS_PATH, projectPath, reviewBoardPath } from "@/lib/routes";
+import { PROJECTS_PATH, projectPath, projectTasksPath, reviewBoardPath } from "@/lib/routes";
 import { getProjectMembership } from "@/lib/projects/queries";
+import { ensureDefaultSections } from "@/lib/tasks/queries";
 import { createClient } from "@/lib/supabase/server";
 import { logActivity } from "@/lib/workspace/activity";
 import { stickyColorToIdeaColor } from "@/lib/workspace/idea-sticky-colors";
 import { ensureInitiativeIdeasCanvas } from "@/lib/workspace/ideas-canvas";
 import { getIdeasForInitiative } from "@/lib/workspace/queries";
+import { resolveAssetThreadRootId } from "@/lib/workspace/asset-versions";
 import type { AssetStatus, HubProjectFile, HubRole, VoteReaction } from "@/types/database";
 import type { CanvasTextSize, StickyColorId } from "@/lib/canvas/types";
 
@@ -177,6 +179,106 @@ export async function registerAssetAction(input: {
 
     revalidateProject(input.projectId, input.boardId);
     return { ok: true, id: data.id };
+  } catch (e) {
+    return { ok: false, error: toUserFacingError(e, "Something went wrong. Please try again.") };
+  }
+}
+
+export async function uploadNewAssetVersionAction(input: {
+  assetId: string;
+  projectId: string;
+  boardId?: string;
+  name: string;
+  type: "image" | "video";
+  storagePath: string;
+  publicUrl: string;
+  tag: string;
+  isFixCandidate?: boolean;
+}): Promise<ActionResult> {
+  try {
+    const { supabase, user } = await requireProjectRole(input.projectId, "editor");
+
+    const { data: assetRow } = await supabase
+      .from("hub_assets")
+      .select("*")
+      .eq("id", input.assetId)
+      .maybeSingle();
+
+    if (!assetRow) return { ok: false, error: "Asset not found." };
+
+    const rootId = resolveAssetThreadRootId(assetRow as { id: string; variant_of: string | null });
+
+    const { data: rootIdFromRpc, error: rpcError } = await supabase.rpc("hub_upload_asset_version", {
+      p_root_asset_id: rootId,
+      p_name: input.name,
+      p_type: input.type,
+      p_storage_path: input.storagePath,
+      p_public_url: input.publicUrl,
+      p_tag: input.tag,
+      p_is_fix_candidate: input.isFixCandidate ?? false,
+    });
+
+    if (rpcError || !rootIdFromRpc) {
+      return {
+        ok: false,
+        error: toUserFacingError(rpcError?.message, "Could not upload new version."),
+      };
+    }
+
+    await logActivity(supabase, {
+      projectId: input.projectId,
+      actorId: user.id,
+      verb: "uploaded",
+      targetType: "asset",
+      targetId: rootIdFromRpc,
+      summary: `Uploaded new version of "${input.name}"`,
+    });
+
+    revalidateProject(input.projectId, input.boardId);
+    return { ok: true, id: rootIdFromRpc };
+  } catch (e) {
+    return { ok: false, error: toUserFacingError(e, "Something went wrong. Please try again.") };
+  }
+}
+
+export async function restoreAssetVersionAction(input: {
+  rootAssetId: string;
+  versionAssetId: string;
+  projectId: string;
+  boardId?: string;
+}): Promise<ActionResult> {
+  try {
+    const { supabase, user } = await requireProjectRole(input.projectId, "editor");
+
+    const { data: rootIdFromRpc, error: rpcError } = await supabase.rpc("hub_restore_asset_version", {
+      p_root_asset_id: input.rootAssetId,
+      p_version_asset_id: input.versionAssetId,
+    });
+
+    if (rpcError || !rootIdFromRpc) {
+      return {
+        ok: false,
+        error: toUserFacingError(rpcError?.message, "Could not restore version."),
+      };
+    }
+
+    const { data: restored } = await supabase
+      .from("hub_assets")
+      .select("name")
+      .eq("id", rootIdFromRpc)
+      .maybeSingle();
+
+    await logActivity(supabase, {
+      projectId: input.projectId,
+      actorId: user.id,
+      verb: "restored",
+      targetType: "asset",
+      targetId: rootIdFromRpc,
+      summary: `Restored earlier version of "${restored?.name ?? "asset"}"`,
+    });
+
+    revalidateProject(input.projectId, input.boardId);
+    return { ok: true, id: rootIdFromRpc };
   } catch (e) {
     return { ok: false, error: toUserFacingError(e, "Something went wrong. Please try again.") };
   }
@@ -429,26 +531,49 @@ export async function deleteAssetAction(
 
     const { data: asset } = await supabase
       .from("hub_assets")
-      .select("storage_path, uploaded_by")
+      .select("id, storage_path, uploaded_by, variant_of")
       .eq("id", assetId)
       .single();
 
     if (!asset) return { ok: false, error: "Asset not found." };
 
-    if (asset.uploaded_by !== user.id) {
+    const rootId = resolveAssetThreadRootId(asset as { id: string; variant_of: string | null });
+
+    const { data: root } = await supabase
+      .from("hub_assets")
+      .select("storage_path, uploaded_by")
+      .eq("id", rootId)
+      .single();
+
+    if (!root) return { ok: false, error: "Asset not found." };
+
+    if (root.uploaded_by !== user.id) {
       return { ok: false, error: "You can only delete assets you uploaded." };
     }
 
-    if (asset.storage_path) {
-      await supabase.storage.from("hub-media").remove([asset.storage_path]);
+    const { data: versionRows } = await supabase
+      .from("hub_assets")
+      .select("storage_path")
+      .or(`id.eq.${rootId},variant_of.eq.${rootId}`);
+
+    const storagePaths = [
+      ...new Set(
+        (versionRows ?? [])
+          .map((row) => row.storage_path)
+          .filter((path): path is string => Boolean(path)),
+      ),
+    ];
+
+    if (storagePaths.length) {
+      await supabase.storage.from("hub-media").remove(storagePaths);
     }
 
-    const { error } = await supabase.from("hub_assets").delete().eq("id", assetId);
+    const { error } = await supabase.from("hub_assets").delete().eq("id", rootId);
 
     if (error) return { ok: false, error: toUserFacingError(error.message, "Something went wrong. Please try again.") };
 
     revalidateProject(projectId, boardId);
-    return { ok: true, id: assetId };
+    return { ok: true, id: rootId };
   } catch (e) {
     return { ok: false, error: toUserFacingError(e, "Something went wrong. Please try again.") };
   }
@@ -708,6 +833,48 @@ export async function getInitiativeIdeasCanvasAction(
     }
 
     return { ok: true, canvas };
+  } catch (e) {
+    return { ok: false, error: toUserFacingError(e, "Something went wrong. Please try again.") };
+  }
+}
+
+/** Turn sticky note text into a project task (ideas canvas bridge). */
+export async function createTaskFromStickyAction(input: {
+  projectId: string;
+  initiativeId: string;
+  body: string;
+  boardId?: string;
+}): Promise<ActionResult> {
+  try {
+    const { supabase, user } = await requireProjectRole(input.projectId, "editor");
+    const trimmed = input.body.trim();
+    if (!trimmed) return { ok: false, error: "Add text to the sticky before creating a task." };
+
+    const sections = await ensureDefaultSections(supabase, input.projectId);
+    const sectionId = sections[0]?.id ?? null;
+    const name = trimmed.length > 120 ? `${trimmed.slice(0, 117)}…` : trimmed;
+
+    const { data: task, error } = await supabase
+      .from("hub_tasks")
+      .insert({
+        name,
+        description: trimmed,
+        project_id: input.projectId,
+        section_id: sectionId,
+        created_by: user.id,
+        priority: 4,
+        assignee_id: user.id,
+      })
+      .select("id")
+      .single();
+
+    if (error || !task) {
+      return { ok: false, error: toUserFacingError(error?.message, "Could not create task.") };
+    }
+
+    revalidateProject(input.projectId, input.boardId);
+    revalidatePath(projectTasksPath(input.projectId));
+    return { ok: true, id: task.id };
   } catch (e) {
     return { ok: false, error: toUserFacingError(e, "Something went wrong. Please try again.") };
   }

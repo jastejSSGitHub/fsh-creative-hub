@@ -4,6 +4,8 @@ import { useEffect, useRef } from "react";
 import { Wrench, X } from "lucide-react";
 
 import { useDevTools } from "@/lib/dev-tools/dev-tools-context";
+import { resetCollaborationOnboarding } from "@/lib/collaboration-onboarding/storage";
+import { COLLABORATION_ONBOARDING_REQUEST } from "@/lib/collaboration-onboarding/events";
 import { cn } from "@/lib/utils";
 
 export function DevToolsHost() {
@@ -25,8 +27,17 @@ export function DevToolsHost() {
 
   if (!devTools?.isHubAdmin) return null;
 
-  const { unlocked, simulateNewUser, fabOpen, registerUnlockClick, hideDevTools, setSimulateNewUser } =
-    devTools;
+  const {
+    unlocked,
+    simulateNewUser,
+    mockCollaborationData,
+    fabOpen,
+    userId,
+    registerUnlockClick,
+    hideDevTools,
+    setSimulateNewUser,
+    setMockCollaborationData,
+  } = devTools;
 
   return (
     <div
@@ -36,7 +47,7 @@ export function DevToolsHost() {
       {unlocked && fabOpen ? (
         <div
           className={cn(
-            "pointer-events-auto w-[min(92vw,16rem)] overflow-hidden rounded-xl border border-hub-foreground/12",
+            "pointer-events-auto w-[min(92vw,18rem)] overflow-hidden rounded-xl border border-hub-foreground/12",
             "bg-hub-surface/95 shadow-2xl backdrop-blur-md",
           )}
         >
@@ -76,6 +87,53 @@ export function DevToolsHost() {
                 />
               </button>
             </label>
+
+            <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg px-2.5 py-2.5 transition-colors hover:bg-hub-foreground/5">
+              <div>
+                <p className="text-sm font-medium text-hub-foreground">Mock collaboration</p>
+                <p className="mt-0.5 text-[0.6875rem] leading-snug text-hub-foreground/55">
+                  Demo For You feed, tasks, mentions & replay onboarding
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={mockCollaborationData}
+                aria-label="Mock collaboration data"
+                onClick={() => setMockCollaborationData(!mockCollaborationData)}
+                className={cn(
+                  "relative h-6 w-11 shrink-0 rounded-full border transition-colors",
+                  mockCollaborationData
+                    ? "border-hub-final bg-hub-final"
+                    : "border-hub-foreground/15 bg-hub-foreground/10",
+                )}
+              >
+                <span
+                  className={cn(
+                    "absolute top-0.5 size-5 rounded-full bg-white shadow transition-transform",
+                    mockCollaborationData ? "translate-x-[1.125rem]" : "translate-x-0.5",
+                  )}
+                />
+              </button>
+            </label>
+
+            <button
+              type="button"
+              onClick={() => {
+                resetCollaborationOnboarding(userId);
+                window.dispatchEvent(
+                  new CustomEvent(COLLABORATION_ONBOARDING_REQUEST, {
+                    detail: { featureId: "needs-you-feed" },
+                  }),
+                );
+              }}
+              className="flex w-full flex-col rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-hub-foreground/5"
+            >
+              <p className="text-sm font-medium text-hub-foreground">Replay collaboration tours</p>
+              <p className="mt-0.5 text-[0.6875rem] leading-snug text-hub-foreground/55">
+                Reset all For You, tasks, and quick-add onboarding modals
+              </p>
+            </button>
 
             <button
               type="button"

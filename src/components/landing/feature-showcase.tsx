@@ -1,19 +1,24 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
+import type { ReactNode } from "react";
 
 import { AssetPlaceholder } from "@/components/landing/asset-placeholder";
+import { CollaborationLoopWorkflowIllustration } from "@/components/landing/collaboration-loop-workflow-illustration";
 import { CommentsWorkflowIllustration } from "@/components/landing/comments-workflow-illustration";
 import { FeatureIllustrationFrame } from "@/components/landing/feature-illustration-frame";
+import { ForYouWorkflowIllustration } from "@/components/landing/for-you-workflow-illustration";
 import { IdeasWorkflowIllustration } from "@/components/landing/ideas-workflow-illustration";
 import { PresentWorkflowIllustration } from "@/components/landing/present-workflow-illustration";
 import { ProjectsWorkflowIllustration } from "@/components/landing/projects-workflow-illustration";
+import { QuickTasksWorkflowIllustration } from "@/components/landing/quick-tasks-workflow-illustration";
 import {
   FeatureTutorialLink,
   type FeatureTutorialConfig,
 } from "@/components/landing/feature-tutorial-link";
 import { ScrollReveal } from "@/components/landing/scroll-reveal";
 import { TrimmedLoopVideo } from "@/components/landing/trimmed-loop-video";
+import { COLLABORATION_FEATURE_LOOMS, featureTutorial } from "@/lib/landing/feature-looms";
 import { cn } from "@/lib/utils";
 
 const PROJECTS_LOOM_URL =
@@ -104,6 +109,45 @@ const FEATURES: ReadonlyArray<{
     media: null,
     tutorial: null,
   },
+  {
+    kicker: "FOR YOU",
+    headline: "One feed for everything that needs you.",
+    body: "Mentions, assigned tasks, overdue work, and assets waiting on your vote — sorted by urgency, not buried in Slack threads.",
+    visualLabel: "For You inbox",
+    visualAspect: "portrait",
+    index: 5,
+    media: null,
+    tutorial: featureTutorial(
+      COLLABORATION_FEATURE_LOOMS.forYou,
+      "One feed for everything that needs you",
+    ),
+  },
+  {
+    kicker: "QUICK TASKS",
+    headline: "Capture follow-ups in seconds.",
+    body: "Press Q anywhere in the hub. Natural-language quick add turns a thought into a task — with due dates, labels, and project context built in.",
+    visualLabel: "Quick add",
+    visualAspect: "wide",
+    index: 6,
+    media: null,
+    tutorial: featureTutorial(
+      COLLABORATION_FEATURE_LOOMS.quickTasks,
+      "Capture follow-ups in seconds",
+    ),
+  },
+  {
+    kicker: "COLLABORATION",
+    headline: "Feedback becomes follow-through.",
+    body: "Turn a comment into a linked task, complete the work, resolve the thread. Creative review and task management in one loop for your team.",
+    visualLabel: "Comment → task → resolve",
+    visualAspect: "portrait",
+    index: 7,
+    media: null,
+    tutorial: featureTutorial(
+      COLLABORATION_FEATURE_LOOMS.collaborationLoop,
+      "Feedback becomes follow-through",
+    ),
+  },
 ];
 
 const ILLUSTRATION_FRAMES = {
@@ -111,6 +155,9 @@ const ILLUSTRATION_FRAMES = {
   COMMENTS: "bg-gradient-to-br from-[#3A86FF] via-[#8338EC] to-[#C77DFF]",
   IDEAS: "bg-gradient-to-br from-[#FFC94B] via-[#F4A261] to-[#FF6B6B]",
   PRESENT: "bg-gradient-to-br from-[#1a1a1a] via-[#3d3d3d] to-[#0b0b0b]",
+  FOR_YOU: "bg-gradient-to-br from-[#06b6d4] via-[#3b82f6] to-[#6366f1]",
+  QUICK_TASKS: "bg-gradient-to-br from-[#10b981] via-[#14b8a6] to-[#0ea5e9]",
+  COLLABORATION: "bg-gradient-to-br from-[#ec4899] via-[#a855f7] to-[#6366f1]",
 } as const;
 
 function ProjectsVisual() {
@@ -144,6 +191,41 @@ function PresentVisual() {
     </FeatureIllustrationFrame>
   );
 }
+
+function ForYouVisual() {
+  return (
+    <FeatureIllustrationFrame gradientClassName={ILLUSTRATION_FRAMES.FOR_YOU}>
+      <ForYouWorkflowIllustration />
+    </FeatureIllustrationFrame>
+  );
+}
+
+function QuickTasksVisual() {
+  return (
+    <FeatureIllustrationFrame gradientClassName={ILLUSTRATION_FRAMES.QUICK_TASKS}>
+      <QuickTasksWorkflowIllustration />
+    </FeatureIllustrationFrame>
+  );
+}
+
+function CollaborationVisual() {
+  return (
+    <FeatureIllustrationFrame gradientClassName={ILLUSTRATION_FRAMES.COLLABORATION}>
+      <CollaborationLoopWorkflowIllustration />
+    </FeatureIllustrationFrame>
+  );
+}
+
+const FEATURE_VISUALS: Record<string, () => ReactNode> = {
+  PROJECTS: ProjectsVisual,
+  REVIEW: () => null,
+  COMMENTS: CommentsVisual,
+  IDEAS: IdeasVisual,
+  PRESENT: PresentVisual,
+  "FOR YOU": ForYouVisual,
+  "QUICK TASKS": QuickTasksVisual,
+  COLLABORATION: CollaborationVisual,
+};
 
 function FeatureVisual({
   label,
@@ -252,22 +334,21 @@ export function FeatureShowcase() {
                 </div>
 
                 <div className="w-full">
-                  {feature.kicker === "PROJECTS" ? (
-                    <ProjectsVisual />
-                  ) : feature.kicker === "COMMENTS" ? (
-                    <CommentsVisual />
-                  ) : feature.kicker === "IDEAS" ? (
-                    <IdeasVisual />
-                  ) : feature.kicker === "PRESENT" ? (
-                    <PresentVisual />
-                  ) : (
-                    <FeatureVisual
-                      label={feature.visualLabel}
-                      aspect={feature.visualAspect}
-                      index={feature.index}
-                      media={feature.media}
-                    />
-                  )}
+                  {(() => {
+                    const Visual = FEATURE_VISUALS[feature.kicker];
+                    if (Visual) {
+                      const node = Visual();
+                      if (node) return node;
+                    }
+                    return (
+                      <FeatureVisual
+                        label={feature.visualLabel}
+                        aspect={feature.visualAspect}
+                        index={feature.index}
+                        media={feature.media}
+                      />
+                    );
+                  })()}
                 </div>
               </article>
             </ScrollReveal>

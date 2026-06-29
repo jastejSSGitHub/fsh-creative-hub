@@ -1,10 +1,17 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { fileTypeLabel } from "@/lib/project-files/queries";
-import { canvasPath, projectPath, reviewBoardPath, textDocumentPath } from "@/lib/routes";
+import {
+  assetPath,
+  canvasPath,
+  projectPath,
+  reviewBoardPath,
+  taskDeepLinkPath,
+  textDocumentPath,
+} from "@/lib/routes";
 import type { HubProjectFileType } from "@/types/database";
 
-export type SearchResultKind = "project" | "file";
+export type SearchResultKind = "project" | "file" | "asset" | "task";
 
 export type SearchResult = {
   id: string;
@@ -19,11 +26,13 @@ function escapeIlikePattern(query: string): string {
   return query.replace(/[%_\\]/g, "\\$&");
 }
 
+const PER_KIND_LIMIT = 6;
+
 export async function searchHub(
   supabase: SupabaseClient,
   userId: string,
   rawQuery: string,
-  limit = 12,
+  limit = 16,
 ): Promise<SearchResult[]> {
   const query = rawQuery.trim();
   if (query.length < 1) return [];
@@ -40,7 +49,12 @@ export async function searchHub(
   const projectIds = (memberships ?? []).map((row) => row.project_id);
   if (projectIds.length === 0) return [];
 
-  const [{ data: projects }, { data: files }] = await Promise.all([
+  const [
+    { data: projects },
+    { data: files },
+    { data: initiatives },
+    { data: tasks },
+  ] = await Promise.all([
     supabase
       .from("hub_projects")
       .select("id, name")
@@ -48,15 +62,58 @@ export async function searchHub(
       .is("trashed_at", null)
       .ilike("name", pattern)
       .order("name")
-      .limit(limit),
+      .limit(PER_KIND_LIMIT),
     supabase
       .from("hub_project_files")
-      .select("id, name, type, project_id, project:hub_projects(name)")
+      .select("id, name, type, project_id, config, project:hub_projects(name)")
       .in("project_id", projectIds)
-      .ilike("name", pattern)
+      .or(`name.ilike.${pattern},config->>plainTextPreview.ilike.${pattern}`)
       .order("name")
-      .limit(limit),
+      .limit(PER_KIND_LIMIT),
+    supabase
+      .from("hub_initiatives")
+      .select("id, project_id, name, project:hub_projects(name)")
+      .in("project_id", projectIds),
+    supabase
+      .from("hub_tasks")
+      .select("id, name, description, project_id, project:hub_projects(name)")
+      .or(`name.ilike.${pattern},description.ilike.${pattern}`)
+      .eq("completed", false)
+      .order("updated_at", { ascending: false })
+      .limit(PER_KIND_LIMIT),
   ]);
+
+  const initiativeIds = (initiatives ?? []).map((row) => row.id);
+  const initiativeProject = new Map(
+    (initiatives ?? []).map((row) => [row.id, row.project_id as string]),
+  );
+  const initiativeName = new Map(
+    (initiatives ?? []).map((row) => {
+      const rawProject = row.project as { name: string } | { name: string }[] | null;
+      const projectName = Array.isArray(rawProject) ? rawProject[0]?.name : rawProject?.name;
+      return [row.id, projectName ?? ""];
+    }),
+  );
+
+  let assets: Array<{
+    id: string;
+    name: string;
+    tag: string;
+    initiative_id: string;
+  }> = [];
+
+  if (initiativeIds.length > 0) {
+    const { data: assetRows } = await supabase
+      .from("hub_assets")
+      .select("id, name, tag, initiative_id")
+      .in("initiative_id", initiativeIds)
+      .is("variant_of", null)
+      .or(`name.ilike.${pattern},tag.ilike.${pattern}`)
+      .order("name")
+      .limit(PER_KIND_LIMIT);
+
+    assets = assetRows ?? [];
+  }
 
   const results: SearchResult[] = [];
 
@@ -88,19 +145,74 @@ export async function searchHub(
             ? textDocumentPath(file.project_id, file.id)
             : projectPath(file.project_id);
 
+    const config = file.config as { plainTextPreview?: string } | null;
+    const matchedBody =
+      config?.plainTextPreview &&
+      config.plainTextPreview.toLowerCase().includes(query.toLowerCase());
+
     results.push({
       id: `file:${file.id}`,
       kind: "file",
       name: file.name,
-      subtitle: projectName
-        ? `${projectName} · ${fileTypeLabel(file.type)}`
-        : fileTypeLabel(file.type),
+      subtitle: matchedBody
+        ? `${projectName ?? "Project"} · Document match`
+        : projectName
+          ? `${projectName} · ${fileTypeLabel(file.type)}`
+          : fileTypeLabel(file.type),
       href,
       fileType: file.type as HubProjectFileType,
     });
   }
 
+  for (const asset of assets) {
+    const projectId = initiativeProject.get(asset.initiative_id);
+    if (!projectId) continue;
+    const projectName = initiativeName.get(asset.initiative_id) ?? "Project";
+
+    results.push({
+      id: `asset:${asset.id}`,
+      kind: "asset",
+      name: asset.name,
+      subtitle: `${projectName} · ${asset.tag || "Asset"}`,
+      href: assetPath(projectId, asset.initiative_id, asset.id),
+    });
+  }
+
+  for (const task of tasks ?? []) {
+    const rawProject = task.project as
+      | { name: string }
+      | { name: string }[]
+      | null;
+    const projectName = Array.isArray(rawProject)
+      ? rawProject[0]?.name
+      : rawProject?.name;
+
+    const projectId = task.project_id as string | null;
+
+    results.push({
+      id: `task:${task.id}`,
+      kind: "task",
+      name: task.name,
+      subtitle: projectName
+        ? `${projectName} · Task`
+        : projectId
+          ? "Project task"
+          : "Personal task",
+      href: taskDeepLinkPath(task.id, projectId),
+    });
+  }
+
   return results
-    .sort((a, b) => a.name.localeCompare(b.name))
+    .sort((a, b) => {
+      const kindOrder: Record<SearchResultKind, number> = {
+        project: 0,
+        file: 1,
+        asset: 2,
+        task: 3,
+      };
+      const order = kindOrder[a.kind] - kindOrder[b.kind];
+      if (order !== 0) return order;
+      return a.name.localeCompare(b.name);
+    })
     .slice(0, limit);
 }

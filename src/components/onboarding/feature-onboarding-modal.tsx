@@ -181,7 +181,7 @@ export function FeatureOnboardingModal({
       <div
         role="dialog"
         aria-modal="true"
-        aria-labelledby="feature-onboarding-title"
+        aria-label="What's in Creative Hub"
         onClick={(event) => event.stopPropagation()}
         className="relative flex h-[min(92dvh,100%)] w-full flex-col overflow-hidden rounded-t-2xl bg-[#141414] text-white shadow-[0_32px_80px_rgba(0,0,0,0.55)] md:h-[min(85vh,34rem)] md:w-[min(100%,56rem)] md:flex-row md:rounded-xl"
       >
@@ -263,7 +263,7 @@ export function FeatureOnboardingModal({
                     className={cn(
                       "flex size-6 items-center justify-center rounded-full text-[0.65rem] font-semibold",
                       isActive
-                        ? STEP_GRADIENTS[feature.visual] + " text-white shadow-sm"
+                        ? cn(STEP_GRADIENTS[feature.visual], "text-white shadow-sm")
                         : "bg-white/[0.08] text-white/70",
                     )}
                   >
@@ -311,15 +311,13 @@ export function FeatureOnboardingModal({
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className="relative z-[1] flex h-full w-full items-center justify-center"
+                className="relative z-[1] flex h-full w-full items-center justify-center px-0.5"
               >
-                <div className="w-full md:max-w-md">
-                  <div className="md:hidden">
-                    <OnboardingVisual visual={activeFeature.visual} mobile />
-                  </div>
-                  <div className="hidden md:block">
-                    <OnboardingVisual visual={activeFeature.visual} />
-                  </div>
+                <div className="w-full md:hidden">
+                  <OnboardingVisual visual={activeFeature.visual} mobile />
+                </div>
+                <div className="hidden w-full max-w-md md:block">
+                  <OnboardingVisual visual={activeFeature.visual} />
                 </div>
               </motion.div>
             </AnimatePresence>

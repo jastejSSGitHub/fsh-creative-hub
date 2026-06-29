@@ -7,10 +7,15 @@ import { cn } from "@/lib/utils";
 
 type CommentOptionsMenuProps = {
   onDelete: () => void;
+  onCreateTask?: () => void;
   className?: string;
 };
 
-export function CommentOptionsMenu({ onDelete, className }: CommentOptionsMenuProps) {
+export function CommentOptionsMenu({
+  onDelete,
+  onCreateTask,
+  className,
+}: CommentOptionsMenuProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -52,6 +57,19 @@ export function CommentOptionsMenu({ onDelete, className }: CommentOptionsMenuPr
           role="menu"
           className="absolute right-0 top-full z-20 mt-1 min-w-[7.5rem] overflow-hidden rounded-md border border-hub-foreground/10 bg-hub-surface py-1 shadow-lg"
         >
+          {onCreateTask && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                onCreateTask();
+              }}
+              className="flex w-full px-3 py-2 text-left text-sm text-hub-foreground transition-colors hover:bg-hub-foreground/5"
+            >
+              Create task
+            </button>
+          )}
           <button
             type="button"
             role="menuitem"

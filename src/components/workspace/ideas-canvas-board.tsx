@@ -1,12 +1,18 @@
 "use client";
 
-import { Lightbulb } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Images, Lightbulb } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState, useTransition } from "react";
 
 import { OpenCanvasWorkspace } from "@/components/canvas/open-canvas-workspace";
-import { getInitiativeIdeasCanvasAction } from "@/lib/workspace/actions";
+import { buttonVariants } from "@/components/ui/button";
+import { canEdit } from "@/lib/permissions";
+import { taskDeepLinkPath } from "@/lib/routes";
+import { createTaskFromStickyAction, getInitiativeIdeasCanvasAction } from "@/lib/workspace/actions";
+import { IdeasCanvasBridgeProvider } from "@/lib/workspace/ideas-canvas-bridge";
 import type { ProjectCardData } from "@/lib/projects/queries";
 import type { HubProject, HubProjectFile, HubRole } from "@/types/database";
+import { cn } from "@/lib/utils";
 
 type IdeasCanvasBoardProps = {
   project: HubProject;
@@ -18,6 +24,7 @@ type IdeasCanvasBoardProps = {
   currentUserId: string;
   role: HubRole;
   onStickyCountChange?: (count: number) => void;
+  onViewAssets?: () => void;
 };
 
 export function IdeasCanvasBoard({
@@ -30,10 +37,14 @@ export function IdeasCanvasBoard({
   currentUserId,
   role,
   onStickyCountChange,
+  onViewAssets,
 }: IdeasCanvasBoardProps) {
+  const router = useRouter();
   const [canvas, setCanvas] = useState<HubProjectFile | null>(initialCanvas);
   const [loading, setLoading] = useState(!initialCanvas);
   const [error, setError] = useState<string | null>(null);
+  const [taskError, setTaskError] = useState<string | null>(null);
+  const [taskPending, startTaskTransition] = useTransition();
 
   useEffect(() => {
     let cancelled = false;
@@ -66,20 +77,67 @@ export function IdeasCanvasBoard({
     };
   }, [initiativeId, initiativeName, project.id]);
 
+  function handleCreateTaskFromSticky(text: string) {
+    setTaskError(null);
+    startTaskTransition(async () => {
+      const result = await createTaskFromStickyAction({
+        projectId: project.id,
+        initiativeId,
+        body: text,
+      });
+      if (!result.ok) {
+        setTaskError(result.error);
+        return;
+      }
+      if (result.id) {
+        router.push(taskDeepLinkPath(result.id, project.id));
+      }
+    });
+  }
+
+  const bridgeValue = {
+    initiativeId,
+    projectId: project.id,
+    onViewAssets,
+    onCreateTaskFromSticky: canEdit(role) ? handleCreateTaskFromSticky : undefined,
+  };
+
   return (
     <div className="space-y-4">
       <div className="text-center">
-        <div className="flex items-center justify-center gap-2.5">
+        <div className="flex flex-wrap items-center justify-center gap-2.5">
           <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-hub-final/20 text-hub-foreground sm:size-10">
             <Lightbulb className="size-4 sm:size-5" aria-hidden />
           </div>
           <p className="font-display text-base font-bold text-hub-foreground sm:text-lg">
             Ideas board
           </p>
+          {onViewAssets ? (
+            <button
+              type="button"
+              onClick={onViewAssets}
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "ml-0 h-8 rounded-md sm:ml-2",
+              )}
+            >
+              <Images className="size-3.5" aria-hidden />
+              View assets
+            </button>
+          ) : null}
         </div>
         <p className="mx-auto mt-1.5 max-w-md text-xs leading-relaxed text-hub-foreground/55 sm:text-sm">
           Brainstorm on the whiteboard — drag stickies, add stickers, zoom, and undo like Open Canvas.
+          {canEdit(role) ? " Use the task icon on a sticky to turn it into work." : null}
         </p>
+        {taskError ? (
+          <p className="mt-2 text-xs text-red-600" role="alert">
+            {taskError}
+          </p>
+        ) : null}
+        {taskPending ? (
+          <p className="mt-2 text-xs text-hub-foreground/50">Creating task…</p>
+        ) : null}
       </div>
 
       <div className="w-full min-w-0">
@@ -92,16 +150,18 @@ export function IdeasCanvasBoard({
             <p className="text-sm text-hub-foreground/60">{error}</p>
           </div>
         ) : canvas ? (
-          <OpenCanvasWorkspace
-            variant="embedded"
-            project={project}
-            canvas={canvas}
-            authorName={authorName}
-            projectCard={projectCard}
-            currentUserId={currentUserId}
-            canRename={role === "admin" || role === "editor"}
-            onStickyCountChange={onStickyCountChange}
-          />
+          <IdeasCanvasBridgeProvider value={bridgeValue}>
+            <OpenCanvasWorkspace
+              variant="embedded"
+              project={project}
+              canvas={canvas}
+              authorName={authorName}
+              projectCard={projectCard}
+              currentUserId={currentUserId}
+              canRename={role === "admin" || role === "editor"}
+              onStickyCountChange={onStickyCountChange}
+            />
+          </IdeasCanvasBridgeProvider>
         ) : null}
       </div>
     </div>

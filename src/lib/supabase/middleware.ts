@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
-import { LANDING_PATH, LOGIN_PATH, PROJECTS_PATH } from "@/lib/routes";
+import { LANDING_PATH, LOGIN_PATH, PROJECTS_PATH, isSharePath } from "@/lib/routes";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -51,7 +51,8 @@ export async function updateSession(request: NextRequest) {
     pathname === LANDING_PATH ||
     pathname === "/landing" ||
     pathname.startsWith(LOGIN_PATH) ||
-    pathname.startsWith("/auth");
+    pathname.startsWith("/auth") ||
+    isSharePath(pathname);
 
   if (!user && !isPublic) {
     const loginUrl = request.nextUrl.clone();

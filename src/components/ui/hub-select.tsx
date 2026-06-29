@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronRight } from "lucide-react";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -20,6 +20,9 @@ type HubSelectProps<T extends string = string> = {
   "aria-label"?: string;
   className?: string;
   formatLabel?: (label: string) => string;
+  renderSelectedLabel?: (option: HubSelectOption<T> | undefined) => ReactNode;
+  renderOptionLabel?: (option: HubSelectOption<T>) => ReactNode;
+  getOptionClassName?: (option: HubSelectOption<T>) => string | undefined;
 };
 
 type MenuPlacement = "below" | "above";
@@ -34,6 +37,9 @@ export function HubSelect<T extends string = string>({
   "aria-label": ariaLabel,
   className,
   formatLabel = (label) => label,
+  renderSelectedLabel,
+  renderOptionLabel,
+  getOptionClassName,
 }: HubSelectProps<T>) {
   const [open, setOpen] = useState(false);
   const [placement, setPlacement] = useState<MenuPlacement>("below");
@@ -103,7 +109,7 @@ export function HubSelect<T extends string = string>({
   return (
     <div
       ref={rootRef}
-      className={cn("relative", variant === "field" && "shrink-0")}
+      className={cn("relative", variant === "field" && "w-full shrink-0")}
     >
       <button
         type="button"
@@ -116,14 +122,18 @@ export function HubSelect<T extends string = string>({
         className={cn(
           "relative inline-flex items-center text-[0.8125rem] outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-60",
           variant === "field" &&
-            "min-h-8 rounded-[6px] border border-hub-foreground/12 bg-hub-surface py-0 pr-6 pl-2.5 text-hub-foreground focus-visible:border-[#18a0fb]/50 focus-visible:ring-1 focus-visible:ring-[#18a0fb]/40",
+            "min-h-8 w-full rounded-[6px] border border-hub-foreground/12 bg-hub-surface py-0 pr-6 pl-2.5 text-hub-foreground focus-visible:border-[#18a0fb]/50 focus-visible:ring-1 focus-visible:ring-[#18a0fb]/40",
           variant === "inline" &&
             "gap-0.5 bg-transparent py-0 pr-3 pl-0 text-hub-foreground/45 hover:text-hub-foreground/70 focus-visible:text-hub-foreground/70",
           open && variant === "field" && "border-[#18a0fb]/50 ring-1 ring-[#18a0fb]/40",
           className,
         )}
       >
-        <span className="truncate">{formatLabel(selected?.label ?? "")}</span>
+        <span className="truncate">
+          {renderSelectedLabel
+            ? renderSelectedLabel(selected)
+            : formatLabel(selected?.label ?? "")}
+        </span>
         <ChevronRight
           className={cn(
             "pointer-events-none absolute text-hub-foreground/40 transition-transform duration-150",
@@ -148,6 +158,7 @@ export function HubSelect<T extends string = string>({
         >
           {options.map((option) => {
             const isSelected = option.value === value;
+            const optionClassName = getOptionClassName?.(option);
 
             return (
               <button
@@ -161,9 +172,12 @@ export function HubSelect<T extends string = string>({
                   isSelected
                     ? "bg-[#18a0fb]/10 font-medium"
                     : "hover:bg-hub-foreground/[0.04]",
+                  optionClassName,
                 )}
               >
-                {formatLabel(option.label)}
+                {renderOptionLabel
+                  ? renderOptionLabel(option)
+                  : formatLabel(option.label)}
               </button>
             );
           })}

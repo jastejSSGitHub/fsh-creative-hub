@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { FOR_YOU_PATH, PROJECTS_PATH } from "@/lib/routes";
+import { FOR_YOU_PATH, PROJECTS_PATH, TASKS_TODAY_PATH } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
 type HubNavProps = {
@@ -14,7 +14,13 @@ const NAV_ITEMS = [
   {
     href: PROJECTS_PATH,
     label: "Projects",
-    match: (path: string) => path.startsWith(PROJECTS_PATH),
+    match: (path: string) =>
+      path.startsWith(PROJECTS_PATH) && !path.includes("/tasks"),
+  },
+  {
+    href: TASKS_TODAY_PATH,
+    label: "Tasks",
+    match: (path: string) => path.startsWith("/tasks"),
   },
   {
     href: FOR_YOU_PATH,

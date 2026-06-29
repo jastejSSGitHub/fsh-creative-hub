@@ -10,6 +10,7 @@ import {
   navigateToProjectFile,
   ProjectFileCard,
 } from "@/components/project-files/project-file-card";
+import { ProjectTasksCard } from "@/components/tasks/project-tasks-card";
 import { ProjectFileDeleteConfirmDialog } from "@/components/project-files/project-file-delete-confirm-dialog";
 import {
   ProjectContextMenu,
@@ -74,6 +75,7 @@ type ProjectHomeProps = {
   files: ProjectFileWithMeta[];
   projectCard: ProjectCardData;
   currentUserId: string;
+  openTaskCount?: number;
   onCreateReviewBoard: () => void;
   onCreateCanvas: () => void;
   onCreateTextDocument: () => void;
@@ -181,6 +183,7 @@ export function ProjectHome({
   templatesForceVisible = false,
   favoriteButtonRef,
   favoriteForceVisible = false,
+  openTaskCount = 0,
 }: ProjectHomeProps) {
   const router = useRouter();
   const reduceMotion = useReducedMotion();
@@ -421,6 +424,7 @@ export function ProjectHome({
               transition={FILE_LAYOUT_TRANSITION}
               className={cn(hubCardGridClassName, hasFavorites && "mt-3")}
             >
+              <ProjectTasksCard projectId={project.id} taskCount={openTaskCount} />
               {favoriteFiles.map((file) =>
                 renderAnimatedFileCard(file, file.id === onboardingTargetId),
               )}
@@ -449,6 +453,7 @@ export function ProjectHome({
               transition={FILE_LAYOUT_TRANSITION}
               className={cn(hubCardGridClassName, hasFavorites && "mt-3")}
             >
+              <ProjectTasksCard projectId={project.id} taskCount={openTaskCount} />
               {regularFiles.map((file) =>
                 renderAnimatedFileCard(file, file.id === onboardingTargetId),
               )}
@@ -541,13 +546,17 @@ export function ProjectHome({
       />
 
       {filteredFiles.length === 0 ? (
-        <div className="rounded-md border border-dashed border-hub-foreground/15 bg-hub-surface/70 px-6 py-14 text-center">
+        <div className="space-y-4">
+          <div className={hubCardGridClassName}>
+            <ProjectTasksCard projectId={project.id} taskCount={openTaskCount} />
+          </div>
+          <div className="rounded-md border border-dashed border-hub-foreground/15 bg-hub-surface/70 px-6 py-14 text-center">
           <p className="font-display text-lg font-extrabold text-hub-foreground">
             No files yet
           </p>
           <p className="mx-auto mt-2 max-w-md text-sm text-hub-foreground/55">
-            Create a review board to upload assets, or pick a template above to get
-            started quickly.
+            Create a review board to upload assets, use Tasks for to-dos, or pick a
+            template above to get started quickly.
           </p>
           {canCreate && (
             <button
@@ -558,6 +567,7 @@ export function ProjectHome({
               Create review board
             </button>
           )}
+        </div>
         </div>
       ) : (
         renderFileSections()

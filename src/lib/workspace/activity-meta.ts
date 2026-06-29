@@ -34,4 +34,14 @@ export const ACTIVITY_VERB_META: Record<
     icon: "★",
     accent: "bg-hub-final/25 text-hub-foreground border-hub-final/40",
   },
+  restored: {
+    label: "Restored",
+    icon: "↺",
+    accent: "bg-hub-primary/10 text-hub-primary border-hub-primary/20",
+  },
+  shared: {
+    label: "Shared",
+    icon: "⎘",
+    accent: "bg-sky-500/10 text-sky-700 border-sky-500/20",
+  },
 };

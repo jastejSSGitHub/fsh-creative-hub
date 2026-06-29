@@ -1,6 +1,6 @@
 "use client";
 
-import { X } from "lucide-react";
+import { Lightbulb, Link2, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
 import { MentionComposer } from "@/components/workspace/mention-composer";
@@ -10,7 +10,11 @@ import {
   CommentsListSkeleton,
 } from "@/components/workspace/asset-overlay-skeleton";
 import { CommentOptionsMenu } from "@/components/workspace/comment-options-menu";
+import { AssetLinkedTasks } from "@/components/workspace/asset-linked-tasks";
+import { AssetVersionHistory } from "@/components/workspace/asset-version-history";
+import { AssetVersionUpload } from "@/components/workspace/asset-version-upload";
 import { CommentsEmptyState } from "@/components/workspace/comments-empty-state";
+import { ShareLinkDialog } from "@/components/workspace/share-link-dialog";
 import {
   ReactionPicker,
   applyOptimisticVote,
@@ -19,6 +23,9 @@ import { UndoToast } from "@/components/ui/undo-toast";
 import { buttonVariants } from "@/components/ui/button";
 import { parseMentionIds } from "@/lib/mentions/utils";
 import { canAdmin, canEdit } from "@/lib/permissions";
+import { createTaskFromCommentAction } from "@/lib/tasks/actions";
+import { requestCollaborationOnboarding } from "@/lib/collaboration-onboarding/events";
+import { requestOpenQuickAdd, setQuickAddCaptureContext } from "@/lib/tasks/capture-context";
 import { createClient } from "@/lib/supabase/client";
 import {
   removeCommentFromTree,
@@ -43,12 +50,15 @@ import { cn } from "@/lib/utils";
 
 type AssetDetailOverlayProps = {
   asset: AssetWithVotes;
+  projectId: string;
+  boardId?: string;
   initialComments?: CommentWithAuthor[];
   members: HubProfile[];
   role: HubRole;
   userId: string;
   onClose: () => void;
   onAssetChange?: (asset: AssetWithVotes) => void;
+  onOpenIdeas?: () => void;
 };
 
 const DELETE_UNDO_MS = 5000;
@@ -60,12 +70,15 @@ type PendingCommentDelete = {
 
 export function AssetDetailOverlay({
   asset: initialAsset,
+  projectId,
+  boardId,
   initialComments = [],
   members,
   role,
   userId,
   onClose,
   onAssetChange,
+  onOpenIdeas,
 }: AssetDetailOverlayProps) {
   const [asset, setAsset] = useState(initialAsset);
   const [comments, setComments] = useState(initialComments);
@@ -76,6 +89,8 @@ export function AssetDetailOverlay({
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [deleteToastVisible, setDeleteToastVisible] = useState(false);
+  const [versionRefreshToken, setVersionRefreshToken] = useState(0);
+  const [shareOpen, setShareOpen] = useState(false);
   const pendingDeleteRef = useRef<PendingCommentDelete | null>(null);
   const voteSyncBlockedRef = useRef(false);
   const onAssetChangeRef = useRef(onAssetChange);
@@ -277,6 +292,31 @@ export function AssetDetailOverlay({
     });
   }
 
+  function handleCreateTaskFromComment(comment: CommentWithAuthor) {
+    requestCollaborationOnboarding("comment-to-task");
+    startTransition(async () => {
+      const result = await createTaskFromCommentAction({
+        commentId: comment.id,
+        assetId: asset.id,
+        projectId,
+        initiativeId: asset.initiative_id,
+        commentBody: comment.body,
+      });
+      if (!result.ok) setError(result.error);
+    });
+  }
+
+  function handleQuickAddForAsset() {
+    setQuickAddCaptureContext({
+      projectId,
+      assetId: asset.id,
+      linkAssetOnCreate: true,
+      initialValue: `Follow up: ${asset.name}`,
+    });
+    requestOpenQuickAdd();
+    requestCollaborationOnboarding("smart-capture");
+  }
+
   function submitComment() {
     const trimmed = body.trim();
     if (!trimmed) return;
@@ -312,11 +352,48 @@ export function AssetDetailOverlay({
           <div className="min-w-0 flex-1 pr-3">
             <p className="font-mono text-[0.6rem] uppercase tracking-wider text-hub-foreground/45">
               {asset.tag} · {statusStyle.label}
+              {(asset.versionCount ?? 1) > 1 ? ` · v${asset.versionCount}` : ""}
             </p>
             <h2 className="truncate font-display text-lg font-extrabold text-hub-foreground sm:text-2xl">
               {asset.name}
             </h2>
           </div>
+          <button
+            type="button"
+            onClick={handleQuickAddForAsset}
+            className={cn(
+              buttonVariants({ variant: "outline", size: "sm" }),
+              "mr-2 h-8 rounded-md",
+            )}
+          >
+            Add task
+          </button>
+          {canEdit(role) && (
+            <button
+              type="button"
+              onClick={() => setShareOpen(true)}
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "mr-2 inline-flex h-8 gap-1.5 rounded-md",
+              )}
+            >
+              <Link2 className="size-3.5" aria-hidden />
+              Share
+            </button>
+          )}
+          {onOpenIdeas ? (
+            <button
+              type="button"
+              onClick={onOpenIdeas}
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "mr-2 inline-flex h-8 gap-1.5 rounded-md",
+              )}
+            >
+              <Lightbulb className="size-3.5" aria-hidden />
+              Ideas
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={onClose}
@@ -427,6 +504,11 @@ export function AssetDetailOverlay({
                             onReply={() => setReplyTo(comment.id)}
                             onResolve={(resolved) => toggleResolve(comment.id, resolved)}
                             onDelete={queueCommentDelete}
+                            onCreateTask={
+                              canEdit(role)
+                                ? () => handleCreateTaskFromComment(comment)
+                                : undefined
+                            }
                             userId={userId}
                             role={role}
                           />
@@ -469,6 +551,34 @@ export function AssetDetailOverlay({
                 </div>
               </div>
             </div>
+            {canEdit(role) && (
+              <AssetVersionUpload
+                assetId={asset.id}
+                projectId={projectId}
+                initiativeId={asset.initiative_id}
+                boardId={boardId}
+                disabled={isPending}
+                onUploaded={() => {
+                  setMediaLoaded(false);
+                  setVersionRefreshToken((token) => token + 1);
+                  void syncAssetFromServer();
+                }}
+                className="border-t border-hub-foreground/10 px-4 py-3"
+              />
+            )}
+            <AssetVersionHistory
+              assetId={asset.id}
+              projectId={projectId}
+              boardId={boardId}
+              editable={canEdit(role)}
+              refreshToken={versionRefreshToken}
+              onRestored={() => {
+                setMediaLoaded(false);
+                setVersionRefreshToken((token) => token + 1);
+                void syncAssetFromServer();
+              }}
+            />
+            <AssetLinkedTasks assetId={asset.id} projectId={projectId} />
           </aside>
         </div>
       </div>
@@ -477,6 +587,16 @@ export function AssetDetailOverlay({
         message="Comment deleted"
         visible={deleteToastVisible}
         onUndo={undoCommentDelete}
+      />
+
+      <ShareLinkDialog
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        projectId={projectId}
+        scopeType="asset"
+        scopeId={asset.id}
+        defaultLabel={asset.name}
+        showCommentsToggle
       />
     </div>
   );
@@ -487,6 +607,7 @@ function CommentBlock({
   onReply,
   onResolve,
   onDelete,
+  onCreateTask,
   userId,
   role,
 }: {
@@ -494,6 +615,7 @@ function CommentBlock({
   onReply: () => void;
   onResolve: (resolved: boolean) => void;
   onDelete: (comment: CommentWithAuthor) => void;
+  onCreateTask?: () => void;
   userId: string;
   role: HubRole;
 }) {
@@ -508,8 +630,13 @@ function CommentBlock({
             reopen
           </button>
         </p>
-        {isOwner && (
-          <CommentOptionsMenu onDelete={() => onDelete(comment)} />
+        {(isOwner || onCreateTask) && (
+          <CommentOptionsMenu
+            onDelete={() => {
+              if (isOwner) onDelete(comment);
+            }}
+            onCreateTask={onCreateTask}
+          />
         )}
       </div>
     );
@@ -519,8 +646,13 @@ function CommentBlock({
     <div className="rounded-md border border-hub-foreground/10 bg-hub-surface px-3 py-2">
       <div className="flex items-start justify-between gap-2">
         <p className="text-xs font-medium text-hub-foreground">{comment.author.display_name}</p>
-        {isOwner && (
-          <CommentOptionsMenu onDelete={() => onDelete(comment)} />
+        {(isOwner || onCreateTask) && (
+          <CommentOptionsMenu
+            onDelete={() => {
+              if (isOwner) onDelete(comment);
+            }}
+            onCreateTask={onCreateTask}
+          />
         )}
       </div>
       <p className="mt-1 text-sm text-hub-foreground/80">{comment.body}</p>

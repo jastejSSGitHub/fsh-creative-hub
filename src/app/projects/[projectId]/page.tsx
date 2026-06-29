@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { ProjectHomeClient } from "@/components/project-files/project-home-client";
 import { getProjectFiles } from "@/lib/project-files/queries";
 import { getProjectDetailContext } from "@/lib/projects/queries";
+import { getTasksRaw } from "@/lib/tasks/queries";
 import { LOGIN_PATH } from "@/lib/routes";
 import { createClient } from "@/lib/supabase/server";
 
@@ -20,13 +21,16 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 
   if (!user) redirect(LOGIN_PATH);
 
-  const [detail, { data: project }, files] = await Promise.all([
+  const [detail, { data: project }, files, projectTasks] = await Promise.all([
     getProjectDetailContext(supabase, projectId, user.id),
     supabase.from("hub_projects").select("*").eq("id", projectId).maybeSingle(),
     getProjectFiles(supabase, projectId, user.id),
+    getTasksRaw(supabase, { projectId }),
   ]);
 
   if (!detail || !project) notFound();
+
+  const openTaskCount = projectTasks.filter((t) => !t.completed && !t.parent_id).length;
 
   return (
     <ProjectHomeClient
@@ -35,6 +39,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
       files={files}
       projectCard={detail.card}
       currentUserId={detail.currentUserId}
+      openTaskCount={openTaskCount}
     />
   );
 }

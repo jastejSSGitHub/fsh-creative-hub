@@ -6,36 +6,34 @@ import { PanelLeft } from "lucide-react";
 
 import { ForYouList } from "@/components/inbox/for-you-list";
 import { ForYouSidebar } from "@/components/inbox/for-you-sidebar";
+import {
+  forYouLensDescription,
+  forYouLensTitle,
+} from "@/lib/inbox/lenses";
 import type { SharedProjectNode } from "@/lib/inbox/sidebar-queries";
 import type { ForYouItem } from "@/lib/inbox/queries";
-import { FOR_YOU_PATH } from "@/lib/routes";
-import {
-  forYouViewDescription,
-  forYouViewTitle,
-  type ForYouView,
-} from "@/lib/inbox/views";
+import { forYouLensPath, type ForYouLens } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
 type ForYouInboxProps = {
-  view: ForYouView;
+  lens: ForYouLens;
+  allItems: ForYouItem[];
   items: ForYouItem[];
-  itemCounts: {
-    inbox: number;
-    replies: number;
-    assigned: number;
-  };
+  itemCounts: Record<ForYouLens, number>;
   sharedProjects: SharedProjectNode[];
+  userId: string;
+  userDisplayName: string;
+  userAvatarUrl?: string | null;
 };
 
-const MOBILE_VIEWS: { id: ForYouView; label: string }[] = [
-  { id: "inbox", label: "Inbox" },
+const MOBILE_LENSES: { id: ForYouLens; label: string }[] = [
+  { id: "needs-you", label: "Needs you" },
   { id: "replies", label: "Replies" },
   { id: "assigned", label: "Assigned" },
+  { id: "waiting-on-others", label: "Waiting" },
+  { id: "following", label: "Following" },
+  { id: "your-uploads", label: "Uploads" },
 ];
-
-function viewHref(view: ForYouView) {
-  return view === "inbox" ? FOR_YOU_PATH : `${FOR_YOU_PATH}?view=${view}`;
-}
 
 function ForYouSidebarFallback({ className }: { className?: string }) {
   return (
@@ -49,10 +47,14 @@ function ForYouSidebarFallback({ className }: { className?: string }) {
 }
 
 export function ForYouInbox({
-  view,
+  lens,
+  allItems,
   items,
   itemCounts,
   sharedProjects,
+  userId,
+  userDisplayName,
+  userAvatarUrl = null,
 }: ForYouInboxProps) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
@@ -62,7 +64,7 @@ export function ForYouInbox({
 
   useEffect(() => {
     closeMobileSidebar();
-  }, [view, closeMobileSidebar]);
+  }, [lens, closeMobileSidebar]);
 
   useEffect(() => {
     if (!mobileSidebarOpen) return;
@@ -83,7 +85,10 @@ export function ForYouInbox({
 
   const sidebarProps = {
     sharedProjects,
-    itemCounts,
+    items: allItems,
+    userId,
+    userDisplayName,
+    userAvatarUrl,
     onNavigate: closeMobileSidebar,
   };
 
@@ -145,26 +150,26 @@ export function ForYouInbox({
 
             <div className="min-w-0 flex-1">
               <h1 className="font-display text-lg font-extrabold tracking-tight text-hub-foreground sm:text-xl">
-                {forYouViewTitle(view)}
+                {forYouLensTitle(lens)}
               </h1>
               <p className="mt-0.5 hidden text-xs text-hub-foreground/45 sm:block sm:text-sm">
-                {forYouViewDescription(view)}
+                {forYouLensDescription(lens)}
               </p>
             </div>
           </div>
 
           <nav
             className="mt-3 flex gap-1 overflow-x-auto border-t border-hub-foreground/6 pt-3 lg:hidden"
-            aria-label="Inbox views"
+            aria-label="Inbox lenses"
           >
-            {MOBILE_VIEWS.map((item) => {
-              const active = view === item.id;
+            {MOBILE_LENSES.map((item) => {
+              const active = lens === item.id;
               const count = itemCounts[item.id];
 
               return (
                 <Link
                   key={item.id}
-                  href={viewHref(item.id)}
+                  href={forYouLensPath(item.id)}
                   className={cn(
                     "inline-flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                     active
@@ -186,7 +191,7 @@ export function ForYouInbox({
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          <ForYouList items={items} view={view} />
+          <ForYouList items={items} lens={lens} />
         </div>
       </div>
     </div>

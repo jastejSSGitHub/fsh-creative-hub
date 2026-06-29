@@ -45,12 +45,22 @@ export type DocumentCover =
   | { kind: "gradient"; value: string; position?: number }
   | { kind: "image"; value: string; position?: number };
 
+export type DocumentRevision = {
+  id: string;
+  savedAt: string;
+  label: string;
+  blocks: DocumentBlock[];
+  plainTextPreview: string;
+  savedBy?: string;
+};
+
 export type TextDocumentConfig = {
   version: 1;
   icon: string | null;
   cover: DocumentCover | null;
   blocks: DocumentBlock[];
   plainTextPreview: string;
+  revisions?: DocumentRevision[];
 };
 
 export function emptyDocumentConfig(documentName?: string | null): TextDocumentConfig {
@@ -139,6 +149,11 @@ export function parseDocumentConfig(raw: Record<string, unknown>): TextDocumentC
     cover: parseDocumentCover(raw.cover),
     blocks: blocks.length ? blocks : fallback.blocks,
     plainTextPreview: typeof raw.plainTextPreview === "string" ? raw.plainTextPreview : "",
+    revisions: Array.isArray(raw.revisions)
+      ? (raw.revisions as DocumentRevision[]).filter(
+          (r) => r?.id && r?.savedAt && r?.label && Array.isArray(r.blocks),
+        )
+      : undefined,
   };
 }
 

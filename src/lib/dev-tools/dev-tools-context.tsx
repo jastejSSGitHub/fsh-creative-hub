@@ -10,16 +10,21 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
 
+import { resetCollaborationOnboarding } from "@/lib/collaboration-onboarding/storage";
 import { fireDevToolsUnlockConfetti } from "@/lib/confetti";
 import {
+  dispatchDevToolsMockCollaborationChanged,
   dispatchDevToolsSimulateChanged,
   dispatchDevToolsUnlockedChanged,
 } from "@/lib/dev-tools/events";
 import {
   readDevToolsUnlocked,
+  readMockCollaborationData,
   readSimulateNewUser,
   writeDevToolsUnlocked,
+  writeMockCollaborationData,
   writeSimulateNewUser,
 } from "@/lib/dev-tools/storage";
 
@@ -28,13 +33,16 @@ const UNLOCK_CLICK_WINDOW_MS = 2500;
 
 type DevToolsContextValue = {
   isHubAdmin: boolean;
+  userId: string;
   unlocked: boolean;
   simulateNewUser: boolean;
+  mockCollaborationData: boolean;
   fabOpen: boolean;
   setFabOpen: (open: boolean) => void;
   registerUnlockClick: () => void;
   hideDevTools: () => void;
   setSimulateNewUser: (on: boolean) => void;
+  setMockCollaborationData: (on: boolean) => void;
 };
 
 const DevToolsContext = createContext<DevToolsContextValue | null>(null);
@@ -42,17 +50,25 @@ const DevToolsContext = createContext<DevToolsContextValue | null>(null);
 type DevToolsProviderProps = {
   children: ReactNode;
   isHubAdmin: boolean;
+  userId: string;
 };
 
-export function DevToolsProvider({ children, isHubAdmin }: DevToolsProviderProps) {
+export function DevToolsProvider({
+  children,
+  isHubAdmin,
+  userId,
+}: DevToolsProviderProps) {
+  const router = useRouter();
   const [unlocked, setUnlocked] = useState(false);
   const [simulateNewUser, setSimulateNewUserState] = useState(false);
+  const [mockCollaborationData, setMockCollaborationDataState] = useState(false);
   const [fabOpen, setFabOpen] = useState(false);
   const unlockClickTimesRef = useRef<number[]>([]);
 
   useEffect(() => {
     setUnlocked(readDevToolsUnlocked());
     setSimulateNewUserState(readSimulateNewUser());
+    setMockCollaborationDataState(readMockCollaborationData());
   }, []);
 
   const unlockDevTools = useCallback(() => {
@@ -86,13 +102,17 @@ export function DevToolsProvider({ children, isHubAdmin }: DevToolsProviderProps
   const hideDevTools = useCallback(() => {
     writeDevToolsUnlocked(false);
     writeSimulateNewUser(false);
+    writeMockCollaborationData(false);
     setUnlocked(false);
     setSimulateNewUserState(false);
+    setMockCollaborationDataState(false);
     setFabOpen(false);
     unlockClickTimesRef.current = [];
     dispatchDevToolsUnlockedChanged(false);
     dispatchDevToolsSimulateChanged(false);
-  }, []);
+    dispatchDevToolsMockCollaborationChanged(false);
+    router.refresh();
+  }, [router]);
 
   const setSimulateNewUser = useCallback((on: boolean) => {
     writeSimulateNewUser(on);
@@ -100,25 +120,49 @@ export function DevToolsProvider({ children, isHubAdmin }: DevToolsProviderProps
     dispatchDevToolsSimulateChanged(on);
   }, []);
 
+  const setMockCollaborationData = useCallback(
+    (on: boolean) => {
+      writeMockCollaborationData(on);
+      setMockCollaborationDataState(on);
+      dispatchDevToolsMockCollaborationChanged(on);
+
+      if (on) {
+        resetCollaborationOnboarding(userId);
+        writeSimulateNewUser(true);
+        setSimulateNewUserState(true);
+        dispatchDevToolsSimulateChanged(true);
+      }
+
+      router.refresh();
+    },
+    [router, userId],
+  );
+
   const value = useMemo<DevToolsContextValue>(
     () => ({
       isHubAdmin,
+      userId,
       unlocked,
       simulateNewUser,
+      mockCollaborationData,
       fabOpen,
       setFabOpen,
       registerUnlockClick,
       hideDevTools,
       setSimulateNewUser,
+      setMockCollaborationData,
     }),
     [
       fabOpen,
       hideDevTools,
       isHubAdmin,
+      mockCollaborationData,
       registerUnlockClick,
+      setMockCollaborationData,
       setSimulateNewUser,
       simulateNewUser,
       unlocked,
+      userId,
     ],
   );
 
@@ -132,4 +176,9 @@ export function useDevTools(): DevToolsContextValue | null {
 export function useSimulateNewUser(): boolean {
   const devTools = useDevTools();
   return devTools?.simulateNewUser ?? false;
+}
+
+export function useMockCollaborationData(): boolean {
+  const devTools = useDevTools();
+  return devTools?.mockCollaborationData ?? false;
 }

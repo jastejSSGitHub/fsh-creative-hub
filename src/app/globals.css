@@ -19,6 +19,7 @@
   --color-hub-surface-subtle: var(--hub-surface-subtle);
   --color-hub-approved: var(--hub-approved);
   --color-hub-rejected: var(--hub-rejected);
+  --color-hub-pending: var(--hub-pending);
   --color-hub-final: var(--hub-final);
   --color-hub-accent: var(--hub-accent);
   --color-hub-favorite: var(--hub-favorite);
@@ -80,6 +81,7 @@
   --hub-primary: #18a0fb;
   --hub-approved: #22c55e;
   --hub-rejected: #ef4444;
+  --hub-pending: #c2410c;
   --hub-final: #ffc94b;
   --hub-skeleton: color-mix(in srgb, var(--hub-espresso) 7%, transparent);
   --hub-skeleton-strong: color-mix(in srgb, var(--hub-espresso) 11%, transparent);
@@ -124,6 +126,7 @@
   color-scheme: dark;
   --hub-paper: #0c0c0c;
   --hub-foreground: #e8e8e8;
+  --hub-pending: #f97316;
   --hub-surface: #1e1e1e;
   --hub-surface-muted: #161616;
   --hub-surface-subtle: #141414;

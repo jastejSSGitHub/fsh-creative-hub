@@ -15,35 +15,41 @@ import {
 } from "lucide-react";
 
 import { ProjectContextMenu } from "@/components/projects/project-context-menu";
+import { ProjectPresenceStack } from "@/components/presence/project-presence-stack";
+import { forYouLensCounts } from "@/lib/inbox/lenses";
+import type { ForYouItem } from "@/lib/inbox/queries";
 import type { SharedProjectNode } from "@/lib/inbox/sidebar-queries";
 import { fileTypeShortLabel } from "@/lib/inbox/sidebar-queries";
-import { FOR_YOU_PATH } from "@/lib/routes";
+import { FOR_YOU_PATH, forYouLensPath, type ForYouLens } from "@/lib/routes";
 import { cn } from "@/lib/utils";
-
-export type ForYouView = "inbox" | "replies" | "assigned";
 
 type ForYouSidebarProps = {
   sharedProjects: SharedProjectNode[];
-  itemCounts: {
-    inbox: number;
-    replies: number;
-    assigned: number;
-  };
+  items: ForYouItem[];
+  userId?: string;
+  userDisplayName?: string;
+  userAvatarUrl?: string | null;
   className?: string;
   onNavigate?: () => void;
   onClose?: () => void;
   showCloseButton?: boolean;
 };
 
-const INBOX_NAV: { id: ForYouView; label: string; icon: typeof MessageSquare }[] = [
-  { id: "inbox", label: "Inbox", icon: MessageSquare },
+const INBOX_NAV: { id: ForYouLens; label: string; icon: typeof MessageSquare }[] = [
+  { id: "needs-you", label: "Needs you", icon: MessageSquare },
   { id: "replies", label: "Replies", icon: MessageSquareReply },
-  { id: "assigned", label: "Assigned comments", icon: ClipboardList },
+  { id: "assigned", label: "Assigned", icon: ClipboardList },
+  { id: "waiting-on-others", label: "Waiting on others", icon: ClipboardList },
+  { id: "following", label: "Following", icon: MessageSquareReply },
+  { id: "your-uploads", label: "Your uploads", icon: PenTool },
 ];
 
 export function ForYouSidebar({
   sharedProjects,
-  itemCounts,
+  items,
+  userId,
+  userDisplayName = "You",
+  userAvatarUrl = null,
   className,
   onNavigate,
   onClose,
@@ -51,7 +57,16 @@ export function ForYouSidebar({
 }: ForYouSidebarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const activeView = (searchParams.get("view") as ForYouView) || "inbox";
+  const rawLens = searchParams.get("lens");
+  const activeLens: ForYouLens =
+    rawLens === "replies" ||
+    rawLens === "assigned" ||
+    rawLens === "waiting-on-others" ||
+    rawLens === "following" ||
+    rawLens === "your-uploads"
+      ? rawLens
+      : "needs-you";
+  const itemCounts = forYouLensCounts(items);
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(() => {
     return new Set(sharedProjects.map((p) => p.id));
   });
@@ -63,14 +78,6 @@ export function ForYouSidebar({
   } | null>(null);
 
   if (!pathname.startsWith(FOR_YOU_PATH)) return null;
-
-  function viewHref(view: ForYouView) {
-    return view === "inbox" ? FOR_YOU_PATH : `${FOR_YOU_PATH}?view=${view}`;
-  }
-
-  function countForView(view: ForYouView): number {
-    return itemCounts[view];
-  }
 
   function toggleProject(projectId: string) {
     setExpandedProjects((prev) => {
@@ -108,14 +115,14 @@ export function ForYouSidebar({
           aria-label="Inbox"
         >
           {INBOX_NAV.map((item) => {
-            const active = activeView === item.id;
-            const count = countForView(item.id);
+            const active = activeLens === item.id;
+            const count = itemCounts[item.id];
             const Icon = item.icon;
 
             return (
               <Link
                 key={item.id}
-                href={viewHref(item.id)}
+                href={forYouLensPath(item.id)}
                 onClick={onNavigate}
                 className={cn(
                   "flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors",
@@ -176,6 +183,15 @@ export function ForYouSidebar({
                       >
                         {project.name}
                       </Link>
+                      {userId && (
+                        <ProjectPresenceStack
+                          projectId={project.id}
+                          userId={userId}
+                          displayName={userDisplayName}
+                          avatarUrl={userAvatarUrl}
+                          size="sm"
+                        />
+                      )}
                     </div>
 
                     {expanded && project.files.length > 0 && (

@@ -1,19 +1,32 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { sortForYouItems } from "@/lib/inbox/priority";
 import type { HubComment, HubProfile } from "@/types/database";
 
-export type ForYouItemKind = "mention" | "upload_thread";
+export type ForYouItemKind =
+  | "mention"
+  | "upload_thread"
+  | "task_mention"
+  | "task_assigned"
+  | "task_overdue"
+  | "vote_requested"
+  | "task_waiting"
+  | "upload_stale"
+  | "following"
+  | "resolve_suggested";
 
-export type ForYouItem = {
+type ProfilePick = Pick<HubProfile, "id" | "display_name" | "avatar_url">;
+
+export type AssetForYouItem = {
   id: string;
-  kind: ForYouItemKind;
-  comment: HubComment & {
-    author: Pick<HubProfile, "id" | "display_name" | "avatar_url">;
-  };
+  kind: "mention" | "upload_thread" | "upload_stale" | "following";
+  sort_at: string;
+  comment: HubComment & { author: ProfilePick };
   asset: {
     id: string;
     name: string;
     initiative_id: string;
+    public_url?: string | null;
   };
   initiative: {
     id: string;
@@ -26,17 +39,85 @@ export type ForYouItem = {
   };
 };
 
+export type TaskMentionForYouItem = {
+  id: string;
+  kind: "task_mention" | "following";
+  sort_at: string;
+  comment: {
+    id: string;
+    body: string;
+    created_at: string;
+    parent_id?: string | null;
+    author: ProfilePick;
+  };
+  task: {
+    id: string;
+    name: string;
+    project_id: string | null;
+  };
+  project: { id: string; name: string } | null;
+};
+
+export type TaskAssignedForYouItem = {
+  id: string;
+  kind: "task_assigned" | "task_overdue" | "task_waiting";
+  sort_at: string;
+  task: {
+    id: string;
+    name: string;
+    project_id: string | null;
+    due_at: string | null;
+    created_at: string;
+  };
+  project: { id: string; name: string; is_org_wide?: boolean } | null;
+  assigner: ProfilePick | null;
+};
+
+export type VoteRequestedForYouItem = {
+  id: string;
+  kind: "vote_requested";
+  sort_at: string;
+  asset: {
+    id: string;
+    name: string;
+    public_url: string | null;
+    initiative_id: string;
+  };
+  initiative: { id: string; name: string; project_id: string };
+  project: { id: string; name: string };
+};
+
+export type ResolveSuggestedForYouItem = {
+  id: string;
+  kind: "resolve_suggested";
+  sort_at: string;
+  comment: {
+    id: string;
+    body: string;
+    asset_id: string;
+  };
+  task: { id: string; name: string };
+  asset: { id: string; name: string };
+  project: { id: string; name: string };
+  initiative: { id: string; name: string };
+};
+
+export type ForYouItem =
+  | AssetForYouItem
+  | TaskMentionForYouItem
+  | TaskAssignedForYouItem
+  | VoteRequestedForYouItem
+  | ResolveSuggestedForYouItem;
+
 type CommentRow = HubComment & {
-  author:
-    | Pick<HubProfile, "id" | "display_name" | "avatar_url">
-    | Pick<HubProfile, "id" | "display_name" | "avatar_url">[]
-    | null;
+  author: ProfilePick | ProfilePick[] | null;
   asset:
     | {
         id: string;
         name: string;
         initiative_id: string;
         uploaded_by: string;
+        public_url?: string | null;
         initiative:
           | {
               id: string;
@@ -57,6 +138,7 @@ type CommentRow = HubComment & {
         name: string;
         initiative_id: string;
         uploaded_by: string;
+        public_url?: string | null;
         initiative:
           | {
               id: string;
@@ -87,6 +169,7 @@ const COMMENT_SELECT = `
     name,
     initiative_id,
     uploaded_by,
+    public_url,
     initiative:hub_initiatives (
       id,
       name,
@@ -99,28 +182,30 @@ const COMMENT_SELECT = `
   )
 `;
 
+function pickOne<T>(value: T | T[] | null | undefined): T | null {
+  if (value == null) return null;
+  return Array.isArray(value) ? value[0] ?? null : value;
+}
+
 function normalizeCommentRow(
   row: CommentRow,
-  kind: ForYouItemKind,
-): ForYouItem | null {
-  const rawAsset = row.asset;
-  const asset = Array.isArray(rawAsset) ? rawAsset[0] : rawAsset;
+  kind: "mention" | "upload_thread",
+): AssetForYouItem | null {
+  const asset = pickOne(row.asset);
   if (!asset) return null;
 
-  const rawInitiative = asset.initiative;
-  const initiative = Array.isArray(rawInitiative) ? rawInitiative[0] : rawInitiative;
+  const initiative = pickOne(asset.initiative);
   if (!initiative) return null;
 
-  const rawProject = initiative.project;
-  const project = Array.isArray(rawProject) ? rawProject[0] : rawProject;
+  const project = pickOne(initiative.project);
   if (!project) return null;
 
-  const rawAuthor = row.author;
-  const author = Array.isArray(rawAuthor) ? rawAuthor[0] : rawAuthor;
+  const author = pickOne(row.author);
 
   return {
     id: `${kind}:${row.id}`,
     kind,
+    sort_at: row.created_at,
     comment: {
       id: row.id,
       asset_id: row.asset_id,
@@ -130,6 +215,7 @@ function normalizeCommentRow(
       mentions: row.mentions,
       resolved: row.resolved,
       created_at: row.created_at,
+      linked_task_id: (row as HubComment & { linked_task_id?: string | null }).linked_task_id ?? null,
       author: author ?? {
         id: row.author_id,
         display_name: "Unknown",
@@ -140,6 +226,7 @@ function normalizeCommentRow(
       id: asset.id,
       name: asset.name,
       initiative_id: asset.initiative_id,
+      public_url: asset.public_url ?? null,
     },
     initiative: {
       id: initiative.id,
@@ -157,20 +244,146 @@ export async function getForYouItems(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<ForYouItem[]> {
-  const [{ data: mentionRows, error: mentionError }, { data: myAssets }] =
-    await Promise.all([
-      supabase
-        .from("hub_comments")
-        .select(COMMENT_SELECT)
-        .contains("mentions", [userId])
-        .eq("resolved", false)
-        .neq("author_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(40),
-      supabase.from("hub_assets").select("id").eq("uploaded_by", userId),
-    ]);
+  const now = new Date();
+  const nowIso = now.toISOString();
+
+  const [
+    { data: mentionRows, error: mentionError },
+    { data: myAssets },
+    { data: taskMentionRows, error: taskMentionError },
+    { data: assignedTasks, error: assignedError },
+    { data: myVotes },
+    { data: myMemberships },
+    { data: followingComments },
+    { data: delegatedTasks },
+    { data: resolveCommentRows },
+  ] = await Promise.all([
+    supabase
+      .from("hub_comments")
+      .select(COMMENT_SELECT)
+      .contains("mentions", [userId])
+      .eq("resolved", false)
+      .neq("author_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(40),
+    supabase.from("hub_assets").select("id, created_at").eq("uploaded_by", userId),
+    supabase
+      .from("hub_task_comments")
+      .select(
+        `
+        id,
+        body,
+        created_at,
+        author_id,
+        task_id,
+        author:hub_profiles (id, display_name, avatar_url),
+        task:hub_tasks (
+          id,
+          name,
+          project_id,
+          assignee_id,
+          project:hub_projects (id, name)
+        )
+      `,
+      )
+      .contains("mentions", [userId])
+      .neq("author_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(40),
+    supabase
+      .from("hub_tasks")
+      .select(
+        `
+        id,
+        name,
+        project_id,
+        due_at,
+        created_at,
+        created_by,
+        assignee:hub_profiles!hub_tasks_assignee_id_fkey (id, display_name, avatar_url),
+        creator:hub_profiles!hub_tasks_created_by_fkey (id, display_name, avatar_url),
+        project:hub_projects (id, name, is_org_wide)
+      `,
+      )
+      .eq("assignee_id", userId)
+      .eq("completed", false)
+      .order("due_at", { ascending: true, nullsFirst: false })
+      .limit(40),
+    supabase.from("hub_votes").select("asset_id").eq("user_id", userId),
+    supabase.from("hub_project_members").select("project_id").eq("user_id", userId),
+    supabase
+      .from("hub_task_comments")
+      .select(
+        `
+        id,
+        body,
+        created_at,
+        author_id,
+        task_id,
+        author:hub_profiles (id, display_name, avatar_url),
+        task:hub_tasks (
+          id,
+          name,
+          project_id,
+          assignee_id,
+          completed,
+          project:hub_projects (id, name)
+        )
+      `,
+      )
+      .eq("author_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(30),
+    supabase
+      .from("hub_tasks")
+      .select(
+        `
+        id,
+        name,
+        project_id,
+        due_at,
+        created_at,
+        assignee:hub_profiles!hub_tasks_assignee_id_fkey (id, display_name, avatar_url),
+        project:hub_projects (id, name, is_org_wide)
+      `,
+      )
+      .eq("created_by", userId)
+      .neq("assignee_id", userId)
+      .not("assignee_id", "is", null)
+      .eq("completed", false)
+      .order("created_at", { ascending: false })
+      .limit(30),
+    supabase
+      .from("hub_comments")
+      .select(
+        `
+        id,
+        body,
+        asset_id,
+        created_at,
+        linked_task_id,
+        asset:hub_assets (
+          id,
+          name,
+          initiative_id,
+          initiative:hub_initiatives (
+            id,
+            name,
+            project_id,
+            project:hub_projects (id, name)
+          )
+        )
+      `,
+      )
+      .not("linked_task_id", "is", null)
+      .eq("resolved", false)
+      .order("created_at", { ascending: false })
+      .limit(20),
+  ]);
 
   if (mentionError) throw mentionError;
+  if (taskMentionError) throw taskMentionError;
+  if (assignedError) throw assignedError;
 
   const myAssetIds = (myAssets ?? []).map((asset) => asset.id);
   let uploadRows: CommentRow[] = [];
@@ -190,24 +403,289 @@ export async function getForYouItems(
     uploadRows = (data ?? []) as CommentRow[];
   }
 
-  const byCommentId = new Map<string, ForYouItem>();
+  const votedAssetIds = new Set((myVotes ?? []).map((v) => v.asset_id));
+  const projectIds = (myMemberships ?? []).map((m) => m.project_id);
+
+  let pendingVoteAssets: Array<{
+    id: string;
+    name: string;
+    public_url: string | null;
+    initiative_id: string;
+    created_at: string;
+    initiative: {
+      id: string;
+      name: string;
+      project_id: string;
+      project: { id: string; name: string } | { id: string; name: string }[];
+    };
+  }> = [];
+
+  if (projectIds.length > 0) {
+    const { data: initiatives } = await supabase
+      .from("hub_initiatives")
+      .select("id, name, project_id, project:hub_projects(id, name)")
+      .in("project_id", projectIds);
+
+    const initiativeIds = (initiatives ?? []).map((i) => i.id);
+    if (initiativeIds.length > 0) {
+      const { data: assets } = await supabase
+        .from("hub_assets")
+        .select(
+          "id, name, public_url, initiative_id, created_at, initiative:hub_initiatives(id, name, project_id, project:hub_projects(id, name))",
+        )
+        .in("initiative_id", initiativeIds)
+        .eq("status", "pending")
+        .order("created_at", { ascending: false })
+        .limit(30);
+
+      for (const asset of assets ?? []) {
+        if (votedAssetIds.has(asset.id)) continue;
+        const initiative = pickOne(
+          asset.initiative as
+            | {
+                id: string;
+                name: string;
+                project_id: string;
+                project: { id: string; name: string } | { id: string; name: string }[];
+              }
+            | {
+                id: string;
+                name: string;
+                project_id: string;
+                project: { id: string; name: string } | { id: string; name: string }[];
+              }[]
+            | null,
+        );
+        if (!initiative) continue;
+        pendingVoteAssets.push({
+          id: asset.id,
+          name: asset.name,
+          public_url: asset.public_url,
+          initiative_id: asset.initiative_id,
+          created_at: asset.created_at,
+          initiative,
+        });
+      }
+    }
+  }
+
+  const items = new Map<string, ForYouItem>();
 
   for (const row of (mentionRows ?? []) as CommentRow[]) {
     const item = normalizeCommentRow(row, "mention");
-    if (item) byCommentId.set(row.id, item);
+    if (item) items.set(item.id, item);
   }
 
   for (const row of uploadRows) {
-    if (byCommentId.has(row.id)) continue;
+    if (items.has(`mention:${row.id}`)) continue;
     const item = normalizeCommentRow(row, "upload_thread");
-    if (item) byCommentId.set(row.id, item);
+    if (item) items.set(item.id, item);
   }
 
-  return [...byCommentId.values()].sort(
-    (a, b) =>
-      new Date(b.comment.created_at).getTime() -
-      new Date(a.comment.created_at).getTime(),
-  );
+  for (const row of taskMentionRows ?? []) {
+    const author = pickOne(row.author);
+    const task = pickOne(row.task);
+    if (!task) continue;
+    const project = pickOne(task.project);
+
+    const item: TaskMentionForYouItem = {
+      id: `task_mention:${row.id}`,
+      kind: "task_mention",
+      sort_at: row.created_at,
+      comment: {
+        id: row.id,
+        body: row.body,
+        created_at: row.created_at,
+        author: author ?? {
+          id: row.author_id,
+          display_name: "Unknown",
+          avatar_url: null,
+        },
+      },
+      task: {
+        id: task.id,
+        name: task.name,
+        project_id: task.project_id,
+      },
+      project: project ?? null,
+    };
+    items.set(item.id, item);
+  }
+
+  for (const row of assignedTasks ?? []) {
+    const project = pickOne(row.project);
+    const creator = pickOne(row.creator);
+    const isOverdue = row.due_at && new Date(row.due_at) < now;
+    const kind = isOverdue ? "task_overdue" : "task_assigned";
+
+    const item: TaskAssignedForYouItem = {
+      id: `${kind}:${row.id}`,
+      kind,
+      sort_at: row.due_at ?? row.created_at,
+      task: {
+        id: row.id,
+        name: row.name,
+        project_id: row.project_id,
+        due_at: row.due_at,
+        created_at: row.created_at,
+      },
+      project: project
+        ? { id: project.id, name: project.name, is_org_wide: project.is_org_wide }
+        : null,
+      assigner: creator,
+    };
+    items.set(item.id, item);
+  }
+
+  for (const asset of pendingVoteAssets) {
+    const initiative = pickOne(asset.initiative);
+    const project = initiative ? pickOne(initiative.project) : null;
+    if (!initiative || !project) continue;
+
+    const item: VoteRequestedForYouItem = {
+      id: `vote:${asset.id}`,
+      kind: "vote_requested",
+      sort_at: asset.created_at,
+      asset: {
+        id: asset.id,
+        name: asset.name,
+        public_url: asset.public_url,
+        initiative_id: asset.initiative_id,
+      },
+      initiative: {
+        id: initiative.id,
+        name: initiative.name,
+        project_id: initiative.project_id,
+      },
+      project: { id: project.id, name: project.name },
+    };
+    items.set(item.id, item);
+  }
+
+  for (const row of delegatedTasks ?? []) {
+    const project = pickOne(row.project);
+    const assignee = pickOne(row.assignee);
+    const item: TaskAssignedForYouItem = {
+      id: `task_waiting:${row.id}`,
+      kind: "task_waiting",
+      sort_at: row.created_at,
+      task: {
+        id: row.id,
+        name: row.name,
+        project_id: row.project_id,
+        due_at: row.due_at,
+        created_at: row.created_at,
+      },
+      project: project
+        ? { id: project.id, name: project.name, is_org_wide: project.is_org_wide }
+        : null,
+      assigner: assignee,
+    };
+    items.set(item.id, item);
+  }
+
+  const seenFollowingTasks = new Set<string>();
+  for (const row of followingComments ?? []) {
+    const task = pickOne(row.task);
+    if (!task || task.completed) continue;
+    if (task.assignee_id === userId) continue;
+    if (seenFollowingTasks.has(task.id)) continue;
+    seenFollowingTasks.add(task.id);
+
+    const author = pickOne(row.author);
+    const project = pickOne(task.project);
+    const item: TaskMentionForYouItem = {
+      id: `following:task:${task.id}`,
+      kind: "following",
+      sort_at: row.created_at,
+      comment: {
+        id: row.id,
+        body: row.body,
+        created_at: row.created_at,
+        author: author ?? {
+          id: row.author_id,
+          display_name: "You",
+          avatar_url: null,
+        },
+      },
+      task: {
+        id: task.id,
+        name: task.name,
+        project_id: task.project_id,
+      },
+      project: project ?? null,
+    };
+    items.set(item.id, item);
+  }
+
+  const linkedTaskIds = (resolveCommentRows ?? [])
+    .map((r) => r.linked_task_id)
+    .filter((id): id is string => Boolean(id));
+
+  let completedLinkedTasks = new Map<string, { id: string; name: string; assignee_id: string | null; created_by: string }>();
+
+  if (linkedTaskIds.length > 0) {
+    const { data: linkedTasks } = await supabase
+      .from("hub_tasks")
+      .select("id, name, completed, assignee_id, created_by")
+      .in("id", linkedTaskIds)
+      .eq("completed", true);
+
+    for (const t of linkedTasks ?? []) {
+      completedLinkedTasks.set(t.id, t);
+    }
+  }
+
+  for (const row of resolveCommentRows ?? []) {
+    if (!row.linked_task_id) continue;
+    const task = completedLinkedTasks.get(row.linked_task_id);
+    const asset = pickOne(row.asset);
+    if (!task || !asset) continue;
+    if (task.assignee_id !== userId && task.created_by !== userId) continue;
+
+    const initiative = pickOne(asset.initiative);
+    const project = initiative ? pickOne(initiative.project) : null;
+    if (!initiative || !project) continue;
+
+    const item: ResolveSuggestedForYouItem = {
+      id: `resolve:${row.id}`,
+      kind: "resolve_suggested",
+      sort_at: row.created_at,
+      comment: {
+        id: row.id,
+        body: row.body,
+        asset_id: row.asset_id,
+      },
+      task: { id: task.id, name: task.name },
+      asset: { id: asset.id, name: asset.name },
+      project: { id: project.id, name: project.name },
+      initiative: { id: initiative.id, name: initiative.name },
+    };
+    items.set(item.id, item);
+  }
+
+  for (const asset of myAssets ?? []) {
+    const uploadItem = [...items.values()].find(
+      (i) =>
+        (i.kind === "upload_thread" || i.kind === "mention") &&
+        "asset" in i &&
+        i.asset.id === asset.id,
+    );
+    if (
+      uploadItem &&
+      uploadItem.kind === "upload_thread" &&
+      Date.now() - new Date(asset.created_at).getTime() > 48 * 60 * 60 * 1000
+    ) {
+      const stale: AssetForYouItem = {
+        ...uploadItem,
+        id: `upload_stale:${uploadItem.comment.id}`,
+        kind: "upload_stale",
+      };
+      items.set(stale.id, stale);
+    }
+  }
+
+  return sortForYouItems([...items.values()], now);
 }
 
 export async function getForYouCount(
@@ -215,5 +693,13 @@ export async function getForYouCount(
   userId: string,
 ): Promise<number> {
   const items = await getForYouItems(supabase, userId);
-  return items.length;
+  return items.filter(
+    (i) =>
+      i.kind === "mention" ||
+      i.kind === "task_mention" ||
+      i.kind === "task_assigned" ||
+      i.kind === "task_overdue" ||
+      i.kind === "vote_requested" ||
+      i.kind === "resolve_suggested",
+  ).length;
 }

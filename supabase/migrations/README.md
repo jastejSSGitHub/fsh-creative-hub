@@ -50,6 +50,8 @@ Recommended for the FSH team:
 
 `hub_profiles`, `hub_projects`, `hub_project_members`, `hub_initiatives`, `hub_assets`, `hub_comments`, `hub_votes`, `hub_ideas`, `hub_idea_votes`, `hub_activity`
 
+Migration `016_hub_tasks.sql` adds: `hub_sections`, `hub_tasks`, `hub_labels`, `hub_task_labels`, `hub_filters`, `hub_task_comments` (with RLS, seed labels/filters, realtime).
+
 Storage bucket: `hub-media` (public read)
 
-Realtime enabled on: `hub_comments`, `hub_votes`
+Realtime enabled on: `hub_comments`, `hub_votes`, `hub_tasks`, `hub_task_comments`

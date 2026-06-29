@@ -4,10 +4,16 @@ import { HubDetailToolbarProvider } from "@/components/hub/hub-detail-toolbar";
 import { HubHeader } from "@/components/hub/hub-header";
 import { HubMain } from "@/components/hub/hub-main";
 import { DevToolsHost } from "@/components/dev-tools/dev-tools-host";
+import { MockCollaborationBanner } from "@/components/dev-tools/mock-collaboration-banner";
 import { FeatureOnboardingHost } from "@/components/onboarding/feature-onboarding-host";
+import { CollaborationOnboardingHost } from "@/components/collaboration-onboarding/collaboration-onboarding-host";
+import { GlobalQuickAddHost } from "@/components/tasks/quick-add/global-quick-add-host";
+import { HubMobileBottomNav } from "@/components/hub/hub-mobile-bottom-nav";
 import { DevToolsProvider } from "@/lib/dev-tools/dev-tools-context";
 import { ProjectNavigationProvider } from "@/components/projects/project-navigation-provider";
 import { getForYouCount } from "@/lib/inbox/queries";
+import { isMockCollaborationEnabledServer } from "@/lib/dev-tools/mock-collaboration-cookie";
+import { getMockForYouCount } from "@/lib/dev-tools/mock-collaboration-data";
 import { LOGIN_PATH } from "@/lib/routes";
 import { createClient } from "@/lib/supabase/server";
 import type { HubProfile } from "@/types/database";
@@ -42,14 +48,21 @@ export async function HubShell({ children, variant = "default" }: HubShellProps)
     "User";
   const email = displayProfile?.email ?? user.email ?? "";
 
-  const forYouCount = await getForYouCount(supabase, user.id);
+  const mockEnabled = await isMockCollaborationEnabledServer();
+  const forYouCount = mockEnabled
+    ? getMockForYouCount()
+    : await getForYouCount(supabase, user.id);
   const isInbox = variant === "inbox";
 
   return (
     <HubDetailToolbarProvider>
-      <DevToolsProvider isHubAdmin={displayProfile?.is_hub_admin ?? false}>
+      <DevToolsProvider
+        isHubAdmin={displayProfile?.is_hub_admin ?? false}
+        userId={user.id}
+      >
         <ProjectNavigationProvider>
           <div className="flex min-h-full flex-col overflow-x-clip bg-hub-paper">
+          <MockCollaborationBanner />
           <HubHeader
             forYouCount={forYouCount}
             displayName={displayName}
@@ -58,12 +71,17 @@ export async function HubShell({ children, variant = "default" }: HubShellProps)
           />
 
           {isInbox ? (
-            <main className="flex-1">{children}</main>
+            <main className="flex min-h-0 flex-1 pb-[calc(3.75rem+env(safe-area-inset-bottom))] lg:pb-0">
+              {children}
+            </main>
           ) : (
             <HubMain>{children}</HubMain>
           )}
 
           <FeatureOnboardingHost userId={user.id} />
+          <CollaborationOnboardingHost userId={user.id} />
+          <GlobalQuickAddHost userId={user.id} />
+          <HubMobileBottomNav forYouCount={forYouCount} />
           <DevToolsHost />
           </div>
         </ProjectNavigationProvider>

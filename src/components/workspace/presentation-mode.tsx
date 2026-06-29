@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Link2, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { STATUS_STYLES } from "@/components/workspace/asset-status";
@@ -16,6 +16,9 @@ type PresentationModeProps = {
   projectName?: string;
   initialIndex?: number;
   onClose: () => void;
+  /** Public share view — hides close button, disables escape-to-close */
+  publicView?: boolean;
+  onShare?: () => void;
 };
 
 const SWIPE_THRESHOLD_PX = 48;
@@ -37,6 +40,8 @@ export function PresentationMode({
   projectName,
   initialIndex = 0,
   onClose,
+  publicView = false,
+  onShare,
 }: PresentationModeProps) {
   const prefersReducedMotion = useReducedMotion();
   const [index, setIndex] = useState(initialIndex);
@@ -79,7 +84,7 @@ export function PresentationMode({
     document.body.style.overflow = "hidden";
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
+      if (event.key === "Escape" && !publicView) {
         event.preventDefault();
         onClose();
         return;
@@ -102,7 +107,7 @@ export function PresentationMode({
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [goNext, goPrev, onClose, revealChrome]);
+  }, [goNext, goPrev, onClose, publicView, revealChrome]);
 
   useEffect(() => {
     revealChrome();
@@ -169,14 +174,26 @@ export function PresentationMode({
             <span className="hidden font-mono text-[0.65rem] uppercase tracking-[0.14em] text-white/45 sm:inline">
               {index + 1} / {assets.length}
             </span>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Close presentation"
-              className="inline-flex size-10 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur-md transition-colors hover:bg-white/20 active:scale-95"
-            >
-              <X className="size-[1.125rem]" strokeWidth={2.25} aria-hidden />
-            </button>
+            {onShare && (
+              <button
+                type="button"
+                onClick={onShare}
+                className="inline-flex size-10 items-center justify-center gap-1 rounded-full border border-white/20 bg-white/10 px-3 text-[0.75rem] font-medium text-white backdrop-blur-md transition-colors hover:bg-white/20 sm:w-auto"
+              >
+                <Link2 className="size-3.5" strokeWidth={2.25} aria-hidden />
+                <span className="hidden sm:inline">Share link</span>
+              </button>
+            )}
+            {!publicView && (
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Close presentation"
+                className="inline-flex size-10 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur-md transition-colors hover:bg-white/20 active:scale-95"
+              >
+                <X className="size-[1.125rem]" strokeWidth={2.25} aria-hidden />
+              </button>
+            )}
           </div>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { useCallback, useLayoutEffect, useRef, useState } from "react";
 
 import { CanvasResizeHandles } from "@/components/canvas/nodes/canvas-resize-handles";
 import { StickyFormatToolbar } from "@/components/canvas/sticky-format-toolbar";
+import { useIdeasCanvasBridge } from "@/lib/workspace/ideas-canvas-bridge";
 import {
   STICKY_COLORS,
   STICKY_GAP,
@@ -87,6 +88,7 @@ export function StickyNoteNode({
   onHistoryGestureStart,
   onHistoryGestureEnd,
 }: StickyNoteNodeProps) {
+  const bridge = useIdeasCanvasBridge();
   const [hoverSide, setHoverSide] = useState<HoverSide>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
@@ -104,6 +106,10 @@ export function StickyNoteNode({
 
   const fill = STICKY_COLORS[node.color].fill;
   const resizing = selected && isResizing;
+  const handleCreateTask =
+    bridge?.onCreateTaskFromSticky && node.text.trim()
+      ? () => bridge.onCreateTaskFromSticky!(node.text)
+      : undefined;
 
   const triggerLimitFlash = useCallback(() => {
     setLimitFlash(true);
@@ -286,6 +292,7 @@ export function StickyNoteNode({
             onInsertEmoji={insertEmojiAtCursor}
             onAddLink={onAddLink}
             onDelete={onDelete}
+            onCreateTask={handleCreateTask}
           />
         </div>
       )}

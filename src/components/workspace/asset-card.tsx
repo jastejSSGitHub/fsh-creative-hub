@@ -79,6 +79,11 @@ export function AssetCard({
             Final pick
           </span>
         )}
+        {(asset.versionCount ?? 1) > 1 && (
+          <span className="pointer-events-none absolute bottom-3 left-3 z-10 rounded-md border border-hub-foreground/15 bg-hub-paper/90 px-2 py-0.5 font-mono text-[0.58rem] font-semibold uppercase tracking-wider text-hub-foreground/70 backdrop-blur-sm">
+            v{asset.versionCount}
+          </span>
+        )}
         {showOptionsMenu && (
           <AssetOptionsMenu
             className="absolute top-2 right-2 z-20"

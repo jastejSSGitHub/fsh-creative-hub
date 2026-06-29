@@ -8,7 +8,9 @@ import {
   type SectionPresetId,
 } from "@/lib/project-files/section-presets";
 import { getProjectMembership } from "@/lib/projects/queries";
-import { emptyDocumentConfig } from "@/lib/documents/types";
+import { appendDocumentRevision } from "@/lib/documents/revisions";
+import type { DocumentRevision, TextDocumentConfig } from "@/lib/documents/types";
+import { emptyDocumentConfig, parseDocumentConfig } from "@/lib/documents/types";
 import { DEFAULT_CANVAS_BG } from "@/lib/canvas/presets";
 import { canvasPath, projectPath, reviewBoardPath, textDocumentPath } from "@/lib/routes";
 import { createClient } from "@/lib/supabase/server";
@@ -304,6 +306,132 @@ export async function updateTextDocumentAction(
     return {
       ok: false,
       error: toUserFacingError(error, "We couldn't save that document. Please try again."),
+    };
+  }
+}
+
+export type DocumentRevisionActionResult =
+  | { ok: true; docId: string; revisions: DocumentRevision[] }
+  | { ok: false; error: string };
+
+export type RestoreDocumentRevisionResult =
+  | { ok: true; docId: string; config: TextDocumentConfig }
+  | { ok: false; error: string };
+
+const MAX_DOCUMENT_REVISIONS = 20;
+
+export async function saveDocumentRevisionAction(input: {
+  projectId: string;
+  docId: string;
+  label?: string;
+}): Promise<DocumentRevisionActionResult> {
+  try {
+    const { supabase, user } = await requireEditor(input.projectId);
+
+    const { data: file, error: fetchError } = await supabase
+      .from("hub_project_files")
+      .select("config, name")
+      .eq("id", input.docId)
+      .eq("project_id", input.projectId)
+      .eq("type", "text_document")
+      .maybeSingle();
+
+    if (fetchError || !file) {
+      return { ok: false, error: "Document not found." };
+    }
+
+    const config = parseDocumentConfig((file.config ?? {}) as Record<string, unknown>);
+    const { config: nextConfig } = appendDocumentRevision(config, {
+      label: input.label?.trim() || `Revision ${(config.revisions?.length ?? 0) + 1}`,
+      blocks: config.blocks,
+      plainTextPreview: config.plainTextPreview,
+      savedBy: user.id,
+    });
+
+    const { error } = await supabase
+      .from("hub_project_files")
+      .update({ config: nextConfig })
+      .eq("id", input.docId)
+      .eq("project_id", input.projectId);
+
+    if (error) {
+      return {
+        ok: false,
+        error: toUserFacingError(error.message, "Could not save revision."),
+      };
+    }
+
+    revalidatePath(textDocumentPath(input.projectId, input.docId));
+    return { ok: true, docId: input.docId, revisions: nextConfig.revisions ?? [] };
+  } catch (error) {
+    return {
+      ok: false,
+      error: toUserFacingError(error, "Could not save revision."),
+    };
+  }
+}
+
+export async function restoreDocumentRevisionAction(input: {
+  projectId: string;
+  docId: string;
+  revisionId: string;
+}): Promise<RestoreDocumentRevisionResult> {
+  try {
+    const { supabase, user } = await requireEditor(input.projectId);
+
+    const { data: file, error: fetchError } = await supabase
+      .from("hub_project_files")
+      .select("config, name")
+      .eq("id", input.docId)
+      .eq("project_id", input.projectId)
+      .eq("type", "text_document")
+      .maybeSingle();
+
+    if (fetchError || !file) {
+      return { ok: false, error: "Document not found." };
+    }
+
+    const config = parseDocumentConfig((file.config ?? {}) as Record<string, unknown>);
+    const revisions = config.revisions ?? [];
+    const target = revisions.find((revision) => revision.id === input.revisionId);
+
+    if (!target) {
+      return { ok: false, error: "Revision not found." };
+    }
+
+    const { config: withBackup } = appendDocumentRevision(config, {
+      label: `Before restoring “${target.label}”`,
+      blocks: config.blocks,
+      plainTextPreview: config.plainTextPreview,
+      savedBy: user.id,
+    });
+
+    const nextConfig: TextDocumentConfig = {
+      ...withBackup,
+      blocks: structuredClone(target.blocks),
+      plainTextPreview: target.plainTextPreview,
+      revisions: withBackup.revisions?.slice(-MAX_DOCUMENT_REVISIONS),
+    };
+
+    const { error } = await supabase
+      .from("hub_project_files")
+      .update({ config: nextConfig })
+      .eq("id", input.docId)
+      .eq("project_id", input.projectId);
+
+    if (error) {
+      return {
+        ok: false,
+        error: toUserFacingError(error.message, "Could not restore revision."),
+      };
+    }
+
+    revalidatePath(textDocumentPath(input.projectId, input.docId));
+    return { ok: true, docId: input.docId, config: nextConfig };
+  } catch (error) {
+    return {
+      ok: false,
+      error: toUserFacingError(error, "Could not restore revision."),
     };
   }
 }
