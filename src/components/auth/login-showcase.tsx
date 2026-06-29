@@ -9,9 +9,19 @@ import { IdeasWorkflowIllustration } from "@/components/landing/ideas-workflow-i
 import { PresentWorkflowIllustration } from "@/components/landing/present-workflow-illustration";
 import { ProjectsWorkflowIllustration } from "@/components/landing/projects-workflow-illustration";
 import { TrimmedLoopVideo } from "@/components/landing/trimmed-loop-video";
+import {
+  FEATURE_VISUAL_ART_BACKGROUNDS,
+  landingArtBackgroundStyle,
+} from "@/lib/landing/art-backgrounds";
 import { cn } from "@/lib/utils";
 
 const SLIDE_DURATION_MS = 7000;
+
+const LOGIN_TEXT = {
+  text: "text-white",
+  kicker: "text-white/55",
+  body: "text-white/70",
+} as const;
 
 const LOGIN_SLIDES = [
   {
@@ -19,11 +29,7 @@ const LOGIN_SLIDES = [
     kicker: "PROJECTS",
     headline: "Every initiative, one home.",
     body: "Spin up a project, drop in the work, invite the team. Like Figma files, for campaigns.",
-    panelClassName:
-      "bg-gradient-to-br from-[#5A189A] via-[#7B2CBF] to-[#C77DFF]",
-    textClassName: "text-white",
-    kickerClassName: "text-white/55",
-    bodyClassName: "text-white/70",
+    backgroundImage: FEATURE_VISUAL_ART_BACKGROUNDS.projects,
     visual: "projects" as const,
   },
   {
@@ -31,10 +37,7 @@ const LOGIN_SLIDES = [
     kicker: "REVIEW",
     headline: "Approve, reject, react.",
     body: "Open any asset full-screen. Vote with 🔥 👍 🤔 ❌. Watch consensus form in real time.",
-    panelClassName: "bg-hub-espresso",
-    textClassName: "text-hub-paper",
-    kickerClassName: "text-hub-paper/50",
-    bodyClassName: "text-hub-paper/65",
+    backgroundImage: FEATURE_VISUAL_ART_BACKGROUNDS.review,
     visual: "review" as const,
   },
   {
@@ -42,11 +45,7 @@ const LOGIN_SLIDES = [
     kicker: "COMMENTS",
     headline: "Feedback that sticks.",
     body: "Threaded comments, @mentions, and resolve checkmarks. Nothing gets lost.",
-    panelClassName:
-      "bg-gradient-to-br from-[#2667CC] via-[#3A86FF] to-[#8338EC]",
-    textClassName: "text-white",
-    kickerClassName: "text-white/55",
-    bodyClassName: "text-white/70",
+    backgroundImage: FEATURE_VISUAL_ART_BACKGROUNDS.comments,
     visual: "comments" as const,
   },
   {
@@ -54,11 +53,7 @@ const LOGIN_SLIDES = [
     kicker: "IDEAS",
     headline: "Brainstorm out loud.",
     body: "Drop ideas on a shared board. Upvote the best. Let the room decide.",
-    panelClassName:
-      "bg-gradient-to-br from-[#E9A319] via-[#F4A261] to-[#FF6B6B]",
-    textClassName: "text-hub-foreground",
-    kickerClassName: "text-hub-foreground/55",
-    bodyClassName: "text-hub-foreground/70",
+    backgroundImage: FEATURE_VISUAL_ART_BACKGROUNDS.ideas,
     visual: "ideas" as const,
   },
   {
@@ -66,11 +61,7 @@ const LOGIN_SLIDES = [
     kicker: "PRESENT",
     headline: "Hand it to the room.",
     body: "One click to a clean, full-screen reel of approved and final picks. Meeting-ready.",
-    panelClassName:
-      "bg-gradient-to-br from-[#0b0b0b] via-[#1a1a1a] to-[#3d3d3d]",
-    textClassName: "text-hub-paper",
-    kickerClassName: "text-hub-paper/50",
-    bodyClassName: "text-hub-paper/65",
+    backgroundImage: FEATURE_VISUAL_ART_BACKGROUNDS.present,
     visual: "present" as const,
   },
 ] as const;
@@ -251,9 +242,13 @@ export function LoginShowcase() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: reduced ? 0 : 0.6, ease: "easeInOut" }}
-          className={cn("absolute inset-0", activeSlide.panelClassName)}
+          className="absolute inset-0"
+          style={landingArtBackgroundStyle(activeSlide.backgroundImage)}
+          aria-hidden
         />
       </AnimatePresence>
+
+      <div className="absolute inset-0 bg-black/40" aria-hidden />
 
       <FloatingOrb
         reduced={reduced}
@@ -269,7 +264,7 @@ export function LoginShowcase() {
         <p
           className={cn(
             "font-mono text-[0.65rem] uppercase tracking-[0.22em] opacity-40",
-            activeSlide.textClassName,
+            LOGIN_TEXT.text,
           )}
         >
           FSH Creative Hub
@@ -301,13 +296,13 @@ export function LoginShowcase() {
               <ShowcaseNavArrow
                 direction="prev"
                 label={`Previous: ${previousSlide.headline}`}
-                textClassName={activeSlide.textClassName}
+                textClassName={LOGIN_TEXT.text}
                 onClick={goToPrevious}
               />
               <ShowcaseNavArrow
                 direction="next"
                 label={`Next: ${nextSlide.headline}`}
-                textClassName={activeSlide.textClassName}
+                textClassName={LOGIN_TEXT.text}
                 onClick={goToNext}
               />
             </div>
@@ -327,7 +322,7 @@ export function LoginShowcase() {
               <p
                 className={cn(
                   "font-mono text-[0.65rem] uppercase tracking-[0.2em]",
-                  activeSlide.kickerClassName,
+                  LOGIN_TEXT.kicker,
                 )}
               >
                 {activeSlide.kicker}
@@ -335,7 +330,7 @@ export function LoginShowcase() {
               <h2
                 className={cn(
                   "font-display text-[clamp(1.75rem,3.5vw,2.75rem)] font-extrabold leading-tight tracking-[-0.02em]",
-                  activeSlide.textClassName,
+                  LOGIN_TEXT.text,
                 )}
               >
                 {activeSlide.headline}
@@ -343,7 +338,7 @@ export function LoginShowcase() {
               <p
                 className={cn(
                   "max-w-md text-base leading-relaxed sm:text-lg",
-                  activeSlide.bodyClassName,
+                  LOGIN_TEXT.body,
                 )}
               >
                 {activeSlide.body}
@@ -369,7 +364,7 @@ export function LoginShowcase() {
                   onClick={() => goToSlide(index)}
                   className={cn(
                     "group relative flex h-6 items-center px-0.5",
-                    activeSlide.textClassName,
+                    LOGIN_TEXT.text,
                   )}
                 >
                   <span

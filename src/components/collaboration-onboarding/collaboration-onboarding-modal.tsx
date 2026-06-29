@@ -4,12 +4,31 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useState } from "react";
 
 import { CollaborationOnboardingIllustration } from "@/components/collaboration-onboarding/collaboration-onboarding-illustration";
+import { FeatureIllustrationFrame } from "@/components/landing/feature-illustration-frame";
 import { COLLABORATION_ONBOARDING_FLOWS } from "@/lib/collaboration-onboarding/steps";
 import {
   markCollaborationOnboardingSeen,
 } from "@/lib/collaboration-onboarding/storage";
 import type { CollaborationOnboardingFeatureId } from "@/lib/collaboration-onboarding/types";
+import {
+  LANDING_ART_BACKGROUNDS,
+  type LandingArtKey,
+} from "@/lib/landing/art-backgrounds";
 import { cn } from "@/lib/utils";
+
+const COLLAB_ONBOARDING_ART_KEYS: LandingArtKey[] = [
+  "art1",
+  "art2",
+  "art3",
+  "art4",
+  "art5",
+];
+
+function collaborationOnboardingArt(stepIndex: number): string {
+  return LANDING_ART_BACKGROUNDS[
+    COLLAB_ONBOARDING_ART_KEYS[stepIndex % COLLAB_ONBOARDING_ART_KEYS.length]
+  ];
+}
 
 type CollaborationOnboardingModalProps = {
   featureId: CollaborationOnboardingFeatureId;
@@ -63,10 +82,15 @@ export function CollaborationOnboardingModal({
             exit={{ opacity: 0, y: 8, scale: 0.98 }}
             transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
           >
-            <CollaborationOnboardingIllustration
-              variant={step.illustration}
+            <FeatureIllustrationFrame
+              backgroundImage={collaborationOnboardingArt(stepIndex)}
               className="mb-4"
-            />
+            >
+              <CollaborationOnboardingIllustration
+                variant={step.illustration}
+                className="border-0 bg-white/95 shadow-none"
+              />
+            </FeatureIllustrationFrame>
             <h2
               id="colab-onboarding-title"
               className="font-display text-lg font-extrabold tracking-tight text-hub-foreground"

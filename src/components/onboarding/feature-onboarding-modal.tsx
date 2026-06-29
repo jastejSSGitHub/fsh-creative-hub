@@ -9,18 +9,15 @@ import { PresentWorkflowIllustration } from "@/components/landing/present-workfl
 import { ProjectsWorkflowIllustration } from "@/components/landing/projects-workflow-illustration";
 import { TrimmedLoopVideo } from "@/components/landing/trimmed-loop-video";
 import {
+  FEATURE_VISUAL_ART_BACKGROUNDS,
+  landingArtBackgroundStyle,
+  type FeatureVisualKey,
+} from "@/lib/landing/art-backgrounds";
+import {
   FEATURE_ONBOARDING_DISMISSED_EVENT,
   markFeatureOnboardingSeen,
 } from "@/lib/onboarding/storage";
 import { cn } from "@/lib/utils";
-
-const STEP_GRADIENTS = {
-  projects: "bg-gradient-to-br from-[#7B2CBF] via-[#C77DFF] to-[#E0AAFF]",
-  review: "bg-gradient-to-br from-[#E63946] via-[#FF6B35] to-[#FFD23F]",
-  comments: "bg-gradient-to-br from-[#3A86FF] via-[#8338EC] to-[#C77DFF]",
-  ideas: "bg-gradient-to-br from-[#FFC94B] via-[#F4A261] to-[#FF6B6B]",
-  present: "bg-gradient-to-br from-[#1a1a1a] via-[#3d3d3d] to-[#0b0b0b]",
-} as const;
 
 const ONBOARDING_FEATURES = [
   {
@@ -95,7 +92,7 @@ function OnboardingVisual({
   visual,
   mobile = false,
 }: {
-  visual: (typeof ONBOARDING_FEATURES)[number]["visual"];
+  visual: FeatureVisualKey;
   mobile?: boolean;
 }) {
   const frameClass = cn(
@@ -261,11 +258,18 @@ export function FeatureOnboardingModal({
                 >
                   <span
                     className={cn(
-                      "flex size-6 items-center justify-center rounded-full text-[0.65rem] font-semibold",
+                      "flex size-6 items-center justify-center overflow-hidden rounded-full text-[0.65rem] font-semibold",
                       isActive
-                        ? cn(STEP_GRADIENTS[feature.visual], "text-white shadow-sm")
+                        ? "text-white shadow-sm ring-2 ring-white/30"
                         : "bg-white/[0.08] text-white/70",
                     )}
+                    style={
+                      isActive
+                        ? landingArtBackgroundStyle(
+                            FEATURE_VISUAL_ART_BACKGROUNDS[feature.visual],
+                          )
+                        : undefined
+                    }
                   >
                     {index + 1}
                   </span>
@@ -287,13 +291,15 @@ export function FeatureOnboardingModal({
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.25 }}
-                className={cn(
-                  "absolute inset-0",
-                  STEP_GRADIENTS[activeFeature.visual],
+                className="absolute inset-0"
+                style={landingArtBackgroundStyle(
+                  FEATURE_VISUAL_ART_BACKGROUNDS[activeFeature.visual],
                 )}
                 aria-hidden
               />
             </AnimatePresence>
+
+            <div className="absolute inset-0 bg-black/45" aria-hidden />
 
             <button
               type="button"
