@@ -1,6 +1,7 @@
 "use client";
 
-import Link, { useLinkStatus } from "next/link";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { CheckSquare, FolderKanban, MessageSquare } from "lucide-react";
 
 import {
@@ -13,7 +14,6 @@ import {
   TASKS_TODAY_PATH,
   isCanvasPath,
 } from "@/lib/routes";
-import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 type HubMobileBottomNavProps = {
@@ -48,94 +48,6 @@ const LINKS: {
   },
 ];
 
-function NavLinkContent({
-  label,
-  icon: Icon,
-  active,
-  badge,
-}: {
-  label: string;
-  icon: typeof FolderKanban;
-  active: boolean;
-  badge?: number;
-}) {
-  const { pending } = useLinkStatus();
-
-  return (
-    <>
-      <span className="relative">
-        <Icon
-          className={cn(
-            "size-5 transition-transform duration-150",
-            pending && "scale-110",
-            active && "drop-shadow-sm",
-          )}
-          aria-hidden
-        />
-        {pending && (
-          <span
-            className="absolute -inset-1 rounded-full bg-hub-primary/15 motion-safe:animate-pulse"
-            aria-hidden
-          />
-        )}
-        {badge != null && badge > 0 && (
-          <span className="absolute -top-1.5 -right-2 flex min-w-[0.9rem] items-center justify-center rounded-full bg-hub-primary px-0.5 py-px font-mono text-[0.5rem] font-bold leading-none text-white">
-            {badge > 99 ? "99+" : badge}
-          </span>
-        )}
-      </span>
-      <span className={cn(pending && !active && "text-hub-primary/70", pending && active && "opacity-90")}>
-        {label}
-      </span>
-    </>
-  );
-}
-
-function BottomNavLink({
-  href,
-  label,
-  icon,
-  active,
-  badge,
-  onNavigate,
-}: {
-  href: string;
-  label: string;
-  tab: HubRootTab;
-  icon: typeof FolderKanban;
-  active: boolean;
-  badge?: number;
-  onNavigate: (href: string) => void;
-}) {
-  return (
-    <Link
-      href={href}
-      scroll={false}
-      prefetch
-      onClick={() => onNavigate(href)}
-      className={cn(
-        "relative flex min-h-14 flex-col items-center justify-center gap-0.5 text-[0.625rem] font-medium transition-colors duration-150",
-        "active:scale-[0.97]",
-        active ? "text-hub-primary" : "text-hub-foreground/50",
-      )}
-      aria-current={active ? "page" : undefined}
-    >
-      {active && (
-        <span
-          className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-hub-primary"
-          aria-hidden
-        />
-      )}
-      <NavLinkContent
-        label={label}
-        icon={icon}
-        active={active}
-        badge={badge}
-      />
-    </Link>
-  );
-}
-
 export function HubMobileBottomNav({ forYouCount }: HubMobileBottomNavProps) {
   const pathname = usePathname() ?? "";
   const { activeTab, beginTabNavigation } = useHubTabNavigation();
@@ -151,18 +63,38 @@ export function HubMobileBottomNav({ forYouCount }: HubMobileBottomNavProps) {
         {LINKS.map((link) => {
           const active = activeTab === link.tab;
           const badge = link.badge ? forYouCount : undefined;
+          const Icon = link.icon;
 
           return (
-            <BottomNavLink
+            <Link
               key={link.href}
               href={link.href}
-              label={link.label}
-              tab={link.tab}
-              icon={link.icon}
-              active={active}
-              badge={badge}
-              onNavigate={beginTabNavigation}
-            />
+              scroll={false}
+              prefetch
+              onClick={() => beginTabNavigation(link.href)}
+              className={cn(
+                "relative flex min-h-14 flex-col items-center justify-center gap-0.5 text-[0.625rem] font-medium transition-colors duration-150",
+                "active:scale-[0.97]",
+                active ? "text-hub-primary" : "text-hub-foreground/50",
+              )}
+              aria-current={active ? "page" : undefined}
+            >
+              {active && (
+                <span
+                  className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-hub-primary"
+                  aria-hidden
+                />
+              )}
+              <span className="relative">
+                <Icon className="size-5" aria-hidden />
+                {badge != null && badge > 0 && (
+                  <span className="absolute -top-1.5 -right-2 flex min-w-[0.9rem] items-center justify-center rounded-full bg-hub-primary px-0.5 py-px font-mono text-[0.5rem] font-bold leading-none text-white">
+                    {badge > 99 ? "99+" : badge}
+                  </span>
+                )}
+              </span>
+              {link.label}
+            </Link>
           );
         })}
       </div>

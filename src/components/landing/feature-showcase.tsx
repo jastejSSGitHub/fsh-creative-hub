@@ -158,19 +158,19 @@ const FEATURES: ReadonlyArray<{
   },
 ];
 
-const ILLUSTRATION_FRAMES = {
-  PROJECTS: "bg-gradient-to-br from-[#5b21b6] via-[#7c3aed] to-[#a78bfa]",
-  COMMENTS: "bg-gradient-to-br from-[#1e3a8a] via-[#2563eb] to-[#60a5fa]",
-  IDEAS: "bg-gradient-to-br from-[#c2410c] via-[#ea580c] to-[#fdba74]",
-  PRESENT: "bg-gradient-to-br from-[#334155] via-[#475569] to-[#64748b]",
-  FOR_YOU: "bg-gradient-to-br from-[#1e40af] via-[#3b82f6] to-[#7dd3fc]",
-  QUICK_TASKS: "bg-gradient-to-br from-[#047857] via-[#10b981] to-[#6ee7b7]",
-  COLLABORATION: "bg-gradient-to-br from-[#9d174d] via-[#db2777] to-[#f472b6]",
+const ILLUSTRATION_BACKGROUNDS = {
+  PROJECTS: LANDING_ART_BACKGROUNDS.art1,
+  COMMENTS: LANDING_ART_BACKGROUNDS.art2,
+  IDEAS: LANDING_ART_BACKGROUNDS.art3,
+  PRESENT: LANDING_ART_BACKGROUNDS.art4,
+  FOR_YOU: LANDING_ART_BACKGROUNDS.art5,
+  QUICK_TASKS: LANDING_ART_BACKGROUNDS.art1,
+  COLLABORATION: LANDING_ART_BACKGROUNDS.art2,
 } as const;
 
 function ProjectsVisual() {
   return (
-    <FeatureIllustrationFrame gradientClassName={ILLUSTRATION_FRAMES.PROJECTS}>
+    <FeatureIllustrationFrame backgroundImage={ILLUSTRATION_BACKGROUNDS.PROJECTS}>
       <ProjectsWorkflowIllustration />
     </FeatureIllustrationFrame>
   );
@@ -178,7 +178,7 @@ function ProjectsVisual() {
 
 function CommentsVisual() {
   return (
-    <FeatureIllustrationFrame gradientClassName={ILLUSTRATION_FRAMES.COMMENTS}>
+    <FeatureIllustrationFrame backgroundImage={ILLUSTRATION_BACKGROUNDS.COMMENTS}>
       <CommentsWorkflowIllustration />
     </FeatureIllustrationFrame>
   );
@@ -186,7 +186,7 @@ function CommentsVisual() {
 
 function IdeasVisual() {
   return (
-    <FeatureIllustrationFrame gradientClassName={ILLUSTRATION_FRAMES.IDEAS}>
+    <FeatureIllustrationFrame backgroundImage={ILLUSTRATION_BACKGROUNDS.IDEAS}>
       <IdeasWorkflowIllustration />
     </FeatureIllustrationFrame>
   );
@@ -194,7 +194,7 @@ function IdeasVisual() {
 
 function PresentVisual() {
   return (
-    <FeatureIllustrationFrame gradientClassName={ILLUSTRATION_FRAMES.PRESENT}>
+    <FeatureIllustrationFrame backgroundImage={ILLUSTRATION_BACKGROUNDS.PRESENT}>
       <PresentWorkflowIllustration />
     </FeatureIllustrationFrame>
   );
@@ -202,7 +202,7 @@ function PresentVisual() {
 
 function ForYouVisual() {
   return (
-    <FeatureIllustrationFrame gradientClassName={ILLUSTRATION_FRAMES.FOR_YOU}>
+    <FeatureIllustrationFrame backgroundImage={ILLUSTRATION_BACKGROUNDS.FOR_YOU}>
       <ForYouWorkflowIllustration />
     </FeatureIllustrationFrame>
   );
@@ -210,7 +210,7 @@ function ForYouVisual() {
 
 function QuickTasksVisual() {
   return (
-    <FeatureIllustrationFrame gradientClassName={ILLUSTRATION_FRAMES.QUICK_TASKS}>
+    <FeatureIllustrationFrame backgroundImage={ILLUSTRATION_BACKGROUNDS.QUICK_TASKS}>
       <QuickTasksWorkflowIllustration />
     </FeatureIllustrationFrame>
   );
@@ -218,7 +218,7 @@ function QuickTasksVisual() {
 
 function CollaborationVisual() {
   return (
-    <FeatureIllustrationFrame gradientClassName={ILLUSTRATION_FRAMES.COLLABORATION}>
+    <FeatureIllustrationFrame backgroundImage={ILLUSTRATION_BACKGROUNDS.COLLABORATION}>
       <CollaborationLoopWorkflowIllustration />
     </FeatureIllustrationFrame>
   );

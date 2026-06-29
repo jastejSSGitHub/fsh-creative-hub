@@ -12,11 +12,8 @@ import {
 import { usePathname } from "next/navigation";
 
 import {
-  FOR_YOU_PATH,
   hubRootTabFromHref,
   hubRootTabFromPathname,
-  PROJECTS_PATH,
-  TASKS_TODAY_PATH,
   type HubRootTab,
 } from "@/lib/routes";
 
@@ -78,9 +75,3 @@ export function matchHubRootTab(
 ): boolean {
   return hubRootTabFromPathname(pathname) === tab;
 }
-
-export const HUB_TAB_PREFETCH_HREFS = [
-  PROJECTS_PATH,
-  FOR_YOU_PATH,
-  TASKS_TODAY_PATH,
-] as const;

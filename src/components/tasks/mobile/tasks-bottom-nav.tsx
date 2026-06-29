@@ -1,6 +1,6 @@
 "use client";
 
-import Link, { useLinkStatus } from "next/link";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Calendar, CalendarRange, Inbox, Search } from "lucide-react";
 
@@ -20,30 +20,8 @@ const LINKS = [
   { href: TASKS_PATH, label: "Browse", icon: Search },
 ] as const;
 
-function BottomNavLinkContent({
-  label,
-  icon: Icon,
-  active,
-}: {
-  label: string;
-  icon: typeof Calendar;
-  active: boolean;
-}) {
-  const { pending } = useLinkStatus();
-
-  return (
-    <>
-      <Icon
-        className={cn("size-5", pending && !active && "animate-pulse")}
-        aria-hidden
-      />
-      {label}
-    </>
-  );
-}
-
 export function TasksBottomNav() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
 
   return (
     <nav
@@ -54,8 +32,10 @@ export function TasksBottomNav() {
         {LINKS.map((link) => {
           const active =
             link.href === TASKS_PATH
-              ? isTasksBrowsePath(pathname ?? "")
+              ? isTasksBrowsePath(pathname)
               : pathname === link.href;
+          const Icon = link.icon;
+
           return (
             <Link
               key={link.href}
@@ -67,7 +47,8 @@ export function TasksBottomNav() {
                 active ? "text-hub-primary" : "text-hub-foreground/50",
               )}
             >
-              <BottomNavLinkContent label={link.label} icon={link.icon} active={active} />
+              <Icon className="size-5" aria-hidden />
+              {link.label}
             </Link>
           );
         })}

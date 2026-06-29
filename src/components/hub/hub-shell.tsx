@@ -5,7 +5,6 @@ import { HubHeader } from "@/components/hub/hub-header";
 import { HubMobileBottomNav } from "@/components/hub/hub-mobile-bottom-nav";
 import { HubOriginReturnHost } from "@/components/hub/hub-origin-return-host";
 import { HubTabNavigationProvider } from "@/components/hub/hub-tab-navigation-provider";
-import { HubTabPrefetcher } from "@/components/hub/hub-tab-prefetcher";
 import { DevToolsHost } from "@/components/dev-tools/dev-tools-host";
 import { MockCollaborationBanner } from "@/components/dev-tools/mock-collaboration-banner";
 import { FeatureOnboardingHost } from "@/components/onboarding/feature-onboarding-host";
@@ -57,7 +56,6 @@ export async function HubShell({ children }: HubShellProps) {
               <GlobalQuickAddHost userId={session.userId} />
               <HubMobileBottomNav forYouCount={forYouCount} />
               <HubOriginReturnHost />
-              <HubTabPrefetcher />
               <DevToolsHost />
             </div>
           </HubTabNavigationProvider>

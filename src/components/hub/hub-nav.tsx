@@ -1,6 +1,6 @@
 "use client";
 
-import Link, { useLinkStatus } from "next/link";
+import Link from "next/link";
 
 import {
   useHubTabNavigation,
@@ -37,76 +37,6 @@ const NAV_ITEMS: {
   },
 ];
 
-function HubNavLinkContent({
-  label,
-  active,
-  showBadge,
-  forYouCount,
-}: {
-  label: string;
-  active: boolean;
-  showBadge: boolean;
-  forYouCount: number;
-}) {
-  const { pending } = useLinkStatus();
-
-  return (
-    <>
-      <span className={cn(pending && !active && "opacity-90")}>{label}</span>
-      {showBadge && (
-        <span
-          className={cn(
-            "inline-flex min-w-[1.1rem] items-center justify-center rounded-full px-1 py-px font-mono text-[0.55rem] font-semibold leading-none",
-            active ? "bg-hub-final text-hub-foreground" : "bg-hub-primary text-white",
-          )}
-          aria-label={`${forYouCount} unread`}
-        >
-          {forYouCount > 99 ? "99+" : forYouCount}
-        </span>
-      )}
-    </>
-  );
-}
-
-function HubNavLink({
-  href,
-  label,
-  active,
-  showBadge,
-  forYouCount,
-  onNavigate,
-}: {
-  href: string;
-  label: string;
-  tab: HubRootTab;
-  active: boolean;
-  showBadge: boolean;
-  forYouCount: number;
-  onNavigate: (href: string) => void;
-}) {
-  return (
-    <Link
-      href={href}
-      prefetch
-      onClick={() => onNavigate(href)}
-      className={cn(
-        "relative inline-flex h-7 items-center justify-center gap-1.5 rounded-md px-2.5 text-[0.8125rem] font-medium transition-all duration-150",
-        active
-          ? "bg-white/12 text-white"
-          : "text-white/55 hover:bg-white/6 hover:text-white/90",
-      )}
-      aria-current={active ? "page" : undefined}
-    >
-      <HubNavLinkContent
-        label={label}
-        active={active}
-        showBadge={showBadge}
-        forYouCount={forYouCount}
-      />
-    </Link>
-  );
-}
-
 export function HubNav({ forYouCount }: HubNavProps) {
   const { activeTab, beginTabNavigation } = useHubTabNavigation();
 
@@ -120,16 +50,32 @@ export function HubNav({ forYouCount }: HubNavProps) {
         const showBadge = Boolean(item.badge) && forYouCount > 0;
 
         return (
-          <HubNavLink
+          <Link
             key={item.href}
             href={item.href}
-            label={item.label}
-            tab={item.tab}
-            active={active}
-            showBadge={showBadge}
-            forYouCount={forYouCount}
-            onNavigate={beginTabNavigation}
-          />
+            prefetch
+            onClick={() => beginTabNavigation(item.href)}
+            className={cn(
+              "relative inline-flex h-7 items-center justify-center gap-1.5 rounded-md px-2.5 text-[0.8125rem] font-medium transition-colors duration-150",
+              active
+                ? "bg-white/12 text-white"
+                : "text-white/55 hover:bg-white/6 hover:text-white/90",
+            )}
+            aria-current={active ? "page" : undefined}
+          >
+            {item.label}
+            {showBadge && (
+              <span
+                className={cn(
+                  "inline-flex min-w-[1.1rem] items-center justify-center rounded-full px-1 py-px font-mono text-[0.55rem] font-semibold leading-none",
+                  active ? "bg-hub-final text-hub-foreground" : "bg-hub-primary text-white",
+                )}
+                aria-label={`${forYouCount} unread`}
+              >
+                {forYouCount > 99 ? "99+" : forYouCount}
+              </span>
+            )}
+          </Link>
         );
       })}
     </nav>
