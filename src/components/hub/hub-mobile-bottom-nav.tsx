@@ -56,7 +56,8 @@ export function HubMobileBottomNav({ forYouCount }: HubMobileBottomNavProps) {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-hub-foreground/10 bg-hub-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden"
+      data-hub-mobile-chrome
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-hub-foreground/10 bg-hub-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md transition-[filter] duration-200 lg:hidden"
       aria-label="Hub mobile navigation"
     >
       <div className="grid grid-cols-3">
@@ -70,7 +71,7 @@ export function HubMobileBottomNav({ forYouCount }: HubMobileBottomNavProps) {
               key={link.href}
               href={link.href}
               scroll={false}
-              prefetch
+              prefetch={false}
               onClick={() => beginTabNavigation(link.href)}
               className={cn(
                 "relative flex min-h-14 flex-col items-center justify-center gap-0.5 text-[0.625rem] font-medium transition-colors duration-150",

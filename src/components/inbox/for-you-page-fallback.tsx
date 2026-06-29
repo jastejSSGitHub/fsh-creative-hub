@@ -3,7 +3,7 @@
 import { ForYouInbox } from "@/components/inbox/for-you-inbox";
 import { ForYouInboxSkeleton } from "@/components/inbox/for-you-inbox-skeleton";
 import { filterForYouByLens } from "@/lib/inbox/lenses";
-import { readHubTabCache } from "@/lib/hub/tab-cache";
+import { useDeferredHubTabCache } from "@/lib/hub/use-deferred-hub-tab-cache";
 import type { SharedProjectNode } from "@/lib/inbox/sidebar-queries";
 import type { ForYouItem } from "@/lib/inbox/queries";
 import type { ForYouLens } from "@/lib/routes";
@@ -24,7 +24,7 @@ type ForYouPageFallbackProps = {
 };
 
 export function ForYouPageFallback({ lens }: ForYouPageFallbackProps) {
-  const cached = readHubTabCache<ForYouTabCache>("for-you");
+  const cached = useDeferredHubTabCache<ForYouTabCache>("for-you");
 
   if (cached?.allItems) {
     const items = filterForYouByLens(cached.allItems, lens, cached.userId);

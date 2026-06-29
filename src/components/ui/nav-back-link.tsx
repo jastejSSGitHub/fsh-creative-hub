@@ -29,7 +29,7 @@ export function NavBackLink({
   href,
   label,
   className,
-  prefetch = true,
+  prefetch = false,
 }: NavBackLinkProps) {
   return (
     <Link

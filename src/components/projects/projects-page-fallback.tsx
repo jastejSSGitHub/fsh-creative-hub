@@ -2,7 +2,7 @@
 
 import { ProjectsPageClient } from "@/components/projects/projects-page-client";
 import { ProjectsPageSkeletonView } from "@/components/projects/projects-page-skeleton-view";
-import { readHubTabCache } from "@/lib/hub/tab-cache";
+import { useDeferredHubTabCache } from "@/lib/hub/use-deferred-hub-tab-cache";
 import { DEFAULT_PROJECTS_PAGE_SNAPSHOT } from "@/lib/projects/snapshot";
 import type { ProjectCardData } from "@/lib/projects/queries";
 
@@ -12,7 +12,7 @@ type ProjectsTabCache = {
 };
 
 export function ProjectsPageFallback() {
-  const cached = readHubTabCache<ProjectsTabCache>("projects");
+  const cached = useDeferredHubTabCache<ProjectsTabCache>("projects");
 
   if (cached?.projects?.length) {
     return (

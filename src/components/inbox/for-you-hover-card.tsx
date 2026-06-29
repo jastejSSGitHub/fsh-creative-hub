@@ -149,14 +149,17 @@ export function ForYouHoverCard({
                 </div>
               )}
             </div>
-            <div className="space-y-2 px-2.5 py-2">
-              <p className="line-clamp-2 text-xs font-semibold leading-snug text-hub-foreground">
+            <div className="flex min-w-0 items-center gap-2 px-2.5 py-2">
+              <p
+                className="min-w-0 flex-1 truncate text-xs font-semibold leading-snug text-hub-foreground"
+                title={target.label}
+              >
                 {target.label}
               </p>
               <Link
                 href={target.href}
                 onClick={handleNavigate}
-                className="inline-flex text-xs font-medium text-hub-primary transition-colors hover:text-[#1590e8]"
+                className="shrink-0 whitespace-nowrap text-xs font-medium text-hub-primary transition-colors hover:text-[#1590e8]"
               >
                 {target.ctaLabel}
               </Link>

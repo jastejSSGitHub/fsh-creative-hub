@@ -53,7 +53,7 @@ export function HubNav({ forYouCount }: HubNavProps) {
           <Link
             key={item.href}
             href={item.href}
-            prefetch
+            prefetch={false}
             onClick={() => beginTabNavigation(item.href)}
             className={cn(
               "relative inline-flex h-7 items-center justify-center gap-1.5 rounded-md px-2.5 text-[0.8125rem] font-medium transition-colors duration-150",

@@ -149,8 +149,9 @@ export function GlobalQuickAddHost({ userId }: GlobalQuickAddHostProps) {
       ) : null}
 
       <div
+        data-hub-mobile-chrome
         className={cn(
-          "fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] right-4 z-40 flex flex-col items-end gap-2 lg:bottom-6",
+          "fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] right-4 z-40 flex flex-col items-end gap-2 transition-[filter] duration-200 lg:bottom-6",
         )}
       >
         {onProjectsGrid && fabMenuOpen ? (

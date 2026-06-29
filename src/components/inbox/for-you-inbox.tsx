@@ -1,9 +1,9 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { PanelLeft } from "lucide-react";
-
 import { ForYouList } from "@/components/inbox/for-you-list";
 import { ForYouSidebar } from "@/components/inbox/for-you-sidebar";
 import {
@@ -58,15 +58,30 @@ export function ForYouInbox({
   userAvatarUrl = null,
 }: ForYouInboxProps) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   const closeMobileSidebar = useCallback(() => {
     setMobileSidebarOpen(false);
   }, []);
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
     closeMobileSidebar();
   }, [lens, closeMobileSidebar]);
 
+  useEffect(() => {
+    function handleResize() {
+      if (window.innerWidth >= 1024) {
+        closeMobileSidebar();
+      }
+    }
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [closeMobileSidebar]);
   useEffect(() => {
     writeHubTabCache("for-you", {
       lens,
@@ -90,7 +105,25 @@ export function ForYouInbox({
   ]);
 
   useEffect(() => {
-    if (!mobileSidebarOpen) return;
+    if (!mounted) return;
+
+    const isMobileDrawer =
+      mobileSidebarOpen && window.innerWidth < 1024;
+
+    if (isMobileDrawer) {
+      document.body.dataset.hubForYouDrawerOpen = "true";
+    } else {
+      delete document.body.dataset.hubForYouDrawerOpen;
+    }
+
+    return () => {
+      delete document.body.dataset.hubForYouDrawerOpen;
+    };
+  }, [mobileSidebarOpen, mounted]);
+
+  useEffect(() => {
+    if (!mobileSidebarOpen || !mounted) return;
+    if (window.innerWidth >= 1024) return;
 
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -104,7 +137,7 @@ export function ForYouInbox({
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [mobileSidebarOpen, closeMobileSidebar]);
+  }, [mobileSidebarOpen, mounted, closeMobileSidebar]);
 
   const sidebarProps = {
     sharedProjects,
@@ -115,46 +148,42 @@ export function ForYouInbox({
     onNavigate: closeMobileSidebar,
   };
 
-  return (
-    <div className="flex min-h-0 flex-1">
-      {/* Mobile backdrop */}
-      <button
-        type="button"
-        aria-label="Close sidebar"
-        className={cn(
-          "fixed inset-0 z-40 bg-black/50 transition-opacity duration-200 lg:hidden",
-          mobileSidebarOpen
-            ? "pointer-events-auto opacity-100"
-            : "pointer-events-none opacity-0",
-        )}
-        onClick={closeMobileSidebar}
-        tabIndex={mobileSidebarOpen ? 0 : -1}
-      />
+  const mobileSidebarDrawer =
+    mobileSidebarOpen && mounted
+      ? createPortal(
+          <div
+            className="fixed inset-0 z-[60] lg:hidden"
+            role="dialog"
+            aria-modal="true"
+            aria-label="For you sidebar"
+          >
+            <button
+              type="button"
+              aria-label="Close sidebar"
+              className="absolute inset-0 bg-black/50"
+              onClick={closeMobileSidebar}
+            />
+            <div className="absolute inset-y-0 left-0 flex w-56 flex-col bg-hub-surface-muted shadow-2xl">
+              <Suspense fallback={<ForYouSidebarFallback className="h-full w-full" />}>
+                <ForYouSidebar
+                  {...sidebarProps}
+                  className="h-full w-full border-r-0"
+                  showCloseButton
+                  onClose={closeMobileSidebar}
+                />
+              </Suspense>
+            </div>
+          </div>,
+          document.body,
+        )
+      : null;
 
+  return (
+    <div className="flex min-h-0 w-full flex-1">
       {/* Desktop sidebar — always visible in flow */}
       <div className="hidden shrink-0 lg:block">
         <Suspense fallback={<ForYouSidebarFallback />}>
           <ForYouSidebar {...sidebarProps} />
-        </Suspense>
-      </div>
-
-      {/* Mobile drawer — overlays content when open */}
-      <div
-        className={cn(
-          "fixed inset-y-0 left-0 z-50 w-[min(18rem,88vw)] shadow-2xl transition-transform duration-200 ease-out lg:hidden",
-          mobileSidebarOpen
-            ? "translate-x-0 pointer-events-auto"
-            : "-translate-x-full pointer-events-none",
-        )}
-        aria-hidden={!mobileSidebarOpen}
-      >
-        <Suspense fallback={<ForYouSidebarFallback className="h-full" />}>
-          <ForYouSidebar
-            {...sidebarProps}
-            className="h-full shadow-xl"
-            showCloseButton
-            onClose={closeMobileSidebar}
-          />
         </Suspense>
       </div>
 
@@ -217,6 +246,8 @@ export function ForYouInbox({
           <ForYouList items={items} lens={lens} />
         </div>
       </div>
+
+      {mobileSidebarDrawer}
     </div>
   );
 }

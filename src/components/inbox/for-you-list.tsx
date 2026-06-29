@@ -10,7 +10,7 @@ import { MemberAvatar } from "@/components/projects/member-avatar";
 import { MentionComposer } from "@/components/workspace/mention-composer";
 import { buttonVariants } from "@/components/ui/button";
 import { HubTooltip } from "@/components/ui/hub-tooltip";
-import { formatRelativeTime } from "@/lib/format-relative-time";
+import { RelativeTime } from "@/components/ui/relative-time";
 import {
   SNOOZE_OPTIONS,
   isForYouItemHandled,
@@ -70,12 +70,12 @@ const KIND_LABELS: Record<ForYouItem["kind"], string> = {
 };
 
 const FOR_YOU_ACTION_BUTTON_CLASS =
-  "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-md border border-hub-foreground/18 bg-hub-paper px-2.5 text-xs font-medium text-hub-foreground shadow-[0_1px_2px_rgba(11,11,11,0.06)] transition-[background-color,border-color,box-shadow,color] hover:border-hub-foreground/28 hover:bg-hub-surface hover:shadow-[0_2px_6px_rgba(11,11,11,0.08)]";
+  "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-md border border-transparent bg-hub-foreground/[0.05] px-2.5 text-xs font-medium text-hub-foreground/80 transition-colors hover:bg-hub-foreground/[0.09] hover:text-hub-foreground";
 
 function forYouActionButtonClass(active = false) {
   return cn(
     FOR_YOU_ACTION_BUTTON_CLASS,
-    active && "border-hub-foreground/28 bg-hub-surface shadow-[0_2px_6px_rgba(11,11,11,0.08)]",
+    active && "bg-hub-foreground/[0.09] text-hub-foreground",
   );
 }
 
@@ -353,8 +353,8 @@ export function ForYouList({ items, lens }: ForYouListProps) {
                 size="md"
               />
 
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <div className="relative min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pr-0 sm:pr-2">
                   <span className="text-sm font-semibold text-hub-foreground">{actor.name}</span>
                   <span
                     className={cn(
@@ -364,9 +364,10 @@ export function ForYouList({ items, lens }: ForYouListProps) {
                   >
                     {KIND_LABELS[item.kind]}
                   </span>
-                  <span className="font-mono text-[0.58rem] text-hub-foreground/35">
-                    {formatRelativeTime(item.sort_at)}
-                  </span>
+                  <RelativeTime
+                    iso={item.sort_at}
+                    className="font-mono text-[0.58rem] text-hub-foreground/35"
+                  />
                 </div>
 
                 <p className="mt-0.5 text-xs text-hub-foreground/45">{itemDescription(item)}</p>
@@ -378,20 +379,20 @@ export function ForYouList({ items, lens }: ForYouListProps) {
                   onDismiss={() => markHandled(item.id)}
                 />
 
-                <div className="mt-1.5 h-9">
-                  <div
-                    className={cn(
-                      "inline-flex w-fit max-w-full flex-wrap items-center gap-1.5 rounded-md border border-hub-foreground/10 bg-hub-paper/90 p-1 shadow-sm backdrop-blur-sm transition-[opacity,transform] duration-150",
-                      actionsPinned
-                        ? "pointer-events-auto translate-y-0 opacity-100"
-                        : [
-                            "pointer-events-none translate-y-0.5 opacity-0",
-                            "max-sm:pointer-events-auto max-sm:translate-y-0 max-sm:opacity-100",
-                            "sm:group-hover/item:pointer-events-auto sm:group-hover/item:translate-y-0 sm:group-hover/item:opacity-100",
-                            "sm:group-focus-within/item:pointer-events-auto sm:group-focus-within/item:translate-y-0 sm:group-focus-within/item:opacity-100",
-                          ],
-                    )}
-                  >
+                <div
+                  className={cn(
+                    "z-10 max-sm:relative max-sm:mt-2 sm:absolute sm:right-0 sm:top-0",
+                    actionsPinned
+                      ? "pointer-events-auto opacity-100"
+                      : [
+                          "pointer-events-none opacity-0",
+                          "max-sm:pointer-events-auto max-sm:opacity-100",
+                          "sm:group-hover/item:pointer-events-auto sm:group-hover/item:opacity-100",
+                          "sm:group-focus-within/item:pointer-events-auto sm:group-focus-within/item:opacity-100",
+                        ],
+                  )}
+                >
+                  <div className="inline-flex w-fit max-w-full flex-wrap items-center justify-end gap-1.5 transition-opacity duration-150">
                     <HubTooltip label="Reply in line" side="top">
                       <button
                         type="button"
@@ -426,7 +427,7 @@ export function ForYouList({ items, lens }: ForYouListProps) {
                         </button>
                       </HubTooltip>
                       {snoozeMenuId === item.id && (
-                        <div className="absolute left-0 top-full z-20 mt-1 min-w-[9rem] overflow-hidden rounded-md border border-hub-foreground/15 bg-hub-paper py-1 shadow-lg">
+                        <div className="absolute right-0 top-full z-20 mt-1 min-w-[9rem] overflow-hidden rounded-md border border-hub-foreground/15 bg-hub-paper py-1 shadow-lg">
                           {SNOOZE_OPTIONS.map((option, index) => (
                             <button
                               key={option.id}

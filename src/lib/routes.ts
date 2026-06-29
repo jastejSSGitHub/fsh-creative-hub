@@ -58,6 +58,12 @@ export function projectPath(projectId: string): `/projects/${string}` {
   return `/projects/${projectId}`;
 }
 
+export function projectBriefPath(
+  projectId: string,
+): `/projects/${string}/brief` {
+  return `/projects/${projectId}/brief`;
+}
+
 export function projectTasksPath(
   projectId: string,
 ): `/projects/${string}/tasks` {

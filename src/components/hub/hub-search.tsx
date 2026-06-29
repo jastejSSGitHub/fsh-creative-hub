@@ -21,9 +21,14 @@ import {
 
 import {
   HubIntelligenceEmptyState,
-  INTELLIGENCE_PROMPTS,
   type IntelligencePrompt,
 } from "@/components/hub/hub-intelligence-empty-state";
+import type { IntelligenceProjectOption } from "@/lib/intelligence/project-options";
+import {
+  loadIntelligenceProjects,
+  prefetchIntelligenceProjects,
+  readIntelligenceProjectCache,
+} from "@/lib/intelligence/project-options-client";
 import { HubIntelligenceLoading } from "@/components/hub/hub-intelligence-loading";
 import { HubIntelligenceResult } from "@/components/hub/hub-intelligence-result";
 import {
@@ -44,6 +49,10 @@ import type { SearchResult } from "@/lib/search/queries";
 import { cn } from "@/lib/utils";
 
 const DEBOUNCE_MS = 200;
+
+/** Nested top corner radii: modal `rounded-xl` minus tab bar `p-1` inset */
+const TAB_OUTER_TOP_LEFT_RADIUS = "rounded-tl-[calc(var(--radius-xl)-0.25rem)]";
+const TAB_OUTER_TOP_RIGHT_RADIUS = "rounded-tr-[calc(var(--radius-xl)-0.25rem)]";
 
 type HubMode = "search" | "intelligence";
 
@@ -84,9 +93,17 @@ export function HubSearch() {
   const [activeHintId, setActiveHintId] = useState<SearchHintId | null>(null);
   const [activePromptId, setActivePromptId] =
     useState<IntelligenceTemplateId | null>(null);
+  const [expandedPromptId, setExpandedPromptId] =
+    useState<IntelligenceTemplateId | null>(null);
+  const [showGlobalPicker, setShowGlobalPicker] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
+    null,
+  );
   const [placeholder, setPlaceholder] = useState(
     "Search projects, files, assets, tasks",
   );
+
+  const effectiveProjectId = projectId ?? selectedProjectId;
 
   const [intelligenceLoading, setIntelligenceLoading] = useState(false);
   const [intelligenceError, setIntelligenceError] = useState<string | null>(
@@ -100,6 +117,50 @@ export function HubSearch() {
   const [fromCache, setFromCache] = useState(false);
   const [isProjectAdmin, setIsProjectAdmin] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
+  const [projectOptions, setProjectOptions] = useState<IntelligenceProjectOption[]>(
+    [],
+  );
+  const [projectOptionsLoading, setProjectOptionsLoading] = useState(true);
+  const [projectOptionsError, setProjectOptionsError] = useState<string | null>(
+    null,
+  );
+
+  const loadProjectOptions = useCallback(async () => {
+    const cached = readIntelligenceProjectCache();
+    if (cached) {
+      setProjectOptions(cached);
+      setProjectOptionsLoading(false);
+    }
+
+    try {
+      const loaded = await loadIntelligenceProjects();
+      setProjectOptions(loaded);
+      setProjectOptionsError(null);
+    } catch {
+      if (!cached) {
+        setProjectOptionsError("Could not load projects.");
+      }
+    } finally {
+      setProjectOptionsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    prefetchIntelligenceProjects();
+  }, []);
+
+  useEffect(() => {
+    const cached = readIntelligenceProjectCache();
+    if (!cached) return;
+    setProjectOptions(cached);
+    setProjectOptionsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (mode === "intelligence" && open) {
+      void loadProjectOptions();
+    }
+  }, [mode, open, loadProjectOptions]);
 
   const runSearch = useCallback(async (value: string) => {
     const trimmed = value.trim();
@@ -136,15 +197,31 @@ export function HubSearch() {
   }, []);
 
   const runIntelligence = useCallback(
-    async (prompt: string, templateId?: IntelligenceTemplateId | null) => {
+    async (
+      prompt: string,
+      templateId?: IntelligenceTemplateId | null,
+      explicitProjectId?: string | null,
+    ) => {
       const trimmed = prompt.trim();
       if (!trimmed && !templateId) return;
+
+      const targetProjectId =
+        explicitProjectId ?? projectId ?? selectedProjectId;
+
+      if (!targetProjectId) {
+        setShowGlobalPicker(true);
+        setExpandedPromptId(null);
+        setIntelligenceError(null);
+        return;
+      }
 
       setIntelligenceLoading(true);
       setIntelligenceError(null);
       setIntelligenceProgress([]);
       setBrief(null);
       setView(null);
+      setExpandedPromptId(null);
+      setShowGlobalPicker(false);
 
       const stagedMessages: BuildProgressEvent[] = [
         { stage: "loading_snapshot", message: "Loading project snapshot…" },
@@ -157,7 +234,7 @@ export function HubSearch() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             prompt: trimmed,
-            projectId,
+            projectId: targetProjectId,
             templateId: templateId ?? null,
           }),
         });
@@ -171,10 +248,18 @@ export function HubSearch() {
             "error" in payload && payload.error
               ? payload.error
               : "Could not build project brief.";
+
+          if (error.toLowerCase().includes("pick a project")) {
+            setShowGlobalPicker(true);
+            setIntelligenceError(null);
+            return;
+          }
+
           setIntelligenceError(error);
           return;
         }
 
+        setSelectedProjectId(targetProjectId);
         setBrief(payload.brief);
         setView(payload.view);
         setFromCache(payload.fromCache);
@@ -188,7 +273,7 @@ export function HubSearch() {
         setIntelligenceLoading(false);
       }
     },
-    [projectId],
+    [projectId, selectedProjectId],
   );
 
   const rebuildBrief = useCallback(async () => {
@@ -274,6 +359,9 @@ export function HubSearch() {
     setOpen(true);
     setFocused(true);
     inputRef.current?.focus();
+    if (mode === "intelligence") {
+      void loadProjectOptions();
+    }
   }
 
   function closeSearchPanel() {
@@ -281,9 +369,13 @@ export function HubSearch() {
     setFocused(false);
     setActiveHintId(null);
     setActivePromptId(null);
+    setExpandedPromptId(null);
+    setShowGlobalPicker(false);
     setPlaceholder(
       mode === "intelligence"
-        ? "Ask about this project…"
+        ? effectiveProjectId
+          ? "Ask about this project…"
+          : "Ask about a project…"
         : "Search projects, files, assets, tasks",
     );
     inputRef.current?.blur();
@@ -299,9 +391,11 @@ export function HubSearch() {
     setView(null);
     setActiveHintId(null);
     setActivePromptId(null);
+    setExpandedPromptId(null);
+    setShowGlobalPicker(false);
     setPlaceholder(
       next === "intelligence"
-        ? projectId
+        ? effectiveProjectId
           ? "Ask about this project…"
           : "Ask about a project…"
         : "Search projects, files, assets, tasks",
@@ -309,6 +403,9 @@ export function HubSearch() {
     setOpen(true);
     setFocused(true);
     inputRef.current?.focus();
+    if (next === "intelligence") {
+      void loadProjectOptions();
+    }
   }
 
   function handleHintSelect(hint: SearchHint) {
@@ -322,9 +419,36 @@ export function HubSearch() {
   function handlePromptSelect(prompt: IntelligencePrompt) {
     setActivePromptId(prompt.id);
     setPlaceholder(prompt.example);
+    setIntelligenceError(null);
     setOpen(true);
     setFocused(true);
-    void runIntelligence(prompt.label, prompt.id);
+
+    if (effectiveProjectId) {
+      setExpandedPromptId(null);
+      setShowGlobalPicker(false);
+      void runIntelligence(prompt.label, prompt.id, effectiveProjectId);
+      return;
+    }
+
+    setShowGlobalPicker(false);
+    setExpandedPromptId((current) =>
+      current === prompt.id ? null : prompt.id,
+    );
+  }
+
+  function handleProjectSelect(
+    project: IntelligenceProjectOption,
+    prompt: IntelligencePrompt | null,
+  ) {
+    setSelectedProjectId(project.id);
+    setExpandedPromptId(null);
+    setShowGlobalPicker(false);
+
+    const askPrompt =
+      prompt?.label ?? (query.trim() || "Summarize this project");
+    const templateId = prompt?.id ?? activePromptId;
+
+    void runIntelligence(askPrompt, templateId, project.id);
   }
 
   function navigateTo(result: SearchResult, newTab = false) {
@@ -339,8 +463,7 @@ export function HubSearch() {
   }
 
   function submitIntelligence() {
-    const templateId = activePromptId;
-    void runIntelligence(query, templateId);
+    void runIntelligence(query, activePromptId, effectiveProjectId);
   }
 
   function handleInputKeyDown(event: KeyboardEvent<HTMLInputElement>) {
@@ -384,7 +507,12 @@ export function HubSearch() {
   }
 
   const trimmedQuery = query.trim();
-  const showEmptyState = open && trimmedQuery.length === 0 && !brief && !intelligenceLoading;
+  const showIntelligenceEmptyState =
+    mode === "intelligence" && open && !brief && !intelligenceLoading;
+  const showEmptyState =
+    mode === "search"
+      ? open && trimmedQuery.length === 0
+      : showIntelligenceEmptyState;
   const showSearchResults =
     mode === "search" && open && trimmedQuery.length > 0;
   const showIntelligencePanel =
@@ -426,6 +554,8 @@ export function HubSearch() {
             } else {
               setActivePromptId(null);
               setIntelligenceError(null);
+              setExpandedPromptId(null);
+              setShowGlobalPicker(false);
               if (focused) setOpen(true);
             }
           }}
@@ -441,9 +571,13 @@ export function HubSearch() {
               setOpen(false);
               setActiveHintId(null);
               setActivePromptId(null);
+              setExpandedPromptId(null);
+              setShowGlobalPicker(false);
               setPlaceholder(
                 mode === "intelligence"
-                  ? "Ask about this project…"
+                  ? effectiveProjectId
+                    ? "Ask about this project…"
+                    : "Ask about a project…"
                   : "Search projects, files, assets, tasks",
               );
             }
@@ -463,7 +597,8 @@ export function HubSearch() {
           role="combobox"
           className={cn(
             "h-8 w-full rounded-full border border-white/14 bg-white/14 pr-14 pl-9 text-sm text-white placeholder:text-white/40 outline-none transition-[border-color,background-color,box-shadow] focus:border-hub-primary/40 focus:bg-white/18 focus:ring-1 focus:ring-hub-primary/25",
-            (showEmptyState || mode === "intelligence") &&
+            open &&
+              (showEmptyState || mode === "intelligence") &&
               "border-hub-primary/30 bg-white/16 ring-1 ring-hub-primary/20",
           )}
         />
@@ -483,7 +618,8 @@ export function HubSearch() {
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => switchMode("search")}
               className={cn(
-                "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors",
+                "flex flex-1 items-center justify-center gap-1.5 rounded-tr-lg rounded-br-lg px-2 py-1.5 text-xs font-medium transition-colors",
+                TAB_OUTER_TOP_LEFT_RADIUS,
                 mode === "search"
                   ? "bg-hub-foreground/[0.05] text-hub-foreground"
                   : "text-hub-foreground/45 hover:text-hub-foreground/65",
@@ -495,9 +631,11 @@ export function HubSearch() {
             <button
               type="button"
               onMouseDown={(event) => event.preventDefault()}
+              onPointerEnter={() => prefetchIntelligenceProjects()}
               onClick={() => switchMode("intelligence")}
               className={cn(
-                "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors",
+                "flex flex-1 items-center justify-center gap-1.5 rounded-tl-lg rounded-bl-lg px-2 py-1.5 text-xs font-medium transition-colors",
+                TAB_OUTER_TOP_RIGHT_RADIUS,
                 mode === "intelligence"
                   ? "bg-hub-primary/10 text-hub-primary"
                   : "text-hub-foreground/45 hover:text-hub-foreground/65",
@@ -518,8 +656,15 @@ export function HubSearch() {
           {showEmptyState && mode === "intelligence" && (
             <HubIntelligenceEmptyState
               activePromptId={activePromptId}
+              expandedPromptId={expandedPromptId}
+              showGlobalPicker={showGlobalPicker}
+              filterQuery={query}
+              projectOptions={projectOptions}
+              projectOptionsLoading={projectOptionsLoading}
+              projectOptionsError={projectOptionsError}
               onPromptSelect={handlePromptSelect}
-              projectScoped={Boolean(projectId)}
+              onProjectSelect={handleProjectSelect}
+              projectScoped={Boolean(effectiveProjectId)}
             />
           )}
 

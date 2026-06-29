@@ -41,7 +41,7 @@ export function TasksBottomNav() {
               key={link.href}
               href={link.href}
               scroll={false}
-              prefetch
+              prefetch={false}
               className={cn(
                 "flex min-h-14 flex-col items-center justify-center gap-0.5 text-[0.625rem] font-medium",
                 active ? "text-hub-primary" : "text-hub-foreground/50",

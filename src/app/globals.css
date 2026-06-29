@@ -171,6 +171,12 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* Dim fixed mobile chrome when the For You drawer is open. */
+body[data-hub-for-you-drawer-open] [data-hub-mobile-chrome] {
+  filter: brightness(0.58);
+  pointer-events: none;
+}
+
 /* Marketing landing is always light — hub dark theme must not bleed in. */
 .landing-page,
 .dark .landing-page {
