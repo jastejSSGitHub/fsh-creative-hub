@@ -5,6 +5,7 @@ import { useTheme } from "next-themes";
 import {
   Bell,
   BellOff,
+  BookOpen,
   Check,
   ChevronDown,
   LogOut,
@@ -198,6 +199,18 @@ export function HubProfileMenu({
                 </div>
               )}
             </div>
+
+            <a
+              href="/docs"
+              target="_blank"
+              rel="noopener noreferrer"
+              role="menuitem"
+              className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-hub-foreground transition-colors hover:bg-hub-foreground/[0.04]"
+              onClick={() => setOpen(false)}
+            >
+              <BookOpen className="size-4 text-hub-foreground/55" />
+              Documentation
+            </a>
 
             <MenuButton
               icon={Settings}

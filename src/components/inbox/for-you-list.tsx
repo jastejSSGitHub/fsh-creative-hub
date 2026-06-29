@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import Link from "next/link";
-import { ChevronDown } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Check, ChevronDown, ListPlus, MessageSquareReply } from "lucide-react";
 
 import { ForYouEmptyState } from "@/components/inbox/for-you-empty-state";
+import { ForYouTargetContext } from "@/components/inbox/for-you-target-context";
 import { MemberAvatar } from "@/components/projects/member-avatar";
 import { MentionComposer } from "@/components/workspace/mention-composer";
 import { buttonVariants } from "@/components/ui/button";
+import { HubTooltip } from "@/components/ui/hub-tooltip";
 import { formatRelativeTime } from "@/lib/format-relative-time";
 import {
   SNOOZE_OPTIONS,
@@ -28,6 +30,10 @@ import {
 import { addCommentAction } from "@/lib/workspace/actions";
 import { getMockMembers, MOCK_PREFIX } from "@/lib/dev-tools/mock-collaboration-data";
 import { readMockCollaborationData } from "@/lib/dev-tools/storage";
+import {
+  captureForYouOrigin,
+  readForYouScrollY,
+} from "@/lib/hub/origin-navigation";
 import { assetPath, taskDeepLinkPath, type ForYouLens } from "@/lib/routes";
 import type { HubProfile } from "@/types/database";
 import { cn } from "@/lib/utils";
@@ -62,6 +68,16 @@ const KIND_LABELS: Record<ForYouItem["kind"], string> = {
   following: "Following",
   resolve_suggested: "Resolve suggested",
 };
+
+const FOR_YOU_ACTION_BUTTON_CLASS =
+  "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-md border border-hub-foreground/18 bg-hub-paper px-2.5 text-xs font-medium text-hub-foreground shadow-[0_1px_2px_rgba(11,11,11,0.06)] transition-[background-color,border-color,box-shadow,color] hover:border-hub-foreground/28 hover:bg-hub-surface hover:shadow-[0_2px_6px_rgba(11,11,11,0.08)]";
+
+function forYouActionButtonClass(active = false) {
+  return cn(
+    FOR_YOU_ACTION_BUTTON_CLASS,
+    active && "border-hub-foreground/28 bg-hub-surface shadow-[0_2px_6px_rgba(11,11,11,0.08)]",
+  );
+}
 
 function isAssetLinkedItem(item: ForYouItem) {
   return (
@@ -113,22 +129,6 @@ function itemActor(item: ForYouItem): { id: string; name: string; avatarUrl: str
   return { id: "system", name: "Creative Hub", avatarUrl: null };
 }
 
-function itemContext(item: ForYouItem): string {
-  if ("initiative" in item) {
-    return `${item.project.name} · ${item.initiative.name}`;
-  }
-  if ("project" in item && item.project) {
-    return item.project.name;
-  }
-  return "Tasks";
-}
-
-function itemTitle(item: ForYouItem): string {
-  if ("task" in item) return item.task.name;
-  if ("asset" in item) return item.asset.name;
-  return "For you";
-}
-
 function itemDescription(item: ForYouItem): string {
   switch (item.kind) {
     case "mention":
@@ -156,14 +156,8 @@ function itemDescription(item: ForYouItem): string {
   }
 }
 
-function itemBody(item: ForYouItem): string {
-  if ("comment" in item) return item.comment.body;
-  if ("task" in item) return item.task.name;
-  if ("asset" in item) return item.asset.name;
-  return "";
-}
-
 export function ForYouList({ items, lens }: ForYouListProps) {
+  const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
   const [members, setMembers] = useState<HubProfile[]>([]);
   const [replyOpenById, setReplyOpenById] = useState<Record<string, boolean>>({});
@@ -219,6 +213,18 @@ export function ForYouList({ items, lens }: ForYouListProps) {
       return true;
     });
   }, [items, userId, triageRefresh]);
+
+  const navigateFromForYou = useCallback(
+    (href: string, itemId: string) => {
+      captureForYouOrigin({
+        lens,
+        scrollY: readForYouScrollY(),
+        itemId,
+      });
+      router.push(href);
+    },
+    [lens, router],
+  );
 
   function markHandled(itemId: string) {
     if (!userId) return;
@@ -328,11 +334,16 @@ export function ForYouList({ items, lens }: ForYouListProps) {
       {visibleItems.map((item) => {
         const actor = itemActor(item);
         const open = Boolean(replyOpenById[item.id]);
+        const actionsPinned = open || snoozeMenuId === item.id;
         const pending = Boolean(pendingById[item.id]) || isPending;
         const draft = draftById[item.id] ?? "";
 
         return (
-          <li key={item.id} className="px-4 py-4 sm:px-6">
+          <li
+            key={item.id}
+            data-for-you-item-id={item.id}
+            className="group/item px-4 py-4 sm:px-6"
+          >
             <div className="flex gap-3 sm:gap-4">
               <MemberAvatar
                 displayName={actor.name}
@@ -360,90 +371,96 @@ export function ForYouList({ items, lens }: ForYouListProps) {
 
                 <p className="mt-0.5 text-xs text-hub-foreground/45">{itemDescription(item)}</p>
 
-                <Link
-                  href={itemHref(item)}
-                  className="group mt-2 block rounded-md border border-transparent p-1.5 -mx-1.5 hover:border-hub-foreground/8 hover:bg-hub-foreground/[0.02]"
-                >
-                  <p className="line-clamp-2 text-sm leading-relaxed text-hub-foreground/75">
-                    {itemBody(item)}
-                  </p>
-                  <p className="mt-2 inline-flex max-w-full flex-wrap items-center gap-x-1.5 font-mono text-[0.58rem] uppercase tracking-[0.08em] text-hub-foreground/40">
-                    <span className="truncate">{itemContext(item)}</span>
-                    <span aria-hidden className="text-hub-foreground/20">
-                      ·
-                    </span>
-                    <span className="truncate text-hub-foreground/55 group-hover:text-hub-foreground/70">
-                      {itemTitle(item)}
-                    </span>
-                  </p>
-                </Link>
+                <ForYouTargetContext
+                  item={item}
+                  onNavigate={(href) => navigateFromForYou(href, item.id)}
+                  onOpenInContext={() => navigateFromForYou(itemHref(item), item.id)}
+                  onDismiss={() => markHandled(item.id)}
+                />
 
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const next = !open;
-                      setReplyOpenById((prev) => ({ ...prev, [item.id]: next }));
-                      if (next) requestCollaborationOnboarding("for-you-inline-reply");
-                    }}
+                <div className="mt-1.5 h-9">
+                  <div
                     className={cn(
-                      buttonVariants({ variant: "ghost", size: "sm" }),
-                      "h-8 rounded-md px-2.5 text-xs",
+                      "inline-flex w-fit max-w-full flex-wrap items-center gap-1.5 rounded-md border border-hub-foreground/10 bg-hub-paper/90 p-1 shadow-sm backdrop-blur-sm transition-[opacity,transform] duration-150",
+                      actionsPinned
+                        ? "pointer-events-auto translate-y-0 opacity-100"
+                        : [
+                            "pointer-events-none translate-y-0.5 opacity-0",
+                            "max-sm:pointer-events-auto max-sm:translate-y-0 max-sm:opacity-100",
+                            "sm:group-hover/item:pointer-events-auto sm:group-hover/item:translate-y-0 sm:group-hover/item:opacity-100",
+                            "sm:group-focus-within/item:pointer-events-auto sm:group-focus-within/item:translate-y-0 sm:group-focus-within/item:opacity-100",
+                          ],
                     )}
                   >
-                    {open ? "Cancel" : "Reply"}
-                  </button>
-                  <div className="relative" ref={snoozeMenuId === item.id ? snoozeMenuRef : undefined}>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setSnoozeMenuId((current) =>
-                          current === item.id ? null : item.id,
-                        )
-                      }
-                      className={cn(
-                        buttonVariants({ variant: "ghost", size: "sm" }),
-                        "h-8 gap-1 rounded-md px-2.5 text-xs text-hub-foreground/60 hover:text-hub-foreground",
-                      )}
+                    <HubTooltip label="Reply in line" side="top">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = !open;
+                          setReplyOpenById((prev) => ({ ...prev, [item.id]: next }));
+                          if (next) requestCollaborationOnboarding("for-you-inline-reply");
+                        }}
+                        className={forYouActionButtonClass(open)}
+                      >
+                        <MessageSquareReply className="size-3.5" aria-hidden />
+                        {open ? "Cancel" : "Reply"}
+                      </button>
+                    </HubTooltip>
+                    <div
+                      className="relative"
+                      ref={snoozeMenuId === item.id ? snoozeMenuRef : undefined}
                     >
-                      Snooze
-                      <ChevronDown className="size-3" />
-                    </button>
-                    {snoozeMenuId === item.id && (
-                      <div className="absolute left-0 top-full z-20 mt-1 min-w-[9rem] overflow-hidden rounded-md border border-hub-foreground/10 bg-hub-paper py-1 shadow-lg">
-                        {SNOOZE_OPTIONS.map((option, index) => (
-                          <button
-                            key={option.id}
-                            type="button"
-                            onClick={() => snoozeItem(item.id, index)}
-                            className="block w-full px-3 py-1.5 text-left text-xs text-hub-foreground/80 transition-colors hover:bg-hub-foreground/[0.04]"
-                          >
-                            {option.label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                      <HubTooltip label="Snooze for later" side="top">
+                        <button
+                          type="button"
+                          aria-expanded={snoozeMenuId === item.id}
+                          onClick={() =>
+                            setSnoozeMenuId((current) =>
+                              current === item.id ? null : item.id,
+                            )
+                          }
+                          className={forYouActionButtonClass(snoozeMenuId === item.id)}
+                        >
+                          Snooze
+                          <ChevronDown className="size-3" />
+                        </button>
+                      </HubTooltip>
+                      {snoozeMenuId === item.id && (
+                        <div className="absolute left-0 top-full z-20 mt-1 min-w-[9rem] overflow-hidden rounded-md border border-hub-foreground/15 bg-hub-paper py-1 shadow-lg">
+                          {SNOOZE_OPTIONS.map((option, index) => (
+                            <button
+                              key={option.id}
+                              type="button"
+                              onClick={() => snoozeItem(item.id, index)}
+                              className="block w-full px-3 py-1.5 text-left text-xs font-medium text-hub-foreground/85 transition-colors hover:bg-hub-foreground/[0.05]"
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <HubTooltip label="Quick add linked task" side="top">
+                      <button
+                        type="button"
+                        onClick={() => openFollowUpQuickAdd(item)}
+                        className={forYouActionButtonClass()}
+                      >
+                        <ListPlus className="size-3.5" aria-hidden />
+                        Add task
+                      </button>
+                    </HubTooltip>
+                    <HubTooltip label="Dismiss from For You" side="top">
+                      <button
+                        type="button"
+                        onClick={() => markHandled(item.id)}
+                        className={forYouActionButtonClass()}
+                      >
+                        <Check className="size-3.5" aria-hidden />
+                        Mark handled
+                      </button>
+                    </HubTooltip>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => openFollowUpQuickAdd(item)}
-                    className={cn(
-                      buttonVariants({ variant: "ghost", size: "sm" }),
-                      "h-8 rounded-md px-2.5 text-xs text-hub-foreground/60 hover:text-hub-foreground",
-                    )}
-                  >
-                    Add task
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => markHandled(item.id)}
-                    className={cn(
-                      buttonVariants({ variant: "ghost", size: "sm" }),
-                      "h-8 rounded-md px-2.5 text-xs text-hub-foreground/60 hover:text-hub-foreground",
-                    )}
-                  >
-                    Mark handled
-                  </button>
                 </div>
 
                 {open && (

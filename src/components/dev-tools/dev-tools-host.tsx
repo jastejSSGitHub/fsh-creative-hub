@@ -92,7 +92,7 @@ export function DevToolsHost() {
               <div>
                 <p className="text-sm font-medium text-hub-foreground">Mock collaboration</p>
                 <p className="mt-0.5 text-[0.6875rem] leading-snug text-hub-foreground/55">
-                  Demo For You feed, tasks, mentions & replay onboarding
+                  Demo For You, tasks, Blenz board, client share links &amp; activity
                 </p>
               </div>
               <button

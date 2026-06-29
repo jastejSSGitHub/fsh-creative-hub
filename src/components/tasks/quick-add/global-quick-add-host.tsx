@@ -2,9 +2,10 @@
 
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { Plus } from "lucide-react";
+import { FolderPlus, ListPlus, Plus } from "lucide-react";
 
 import { CollaborationOnboardingModal } from "@/components/collaboration-onboarding/collaboration-onboarding-modal";
+import { CreateProjectDialog } from "@/components/projects/create-project-dialog";
 import { requestCollaborationOnboarding } from "@/lib/collaboration-onboarding/events";
 import { shouldShowCollaborationOnboarding } from "@/lib/collaboration-onboarding/storage";
 import { QuickAddPanel } from "@/components/tasks/quick-add/quick-add-panel";
@@ -15,7 +16,7 @@ import {
 } from "@/lib/tasks/capture-context";
 import { createClient } from "@/lib/supabase/client";
 import { getLabels, getUserProjectsForTasks } from "@/lib/tasks/queries";
-import { isCanvasPath, projectIdFromPathname } from "@/lib/routes";
+import { isCanvasPath, isProjectsGridPath, projectIdFromPathname } from "@/lib/routes";
 import type { HubLabel, HubProfile } from "@/types/database";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +27,8 @@ type GlobalQuickAddHostProps = {
 export function GlobalQuickAddHost({ userId }: GlobalQuickAddHostProps) {
   const pathname = usePathname() ?? "";
   const [open, setOpen] = useState(false);
+  const [fabMenuOpen, setFabMenuOpen] = useState(false);
+  const [createProjectOpen, setCreateProjectOpen] = useState(false);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
   const [labels, setLabels] = useState<HubLabel[]>([]);
@@ -38,6 +41,7 @@ export function GlobalQuickAddHost({ userId }: GlobalQuickAddHostProps) {
   const [linkAssetId, setLinkAssetId] = useState<string | null>(null);
 
   const hidden = isCanvasPath(pathname);
+  const onProjectsGrid = isProjectsGridPath(pathname);
   const pathProjectId = projectIdFromPathname(pathname);
 
   const applyCaptureContext = useCallback(() => {
@@ -71,6 +75,7 @@ export function GlobalQuickAddHost({ userId }: GlobalQuickAddHostProps) {
   }, [loaded]);
 
   const openQuickAdd = useCallback(() => {
+    setFabMenuOpen(false);
     void loadContext();
     applyCaptureContext();
     setOpen(true);
@@ -78,6 +83,18 @@ export function GlobalQuickAddHost({ userId }: GlobalQuickAddHostProps) {
       setOnboardingOpen(true);
     }
   }, [applyCaptureContext, loadContext, userId]);
+
+  const handleFabClick = useCallback(() => {
+    if (onProjectsGrid) {
+      setFabMenuOpen((current) => !current);
+      return;
+    }
+    openQuickAdd();
+  }, [onProjectsGrid, openQuickAdd]);
+
+  useEffect(() => {
+    setFabMenuOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     if (hidden) return;
@@ -122,17 +139,85 @@ export function GlobalQuickAddHost({ userId }: GlobalQuickAddHostProps) {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={openQuickAdd}
+      {onProjectsGrid && fabMenuOpen ? (
+        <button
+          type="button"
+          aria-label="Close create menu"
+          className="fixed inset-0 z-[39] bg-hub-foreground/[0.14] backdrop-blur-sm transition-[backdrop-filter,background-color] duration-200"
+          onClick={() => setFabMenuOpen(false)}
+        />
+      ) : null}
+
+      <div
         className={cn(
-          "fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] right-4 z-40 flex size-12 items-center justify-center rounded-full",
-          "bg-hub-foreground text-hub-paper shadow-lg transition-transform hover:scale-105 lg:bottom-6",
+          "fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] right-4 z-40 flex flex-col items-end gap-2 lg:bottom-6",
         )}
-        aria-label="Quick add task (Q)"
       >
-        <Plus className="size-5" strokeWidth={2.5} />
-      </button>
+        {onProjectsGrid && fabMenuOpen ? (
+          <div
+            className="flex flex-col items-end gap-2"
+            role="menu"
+            aria-label="Create options"
+          >
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setFabMenuOpen(false);
+                setCreateProjectOpen(true);
+              }}
+              className="flex items-center gap-2.5"
+            >
+              <span className="rounded-lg border border-hub-foreground/12 bg-hub-paper/92 px-3 py-1.5 text-[0.8125rem] font-medium text-hub-foreground shadow-md backdrop-blur-md">
+                Add new project
+              </span>
+              <span className="flex size-10 items-center justify-center rounded-full border border-hub-foreground/12 bg-hub-paper/92 text-hub-foreground shadow-lg backdrop-blur-md transition-transform hover:scale-105">
+                <FolderPlus className="size-4" strokeWidth={2.25} aria-hidden />
+              </span>
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={openQuickAdd}
+              className="flex items-center gap-2.5"
+            >
+              <span className="rounded-lg border border-hub-foreground/12 bg-hub-paper/92 px-3 py-1.5 text-[0.8125rem] font-medium text-hub-foreground shadow-md backdrop-blur-md">
+                Quick task
+              </span>
+              <span className="flex size-10 items-center justify-center rounded-full bg-hub-primary text-white shadow-lg shadow-hub-primary/30 backdrop-blur-md transition-transform hover:scale-105">
+                <ListPlus className="size-4" strokeWidth={2.25} aria-hidden />
+              </span>
+            </button>
+          </div>
+        ) : null}
+
+        <button
+          type="button"
+          onClick={handleFabClick}
+          aria-expanded={onProjectsGrid ? fabMenuOpen : undefined}
+          aria-haspopup={onProjectsGrid ? "menu" : undefined}
+          aria-label={
+            onProjectsGrid
+              ? fabMenuOpen
+                ? "Close create menu"
+                : "Open create menu"
+              : "Quick add task (Q)"
+          }
+          className={cn(
+            "flex size-12 items-center justify-center rounded-full bg-hub-primary text-white shadow-lg shadow-hub-primary/25 transition-transform hover:scale-105 hover:bg-[#1590e8]",
+            fabMenuOpen && "rotate-45",
+          )}
+        >
+          <Plus className="size-5" strokeWidth={2.5} aria-hidden />
+        </button>
+      </div>
+
+      {onProjectsGrid ? (
+        <CreateProjectDialog
+          open={createProjectOpen}
+          onClose={() => setCreateProjectOpen(false)}
+        />
+      ) : null}
 
       <QuickAddPanel
         open={open}

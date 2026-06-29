@@ -32,15 +32,14 @@ export function TaskDueBadge({
   return (
     <span
       className={cn(
-        "font-medium",
         variant === "header"
           ? "max-w-[11rem] truncate text-[0.6875rem] leading-none"
           : "text-[0.6875rem]",
         overdue
-          ? "text-hub-rejected"
+          ? "font-normal text-hub-overdue"
           : today
-            ? "text-hub-primary"
-            : "text-hub-foreground/50",
+            ? "font-medium text-hub-primary"
+            : "font-medium text-hub-foreground/50",
         className,
       )}
     >

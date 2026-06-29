@@ -24,6 +24,11 @@ import { buttonVariants } from "@/components/ui/button";
 import { parseMentionIds } from "@/lib/mentions/utils";
 import { canAdmin, canEdit } from "@/lib/permissions";
 import { createTaskFromCommentAction } from "@/lib/tasks/actions";
+import {
+  getMockAssetComments,
+  isMockDemoId,
+} from "@/lib/dev-tools/mock-collaboration-data";
+import { readMockCollaborationData } from "@/lib/dev-tools/storage";
 import { requestCollaborationOnboarding } from "@/lib/collaboration-onboarding/events";
 import { requestOpenQuickAdd, setQuickAddCaptureContext } from "@/lib/tasks/capture-context";
 import { createClient } from "@/lib/supabase/client";
@@ -107,6 +112,11 @@ export function AssetDetailOverlay({
   }, [initialAsset.id]);
 
   const loadComments = useCallback(async () => {
+    if (readMockCollaborationData() && isMockDemoId(initialAsset.id)) {
+      setComments(getMockAssetComments(initialAsset.id));
+      return;
+    }
+
     const supabase = createClient();
     const data = await getCommentsForAsset(supabase, initialAsset.id);
     setComments(data);
@@ -593,6 +603,7 @@ export function AssetDetailOverlay({
         open={shareOpen}
         onClose={() => setShareOpen(false)}
         projectId={projectId}
+        userId={userId}
         scopeType="asset"
         scopeId={asset.id}
         defaultLabel={asset.name}

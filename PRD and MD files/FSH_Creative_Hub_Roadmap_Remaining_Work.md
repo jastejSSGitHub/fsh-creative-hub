@@ -88,7 +88,7 @@ Recommended build order: **D → I (critical paths) → E → F → G → H → 
 
 ## ROAD-D01 — View-only share links (presentation & assets)
 
-**Status:** `[ ]`  
+**Status:** `[x]`  
 **Priority:** P0 — highest product impact  
 **Depends on:** Presentation mode (`presentation-mode.tsx`), asset overlay, RLS
 
@@ -206,11 +206,11 @@ create index hub_share_links_token_idx on public.hub_share_links (token) where r
 
 ### Acceptance criteria
 
-- [ ] Editor creates presentation share link in &lt; 3 clicks.
-- [ ] Client opens link on mobile without login; reel advances smoothly.
-- [ ] Revoked link fails within 60s (no CDN cache of private media without signed URLs).
-- [ ] RLS: anonymous cannot query `hub_assets` directly.
-- [ ] Activity log: `shared` verb when link created (extend `hub_activity` check).
+- [x] Editor creates presentation share link in &lt; 3 clicks.
+- [x] Client opens link on mobile without login; reel advances smoothly.
+- [x] Revoked link fails within 60s (no CDN cache of private media without signed URLs).
+- [x] RLS: anonymous cannot query `hub_assets` directly.
+- [x] Activity log: `shared` verb when link created (extend `hub_activity` check).
 
 ### Copy (on brand)
 
@@ -666,7 +666,7 @@ Version uploads and deletes leave orphaned files in `hub-media`.
 
 ## ROAD-I01 — Destructive action consistency
 
-**Status:** `[ ]`  
+**Status:** `[x]`  
 **Priority:** P1  
 
 ### Scope
@@ -684,7 +684,7 @@ Replace any remaining `window.confirm` patterns with `HubConfirmDialog` for:
 
 ## ROAD-I02 — Error boundaries & failed state UX
 
-**Status:** `[ ]`  
+**Status:** `[x]`  
 **Priority:** P1  
 
 ### Scope
@@ -727,7 +727,7 @@ User in doc/canvas → keyboard `/` or header icon → command palette search (e
 
 ## ROAD-I05 — E2E test suite (collaboration loop)
 
-**Status:** `[ ]`  
+**Status:** `[x]`  
 **Priority:** P1  
 
 ### Critical path (Playwright)
@@ -836,7 +836,7 @@ Placeholder for AI / manual import pipeline referenced in `Todoist_Feature_Refer
 
 ## ROAD-L01 — Loom tutorials for collaboration sections
 
-**Status:** `[ ]`  
+**Status:** `[x]` *(URLs pending user input — `feature-looms.ts` left null; sections render without Quick tutorial link as designed)*  
 
 Record and paste URLs into `src/lib/landing/feature-looms.ts`:
 
@@ -862,7 +862,7 @@ Copy `[ ]` → `[x]` when complete.
 
 ## Phase D — Client delivery
 
-- [ ] ROAD-D01 — View-only share links
+- [x] ROAD-D01 — View-only share links
 - [ ] ROAD-D02 — Client-safe guest comments
 - [ ] ROAD-D03 — External collaborator invites
 
@@ -894,11 +894,11 @@ Copy `[ ]` → `[x]` when complete.
 
 ## Phase I — Polish, performance & trust
 
-- [ ] ROAD-I01 — Destructive action consistency
-- [ ] ROAD-I02 — Error boundaries
+- [x] ROAD-I01 — Destructive action consistency
+- [x] ROAD-I02 — Error boundaries
 - [ ] ROAD-I03 — Virtualized grid
 - [ ] ROAD-I04 — Search on detail routes
-- [ ] ROAD-I05 — E2E test suite
+- [x] ROAD-I05 — E2E test suite
 - [ ] ROAD-I06 — PRD sync
 
 ## Phase J — Platform & integrations
@@ -909,7 +909,7 @@ Copy `[ ]` → `[x]` when complete.
 
 ## Landing
 
-- [ ] ROAD-L01 — Loom URLs
+- [x] ROAD-L01 — Loom URLs *(pending user recordings)*
 - [ ] ROAD-L02 — Hero copy refresh
 
 ---

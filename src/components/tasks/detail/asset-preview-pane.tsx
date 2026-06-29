@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 
-import { AssetMediaPreview } from "@/components/workspace/asset-media-preview";
+import { AssetMediaPreview, inferAssetMediaType } from "@/components/workspace/asset-media-preview";
 import { assetPath } from "@/lib/routes";
 import type { LinkedAssetSummary } from "@/lib/tasks/task-assets";
 import { cn } from "@/lib/utils";
@@ -16,7 +16,7 @@ type AssetPreviewPaneProps = {
 
 function assetMediaType(asset: LinkedAssetSummary): "image" | "video" {
   if (asset.type === "video") return "video";
-  if (asset.public_url?.match(/\.(mp4|webm|mov)(\?|$)/i)) return "video";
+  if (asset.public_url) return inferAssetMediaType(asset.public_url);
   return "image";
 }
 

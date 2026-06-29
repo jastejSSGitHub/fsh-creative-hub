@@ -5,12 +5,16 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
   type ReactNode,
 } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 type TasksNavigationContextValue = {
+  /** Full path including search string, used for sidebar active state. */
+  location: string;
+  /** Pathname only (no query), for global task route matching. */
   pathname: string;
   navigate: (href: string) => void;
 };
@@ -20,34 +24,33 @@ const TasksNavigationContext = createContext<TasksNavigationContextValue | null>
 export function TasksNavigationProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const nextPathname = usePathname();
-  const [viewPath, setViewPath] = useState(nextPathname);
+  const searchParams = useSearchParams();
+  const canonicalLocation = useMemo(() => {
+    const search = searchParams.toString();
+    return nextPathname + (search ? `?${search}` : "");
+  }, [nextPathname, searchParams]);
+
+  const [optimisticLocation, setOptimisticLocation] = useState<string | null>(null);
 
   useEffect(() => {
-    setViewPath(nextPathname);
-  }, [nextPathname]);
+    setOptimisticLocation(null);
+  }, [canonicalLocation]);
 
-  useEffect(() => {
-    function handlePopState() {
-      setViewPath(window.location.pathname);
-    }
-
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
+  const location = optimisticLocation ?? canonicalLocation;
+  const pathname = location.split("?")[0] ?? location;
 
   const navigate = useCallback(
     (href: string) => {
-      if (viewPath === href) return;
+      if (location === href) return;
 
-      setViewPath(href);
-      window.history.pushState(null, "", href);
+      setOptimisticLocation(href);
       router.push(href);
     },
-    [router, viewPath],
+    [router, location],
   );
 
   return (
-    <TasksNavigationContext.Provider value={{ pathname: viewPath, navigate }}>
+    <TasksNavigationContext.Provider value={{ location, pathname, navigate }}>
       {children}
     </TasksNavigationContext.Provider>
   );

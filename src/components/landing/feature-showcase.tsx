@@ -18,8 +18,16 @@ import {
 } from "@/components/landing/feature-tutorial-link";
 import { ScrollReveal } from "@/components/landing/scroll-reveal";
 import { TrimmedLoopVideo } from "@/components/landing/trimmed-loop-video";
+import { ARTWORK_COVER_IMAGE_IDS, coverImageById } from "@/lib/documents/cover-images";
 import { COLLABORATION_FEATURE_LOOMS, featureTutorial } from "@/lib/landing/feature-looms";
 import { cn } from "@/lib/utils";
+
+const LANDING_ART_BACKGROUNDS = Object.fromEntries(
+  ARTWORK_COVER_IMAGE_IDS.map((id, index) => [
+    `art${index + 1}`,
+    coverImageById(id)!.src,
+  ]),
+) as Record<"art1" | "art2" | "art3" | "art4" | "art5", string>;
 
 const PROJECTS_LOOM_URL =
   "https://www.loom.com/share/0c0e1960a87848ccad0d88fb631811ec";

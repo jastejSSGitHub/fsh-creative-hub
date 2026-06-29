@@ -4,7 +4,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 const navBackClassName =
-  "group/nav-back -ml-1 inline-flex min-h-9 max-w-[min(100%,12rem)] items-center gap-0.5 rounded-[6px] py-1 pl-0.5 pr-2 text-[0.8125rem] font-medium leading-tight sm:max-w-[min(100%,16rem)]";
+  "group/nav-back -ml-1 inline-flex min-h-9 max-w-full items-center gap-0.5 rounded-[6px] py-1 pl-0.5 pr-2 text-[0.8125rem] font-medium leading-tight";
 
 type NavBackLinkProps = {
   href: string;
@@ -20,7 +20,7 @@ function NavBackContent({ label }: { label: string }) {
         className="size-3.5 shrink-0 stroke-[2] transition-transform group-hover/nav-back:-translate-x-px"
         aria-hidden
       />
-      <span className="truncate">{label}</span>
+      <span className="min-w-0">{label}</span>
     </>
   );
 }

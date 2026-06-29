@@ -11,6 +11,11 @@ import {
 import { useRouter } from "next/navigation";
 import { ClipboardList, FileText, FolderKanban, ImageIcon, PenTool, Search } from "lucide-react";
 
+import {
+  HubSearchEmptyState,
+  type SearchHint,
+  type SearchHintId,
+} from "@/components/hub/hub-search-empty-state";
 import type { SearchResult } from "@/lib/search/queries";
 import { cn } from "@/lib/utils";
 
@@ -43,9 +48,14 @@ export function HubSearch() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [open, setOpen] = useState(false);
+  const [focused, setFocused] = useState(false);
   const [loading, setLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [activeHintId, setActiveHintId] = useState<SearchHintId | null>(null);
+  const [placeholder, setPlaceholder] = useState(
+    "Search projects, files, assets, tasks",
+  );
 
   const runSearch = useCallback(async (value: string) => {
     const trimmed = value.trim();
@@ -96,6 +106,7 @@ export function HubSearch() {
     function handlePointerDown(event: MouseEvent) {
       if (!containerRef.current?.contains(event.target as Node)) {
         setOpen(false);
+        setFocused(false);
       }
     }
 
@@ -108,13 +119,36 @@ export function HubSearch() {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
         inputRef.current?.focus();
-        setOpen(Boolean(query.trim()));
+        setOpen(true);
+        setFocused(true);
       }
     }
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [query]);
+  }, []);
+
+  function openSearchPanel() {
+    setOpen(true);
+    setFocused(true);
+    inputRef.current?.focus();
+  }
+
+  function closeSearchPanel() {
+    setOpen(false);
+    setFocused(false);
+    setActiveHintId(null);
+    setPlaceholder("Search projects, files, assets, tasks");
+    inputRef.current?.blur();
+  }
+
+  function handleHintSelect(hint: SearchHint) {
+    setActiveHintId(hint.id);
+    setPlaceholder(`Try "${hint.example}"`);
+    setOpen(true);
+    setFocused(true);
+    inputRef.current?.focus();
+  }
 
   function navigateTo(result: SearchResult, newTab = false) {
     if (newTab) {
@@ -124,16 +158,14 @@ export function HubSearch() {
     }
     setQuery("");
     setResults([]);
-    setOpen(false);
-    inputRef.current?.blur();
+    closeSearchPanel();
   }
 
   function handleInputKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (!open || results.length === 0) {
       if (event.key === "Escape") {
         setQuery("");
-        setOpen(false);
-        inputRef.current?.blur();
+        closeSearchPanel();
       }
       return;
     }
@@ -152,14 +184,24 @@ export function HubSearch() {
     } else if (event.key === "Escape") {
       setOpen(false);
       setQuery("");
+      setFocused(false);
     }
   }
 
-  const showDropdown = open && query.trim().length > 0;
+  const trimmedQuery = query.trim();
+  const showEmptyState = open && trimmedQuery.length === 0;
+  const showResults = open && trimmedQuery.length > 0;
 
   return (
     <div ref={containerRef} className="relative w-full max-w-md">
-      <div className="relative">
+      <div
+        className="relative"
+        onPointerDown={(event) => {
+          if (event.target === inputRef.current) return;
+          event.preventDefault();
+          openSearchPanel();
+        }}
+      >
         <Search
           className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-white/40"
           aria-hidden
@@ -173,30 +215,62 @@ export function HubSearch() {
             setQuery(value);
             if (!value.trim()) {
               setResults([]);
-              setOpen(false);
               setSearchError(null);
+              if (focused) {
+                setOpen(true);
+              }
             } else {
+              setActiveHintId(null);
+              setPlaceholder("Search projects, files, assets, tasks");
               setOpen(true);
             }
           }}
-          onFocus={() => query.trim() && setOpen(true)}
+          onFocus={() => {
+            setFocused(true);
+            setOpen(true);
+          }}
+          onBlur={(event) => {
+            const next = event.relatedTarget as Node | null;
+            if (next && containerRef.current?.contains(next)) return;
+            setFocused(false);
+            if (!query.trim()) {
+              setOpen(false);
+              setActiveHintId(null);
+              setPlaceholder("Search projects, files, assets, tasks");
+            }
+          }}
           onKeyDown={handleInputKeyDown}
-          placeholder="Search projects, files, assets, tasks"
+          placeholder={placeholder}
           aria-label="Search projects, files, assets, and tasks"
-          aria-expanded={showDropdown}
-          aria-controls={showDropdown ? listboxId : undefined}
+          aria-expanded={showEmptyState || showResults}
+          aria-controls={showResults ? listboxId : undefined}
           aria-autocomplete="list"
           role="combobox"
-          className="h-8 w-full rounded-full border border-white/14 bg-white/14 pr-14 pl-9 text-sm text-white placeholder:text-white/40 outline-none transition-colors focus:border-hub-primary/40 focus:bg-white/18 focus:ring-1 focus:ring-hub-primary/25"
+          className={cn(
+            "h-8 w-full rounded-full border border-white/14 bg-white/14 pr-14 pl-9 text-sm text-white placeholder:text-white/40 outline-none transition-[border-color,background-color,box-shadow] focus:border-hub-primary/40 focus:bg-white/18 focus:ring-1 focus:ring-hub-primary/25",
+            showEmptyState && "border-hub-primary/30 bg-white/16 ring-1 ring-hub-primary/20",
+          )}
         />
         <kbd className="pointer-events-none absolute top-1/2 right-2.5 hidden -translate-y-1/2 rounded border border-white/14 bg-white/10 px-1.5 py-0.5 font-mono text-[0.58rem] text-white/35 sm:inline">
           Ctrl K
         </kbd>
       </div>
 
-      {showDropdown && (
+      {showEmptyState && (
         <div
-          className="absolute top-[calc(100%+6px)] right-0 left-0 z-50 overflow-hidden rounded-xl border border-hub-foreground/10 bg-hub-surface shadow-[0_16px_48px_rgba(11,11,11,0.18)]"
+          className="absolute top-[calc(100%+6px)] right-0 left-0 z-50 overflow-hidden rounded-xl border border-hub-foreground/10 bg-hub-surface shadow-[0_16px_48px_rgba(11,11,11,0.18)] animate-in fade-in slide-in-from-top-1 duration-200"
+          role="presentation"
+        >
+          <HubSearchEmptyState
+            activeHintId={activeHintId}
+            onHintSelect={handleHintSelect}
+          />
+        </div>
+      )}
+
+      {showResults && (
+        <div
+          className="absolute top-[calc(100%+6px)] right-0 left-0 z-50 overflow-hidden rounded-xl border border-hub-foreground/10 bg-hub-surface shadow-[0_16px_48px_rgba(11,11,11,0.18)] animate-in fade-in slide-in-from-top-1 duration-200"
           role="presentation"
         >
           {loading && results.length === 0 && !searchError ? (
@@ -205,7 +279,7 @@ export function HubSearch() {
             <p className="px-3 py-3 text-sm text-hub-rejected">{searchError}</p>
           ) : results.length === 0 ? (
             <p className="px-3 py-3 text-sm text-hub-foreground/45">
-              No matches for &ldquo;{query.trim()}&rdquo;
+              No matches for &ldquo;{trimmedQuery}&rdquo;
             </p>
           ) : (
             <ul id={listboxId} role="listbox" className="max-h-72 overflow-y-auto py-1">

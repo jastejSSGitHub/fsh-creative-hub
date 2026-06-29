@@ -12,6 +12,15 @@ import {
 } from "@/lib/share/actions";
 import { getShareLinksForScope } from "@/lib/share/queries";
 import {
+  createMockShareLink,
+  getMockShareLinks,
+  isMockDemoId,
+  isMockProjectId,
+  revokeMockShareLink,
+  rotateMockShareLink,
+} from "@/lib/dev-tools/mock-collaboration-data";
+import { readMockCollaborationData } from "@/lib/dev-tools/storage";
+import {
   SHARE_EXPIRY_OPTIONS,
   shareUrl,
   type ShareExpiryOptionId,
@@ -29,6 +38,7 @@ type ShareLinkDialogProps = {
   open: boolean;
   onClose: () => void;
   projectId: string;
+  userId?: string;
   scopeType: ShareLinkScopeType;
   scopeId: string;
   defaultLabel?: string;
@@ -40,6 +50,7 @@ export function ShareLinkDialog({
   open,
   onClose,
   projectId,
+  userId,
   scopeType,
   scopeId,
   defaultLabel,
@@ -57,10 +68,17 @@ export function ShareLinkDialog({
   const [isPending, startTransition] = useTransition();
 
   const loadLinks = useCallback(async () => {
+    if (readMockCollaborationData() && isMockProjectId(projectId)) {
+      setLinks(
+        getMockShareLinks(projectId, scopeType, scopeId, userId ?? "mock-user"),
+      );
+      return;
+    }
+
     const supabase = createClient();
     const data = await getShareLinksForScope(supabase, projectId, scopeType, scopeId);
     setLinks(data);
-  }, [projectId, scopeId, scopeType]);
+  }, [projectId, scopeId, scopeType, userId]);
 
   useEffect(() => {
     if (!open) return;
@@ -80,6 +98,22 @@ export function ShareLinkDialog({
         : new Date(Date.now() + option.days * 86_400_000).toISOString();
 
     startTransition(async () => {
+      if (readMockCollaborationData() && isMockProjectId(projectId)) {
+        const link = createMockShareLink({
+          projectId,
+          scopeType,
+          scopeId,
+          createdBy: userId ?? "mock-user",
+          label: label.trim() || defaultLabel,
+          showComments: showCommentsToggle ? showComments : undefined,
+          assetIds: assetIds?.length ? assetIds : undefined,
+          expiresAt,
+        });
+        setCreatedUrl(shareUrl(link.token, getSiteUrl()));
+        await loadLinks();
+        return;
+      }
+
       const result = await createShareLinkAction({
         projectId,
         scopeType,
@@ -117,6 +151,16 @@ export function ShareLinkDialog({
   function handleRevoke() {
     if (!revokeTarget) return;
     startTransition(async () => {
+      if (readMockCollaborationData() && isMockDemoId(revokeTarget.id)) {
+        revokeMockShareLink(revokeTarget.id);
+        setRevokeTarget(null);
+        if (createdUrl?.includes(revokeTarget.token)) {
+          setCreatedUrl(null);
+        }
+        await loadLinks();
+        return;
+      }
+
       const result = await revokeShareLinkAction(revokeTarget.id);
       if (!result.ok) {
         setError(result.error);
@@ -132,6 +176,15 @@ export function ShareLinkDialog({
 
   function handleRotate(link: HubShareLink) {
     startTransition(async () => {
+      if (readMockCollaborationData() && isMockDemoId(link.id)) {
+        const newToken = rotateMockShareLink(link, userId ?? "mock-user");
+        if (newToken) {
+          setCreatedUrl(shareUrl(newToken, getSiteUrl()));
+        }
+        await loadLinks();
+        return;
+      }
+
       const result = await rotateShareLinkAction(link.id);
       if (!result.ok) {
         setError(result.error);

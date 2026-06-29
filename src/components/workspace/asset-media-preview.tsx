@@ -15,6 +15,16 @@ type AssetMediaPreviewProps = {
   playMode?: PlayMode;
 };
 
+const VIDEO_URL_RE = /\.(mp4|webm|mov)(\?|$)/i;
+
+export function inferAssetMediaType(
+  url: string,
+  explicitType?: "image" | "video",
+): "image" | "video" {
+  if (explicitType) return explicitType;
+  return VIDEO_URL_RE.test(url) ? "video" : "image";
+}
+
 export function AssetMediaPreview({
   type,
   src,

@@ -1,36 +1,47 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# FSH Creative Hub
 
-## Getting Started
+Internal creative collaboration for FSH Design — projects, initiatives, assets, review, tasks, and team consensus.
 
-First, run the development server:
+**Live:** [fsh-creative-hub.vercel.app](https://fsh-creative-hub.vercel.app)  
+**Documentation:** [/docs](http://localhost:3010/docs) (also linked from the landing page)
+
+## Quick start
 
 ```bash
+git clone https://github.com/jastejSSGitHub/fsh-creative-hub.git
+cd fsh-creative-hub
+npm install
+cp .env.example .env.local
+# Fill in Supabase keys, then:
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3010](http://localhost:3010). For local dev, set `DEV_AUTH_BYPASS=true` and use **Skip login** on `/login`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Documentation
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Full technical documentation for the dev team lives at **`/docs`**:
 
-## Learn More
+- Getting started (env, auth, project structure)
+- Architecture (routes, server actions, design system)
+- Supabase (migrations, tables, storage)
+- Feature guides (projects, review, tasks, For You, …)
+- Operations (deploy, scripts, troubleshooting)
 
-To learn more about Next.js, take a look at the following resources:
+## Stack
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Next.js 16 · React 19 · Supabase · Tailwind v4 · Vercel
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Scripts
 
-## Deploy on Vercel
+| Command | Purpose |
+|---------|---------|
+| `npm run dev` | Dev server on port 3010 |
+| `npm run validate` | Typecheck + build |
+| `npm run test:e2e` | Playwright tests |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+See [docs/operations/scripts](/docs/operations/scripts) for seed and migration utilities.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Product specs
+
+Product requirements and roadmap: `PRD and MD files/`

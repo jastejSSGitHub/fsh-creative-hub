@@ -1,10 +1,13 @@
+import { scrollElementTo } from "@/lib/scroll-container";
+
 export function scrollToAssetCard(assetId: string, options?: { offset?: number }) {
-  const offset = options?.offset ?? 96;
   const element = document.getElementById(`asset-card-${assetId}`);
   if (!element) return false;
 
-  const top = element.getBoundingClientRect().top + window.scrollY - offset;
-  window.scrollTo({ top, behavior: "smooth" });
+  scrollElementTo(element, {
+    offset: options?.offset ?? 96,
+    behavior: "smooth",
+  });
   return true;
 }
 

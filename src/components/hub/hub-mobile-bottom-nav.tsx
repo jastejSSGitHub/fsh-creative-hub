@@ -1,43 +1,52 @@
 "use client";
 
 import Link, { useLinkStatus } from "next/link";
-import { usePathname } from "next/navigation";
 import { CheckSquare, FolderKanban, MessageSquare } from "lucide-react";
 
+import {
+  useHubTabNavigation,
+  type HubRootTab,
+} from "@/components/hub/hub-tab-navigation-provider";
 import {
   FOR_YOU_PATH,
   PROJECTS_PATH,
   TASKS_TODAY_PATH,
   isCanvasPath,
 } from "@/lib/routes";
+import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 type HubMobileBottomNavProps = {
   forYouCount: number;
 };
 
-const LINKS = [
+const LINKS: {
+  href: string;
+  label: string;
+  tab: HubRootTab;
+  icon: typeof FolderKanban;
+  badge?: boolean;
+}[] = [
   {
     href: PROJECTS_PATH,
     label: "Projects",
+    tab: "projects",
     icon: FolderKanban,
-    match: (path: string) =>
-      path.startsWith(PROJECTS_PATH) || path.startsWith("/projects/"),
   },
   {
     href: FOR_YOU_PATH,
     label: "For you",
+    tab: "for-you",
     icon: MessageSquare,
-    match: (path: string) => path.startsWith(FOR_YOU_PATH),
     badge: true,
   },
   {
     href: TASKS_TODAY_PATH,
     label: "Tasks",
+    tab: "tasks",
     icon: CheckSquare,
-    match: (path: string) => path.startsWith("/tasks"),
   },
-] as const;
+];
 
 function NavLinkContent({
   label,
@@ -56,22 +65,80 @@ function NavLinkContent({
     <>
       <span className="relative">
         <Icon
-          className={cn("size-5", pending && !active && "animate-pulse")}
+          className={cn(
+            "size-5 transition-transform duration-150",
+            pending && "scale-110",
+            active && "drop-shadow-sm",
+          )}
           aria-hidden
         />
+        {pending && (
+          <span
+            className="absolute -inset-1 rounded-full bg-hub-primary/15 motion-safe:animate-pulse"
+            aria-hidden
+          />
+        )}
         {badge != null && badge > 0 && (
           <span className="absolute -top-1.5 -right-2 flex min-w-[0.9rem] items-center justify-center rounded-full bg-hub-primary px-0.5 py-px font-mono text-[0.5rem] font-bold leading-none text-white">
             {badge > 99 ? "99+" : badge}
           </span>
         )}
       </span>
-      {label}
+      <span className={cn(pending && !active && "text-hub-primary/70", pending && active && "opacity-90")}>
+        {label}
+      </span>
     </>
+  );
+}
+
+function BottomNavLink({
+  href,
+  label,
+  icon,
+  active,
+  badge,
+  onNavigate,
+}: {
+  href: string;
+  label: string;
+  tab: HubRootTab;
+  icon: typeof FolderKanban;
+  active: boolean;
+  badge?: number;
+  onNavigate: (href: string) => void;
+}) {
+  return (
+    <Link
+      href={href}
+      scroll={false}
+      prefetch
+      onClick={() => onNavigate(href)}
+      className={cn(
+        "relative flex min-h-14 flex-col items-center justify-center gap-0.5 text-[0.625rem] font-medium transition-colors duration-150",
+        "active:scale-[0.97]",
+        active ? "text-hub-primary" : "text-hub-foreground/50",
+      )}
+      aria-current={active ? "page" : undefined}
+    >
+      {active && (
+        <span
+          className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-hub-primary"
+          aria-hidden
+        />
+      )}
+      <NavLinkContent
+        label={label}
+        icon={icon}
+        active={active}
+        badge={badge}
+      />
+    </Link>
   );
 }
 
 export function HubMobileBottomNav({ forYouCount }: HubMobileBottomNavProps) {
   const pathname = usePathname() ?? "";
+  const { activeTab, beginTabNavigation } = useHubTabNavigation();
 
   if (isCanvasPath(pathname)) return null;
 
@@ -82,28 +149,20 @@ export function HubMobileBottomNav({ forYouCount }: HubMobileBottomNavProps) {
     >
       <div className="grid grid-cols-3">
         {LINKS.map((link) => {
-          const active = link.match(pathname);
-          const badge = "badge" in link ? forYouCount : undefined;
+          const active = activeTab === link.tab;
+          const badge = link.badge ? forYouCount : undefined;
 
           return (
-            <Link
+            <BottomNavLink
               key={link.href}
               href={link.href}
-              scroll={false}
-              prefetch
-              className={cn(
-                "flex min-h-14 flex-col items-center justify-center gap-0.5 text-[0.625rem] font-medium",
-                active ? "text-hub-primary" : "text-hub-foreground/50",
-              )}
-              aria-current={active ? "page" : undefined}
-            >
-              <NavLinkContent
-                label={link.label}
-                icon={link.icon}
-                active={active}
-                badge={badge}
-              />
-            </Link>
+              label={link.label}
+              tab={link.tab}
+              icon={link.icon}
+              active={active}
+              badge={badge}
+              onNavigate={beginTabNavigation}
+            />
           );
         })}
       </div>

@@ -1,22 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { readMockCollaborationData } from "@/lib/dev-tools/storage";
-import { createClient } from "@/lib/supabase/client";
+
+import {
+  joinProjectPresenceRoom,
+  updateProjectPresenceConsumer,
+} from "./project-presence-room";
 
 export type HubPresenceUser = {
   userId: string;
   displayName: string;
   avatarUrl: string | null;
   taskId: string | null;
-};
-
-type PresencePayload = {
-  user_id: string;
-  display_name: string;
-  avatar_url: string | null;
-  task_id: string | null;
 };
 
 const MOCK_PRESENCE: HubPresenceUser[] = [
@@ -28,26 +25,6 @@ const MOCK_PRESENCE: HubPresenceUser[] = [
   },
 ];
 
-function parsePresenceState(
-  state: Record<string, PresencePayload[]>,
-): HubPresenceUser[] {
-  const byUser = new Map<string, HubPresenceUser>();
-
-  for (const entries of Object.values(state)) {
-    for (const entry of entries) {
-      if (!entry?.user_id) continue;
-      byUser.set(entry.user_id, {
-        userId: entry.user_id,
-        displayName: entry.display_name || "Teammate",
-        avatarUrl: entry.avatar_url,
-        taskId: entry.task_id,
-      });
-    }
-  }
-
-  return [...byUser.values()];
-}
-
 export function useProjectPresence(options: {
   projectId: string | null | undefined;
   userId: string;
@@ -57,52 +34,64 @@ export function useProjectPresence(options: {
   enabled?: boolean;
 }): HubPresenceUser[] {
   const [others, setOthers] = useState<HubPresenceUser[]>([]);
-  const mock = readMockCollaborationData();
+  const consumerIdRef = useRef<symbol | null>(null);
+  const projectIdRef = useRef<string | null>(null);
+  const leaveRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
+    leaveRef.current?.();
+    leaveRef.current = null;
+    consumerIdRef.current = null;
+    projectIdRef.current = null;
+
     if (!options.enabled || !options.projectId) {
-      setOthers([]);
+      setOthers((prev) => (prev.length === 0 ? prev : []));
       return;
     }
 
-    if (mock) {
+    if (readMockCollaborationData()) {
       setOthers(MOCK_PRESENCE.filter((u) => u.userId !== options.userId));
       return;
     }
 
-    const supabase = createClient();
-    const channel = supabase.channel(`presence:project:${options.projectId}`, {
-      config: { presence: { key: options.userId } },
-    });
+    const projectId = options.projectId;
+    projectIdRef.current = projectId;
 
-    channel.on("presence", { event: "sync" }, () => {
-      const state = channel.presenceState<PresencePayload>();
-      setOthers(
-        parsePresenceState(state).filter((u) => u.userId !== options.userId),
-      );
+    const { consumerId, leave } = joinProjectPresenceRoom(projectId, {
+      userId: options.userId,
+      displayName: options.displayName,
+      avatarUrl: options.avatarUrl ?? null,
+      taskId: options.taskId ?? null,
+      onChange: setOthers,
     });
-
-    channel.subscribe(async (status) => {
-      if (status !== "SUBSCRIBED") return;
-      await channel.track({
-        user_id: options.userId,
-        display_name: options.displayName,
-        avatar_url: options.avatarUrl ?? null,
-        task_id: options.taskId ?? null,
-      });
-    });
+    consumerIdRef.current = consumerId;
+    leaveRef.current = leave;
 
     return () => {
-      void supabase.removeChannel(channel);
+      leave();
+      leaveRef.current = null;
+      consumerIdRef.current = null;
+      projectIdRef.current = null;
     };
+  }, [options.enabled, options.projectId, options.userId]);
+
+  useEffect(() => {
+    const projectId = projectIdRef.current;
+    const consumerId = consumerIdRef.current;
+    if (!projectId || !consumerId || !options.enabled || !options.projectId) return;
+    if (readMockCollaborationData()) return;
+
+    updateProjectPresenceConsumer(projectId, consumerId, {
+      displayName: options.displayName,
+      avatarUrl: options.avatarUrl ?? null,
+      taskId: options.taskId ?? null,
+    });
   }, [
-    mock,
     options.avatarUrl,
     options.displayName,
     options.enabled,
     options.projectId,
     options.taskId,
-    options.userId,
   ]);
 
   return useMemo(() => others, [others]);

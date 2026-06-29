@@ -6,6 +6,11 @@ import {
 } from "@/components/workspace/public-share-viewer";
 import { recordShareViewAction } from "@/lib/share/actions";
 import { resolveShareToken } from "@/lib/share/queries";
+import {
+  isMockShareDemoEnabled,
+  isMockShareToken,
+  resolveMockShareToken,
+} from "@/lib/dev-tools/mock-collaboration-data";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -19,6 +24,35 @@ type SharePageProps = {
 
 export default async function SharePage({ params }: SharePageProps) {
   const { token } = await params;
+
+  if (isMockShareDemoEnabled() && isMockShareToken(token)) {
+    const mockPayload = resolveMockShareToken(token);
+    if (mockPayload?.ok) {
+      const { scope_type, assets, comments, project_name, initiative_name, shared_by } =
+        mockPayload;
+
+      if (scope_type === "asset" && assets[0]) {
+        return (
+          <PublicAssetViewer
+            asset={assets[0]}
+            projectName={project_name}
+            sharedBy={shared_by}
+            comments={comments}
+          />
+        );
+      }
+
+      return (
+        <PublicPresentationViewer
+          assets={assets}
+          projectName={project_name}
+          initiativeName={initiative_name ?? undefined}
+          sharedBy={shared_by}
+        />
+      );
+    }
+  }
+
   const supabase = await createClient();
   const payload = await resolveShareToken(supabase, token);
 

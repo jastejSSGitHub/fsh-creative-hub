@@ -6,6 +6,8 @@ import type { HubProjectFileType } from "@/types/database";
 import {
   fileTypeDisplayLines,
   getFileTypeTheme,
+  getTasksTheme,
+  tasksDisplayLines,
   type FileTypeTheme,
 } from "@/lib/project-files/file-type-themes";
 import { cn } from "@/lib/utils";
@@ -151,6 +153,119 @@ function CanvasIllustration({ theme }: { theme: FileTypeTheme }) {
         >
           <path d="M8 58 C22 42, 34 68, 52 48 S72 28, 72 18" />
         </svg>
+      </div>
+    </div>
+  );
+}
+
+function TasksIllustration({ theme }: { theme: FileTypeTheme }) {
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 flex items-center justify-end pr-3 pt-2 sm:pr-4"
+    >
+      <div className="relative h-[72%] w-[58%] max-w-[9.5rem]">
+        <div
+          className={cn(
+            "hub-file-thumb-card hub-file-thumb-card--1 absolute left-[4%] top-[10%] h-[36%] w-[88%]",
+            THUMB_CARD,
+          )}
+          style={{ "--thumb-accent": theme.accent } as CSSProperties}
+        >
+          <div className="flex items-center gap-1.5 px-2 py-1.5">
+            <span className="size-2.5 shrink-0 rounded-full border border-hub-approved/70 bg-hub-approved/20" />
+            <div className={cn("h-1 flex-1", THUMB_LINE)} />
+          </div>
+        </div>
+
+        <div
+          className={cn(
+            "hub-file-thumb-card hub-file-thumb-card--2 absolute left-[8%] top-[38%] h-[36%] w-[84%]",
+            THUMB_CARD,
+          )}
+          style={{ "--thumb-accent": theme.accent } as CSSProperties}
+        >
+          <div className="flex items-center gap-1.5 px-2 py-1.5">
+            <span className="size-2.5 shrink-0 rounded-full border border-hub-thumb-ink/20 bg-hub-thumb-surface" />
+            <div className={cn("h-1 flex-1", THUMB_LINE_SOFT)} />
+          </div>
+        </div>
+
+        <div
+          className={cn(
+            "hub-file-thumb-card hub-file-thumb-card--3 absolute bottom-[6%] left-[12%] h-[36%] w-[80%]",
+            THUMB_CARD,
+            "bg-hub-thumb-surface/95 shadow-[0_10px_24px_rgba(11,11,11,0.16)]",
+          )}
+          style={{ "--thumb-accent": theme.accent } as CSSProperties}
+        >
+          <div className="flex items-center gap-1.5 px-2 py-1.5">
+            <span className="flex size-2.5 shrink-0 items-center justify-center rounded-full bg-hub-approved text-[0.4rem] font-bold text-white">
+              ✓
+            </span>
+            <div className={cn("h-1 flex-1", THUMB_LINE_FAINT)} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function ProjectTasksThumbnail({
+  projectId,
+  className,
+}: {
+  projectId: string;
+  className?: string;
+}) {
+  const theme = getTasksTheme(projectId);
+  const [lineOne, lineTwo] = tasksDisplayLines();
+
+  return (
+    <div
+      className={cn(
+        "hub-file-thumb relative size-full overflow-hidden bg-gradient-to-br",
+        theme.gradient,
+        className,
+      )}
+    >
+      <div
+        aria-hidden
+        className="absolute -right-6 -top-6 size-28 rounded-full opacity-40 blur-2xl"
+        style={{ backgroundColor: theme.accent }}
+      />
+      <div
+        aria-hidden
+        className="absolute -bottom-8 -left-4 size-24 rounded-full opacity-25 blur-2xl"
+        style={{ backgroundColor: theme.accent }}
+      />
+
+      <div
+        aria-hidden
+        className="hub-file-thumb-shimmer absolute inset-0 opacity-60"
+      />
+
+      <TasksIllustration theme={theme} />
+
+      <div className="absolute inset-x-0 bottom-0 px-3.5 pb-3 pt-10 sm:px-4 sm:pb-3.5">
+        <p
+          className={cn(
+            "font-display text-[1.65rem] font-black leading-[0.88] tracking-[-0.04em] sm:text-[1.85rem]",
+            theme.labelPrimary,
+          )}
+        >
+          {lineOne}
+        </p>
+        {lineTwo ? (
+          <p
+            className={cn(
+              "font-display text-[1.65rem] font-black leading-[0.88] tracking-[-0.04em] sm:text-[1.85rem]",
+              theme.labelSecondary,
+            )}
+          >
+            {lineTwo}
+          </p>
+        ) : null}
       </div>
     </div>
   );

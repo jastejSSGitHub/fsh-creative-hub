@@ -8,17 +8,21 @@ import { ProjectPresenceStack } from "@/components/presence/project-presence-sta
 import { TaskBoardView } from "@/components/tasks/board/task-board-view";
 import { TaskDetailOverlay } from "@/components/tasks/detail/task-detail-overlay";
 import { TaskListView } from "@/components/tasks/list/task-list-view";
+import { TasksBrowseView } from "@/components/tasks/tasks-browse-view";
 import { QuickAddHost, QuickAddPanel } from "@/components/tasks/quick-add/quick-add-panel";
 import { QuickAddTriggerButton } from "@/components/tasks/quick-add/quick-add-trigger-button";
 import { TasksMobileViewTabs } from "@/components/tasks/mobile/tasks-mobile-view-tabs";
+import { TasksNavigationProvider } from "@/components/tasks/tasks-navigation-context";
 import { TasksSidebar } from "@/components/tasks/tasks-sidebar";
 import { FilterBuilderDialog } from "@/components/tasks/filters/filter-builder-dialog";
 import { NavBackLink } from "@/components/ui/nav-back-link";
+import { HubConfirmDialog } from "@/components/ui/hub-confirm-dialog";
 import { canEdit } from "@/lib/permissions";
 import { projectPath } from "@/lib/routes";
 import {
   completeTaskAction,
   createTaskAction,
+  deleteTaskAction,
   reorderTasksAction,
   uncompleteTaskAction,
 } from "@/lib/tasks/actions";
@@ -28,12 +32,15 @@ import {
   type FilterContext,
 } from "@/lib/tasks/filters/evaluate-filter";
 import { deriveTaskCreateDefaults } from "@/lib/tasks/derive-task-defaults";
+import { projectTaskScopeFromSearch } from "@/lib/tasks/main-view-config";
 import { requestCollaborationOnboarding } from "@/lib/collaboration-onboarding/events";
 import { nestTasks } from "@/lib/tasks/queries";
 import { getTeamLabelColor, teamAddTaskPlaceholder } from "@/lib/tasks/team-label-colors";
 import type { SectionWithTasks, TasksLayout, TasksViewKind, TaskWithMeta } from "@/lib/tasks/types";
 import type { HubFilter, HubLabel, HubProfile, HubProject, HubRole } from "@/types/database";
 import { cn } from "@/lib/utils";
+
+const EMPTY_SECTIONS: SectionWithTasks[] = [];
 
 type TasksWorkspaceClientProps = {
   viewKind: TasksViewKind;
@@ -60,7 +67,7 @@ export function TasksWorkspaceClient({
   userDisplayName,
   userAvatarUrl = null,
   initialTasks,
-  initialSections = [],
+  initialSections = EMPTY_SECTIONS,
   labels,
   filters,
   projects,
@@ -90,6 +97,7 @@ export function TasksWorkspaceClient({
   }, [layout, viewKind]);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<TaskWithMeta | null>(null);
   const [taskNotice, setTaskNotice] = useState<{
     type: "success" | "error";
     message: string;
@@ -139,6 +147,20 @@ export function TasksWorkspaceClient({
     [userId, userDisplayName],
   );
 
+  const projectScope = useMemo(() => {
+    if (viewKind !== "project" || !project) return null;
+    return projectTaskScopeFromSearch(searchParams, filters, labels);
+  }, [viewKind, project, searchParams, filters, labels]);
+
+  const scopedFilterQuery =
+    viewKind === "filter"
+      ? filterQuery
+      : projectScope?.filterQuery;
+  const scopedLabelSlug =
+    viewKind === "label" ? labelSlug : projectScope?.labelSlug;
+  const displayTitle =
+    viewKind === "project" && projectScope ? projectScope.title : title;
+
   const visibleTasks = useMemo(() => {
     let list = tasks.filter((t) => !t.completed);
 
@@ -158,19 +180,45 @@ export function TasksWorkspaceClient({
 
     if (viewKind === "project" && project) {
       list = list.filter((t) => t.project_id === project.id);
+
+      if (projectScope?.view === "today" || projectScope?.view === "upcoming") {
+        list = filterTasksForView(list, projectScope.view, filterCtx);
+      }
+
+      if (projectScope?.filterQuery) {
+        list = filterTasks(list, projectScope.filterQuery, filterCtx);
+      }
+
+      if (projectScope?.labelSlug) {
+        list = list.filter((t) =>
+          t.labels.some(
+            (l) => l.name.toLowerCase() === projectScope.labelSlug!.toLowerCase(),
+          ),
+        );
+      }
     }
 
     return list;
-  }, [tasks, viewKind, filterCtx, labelSlug, filterQuery, project]);
+  }, [
+    tasks,
+    viewKind,
+    filterCtx,
+    labelSlug,
+    filterQuery,
+    project,
+    projectScope,
+  ]);
 
   const flatForGlobal = useMemo(() => nestTasks(visibleTasks), [visibleTasks]);
 
   const activeLabel = useMemo(() => {
-    if (viewKind !== "label" || !labelSlug) return null;
+    if (!scopedLabelSlug) return null;
     return (
-      labels.find((entry) => entry.name.toLowerCase() === labelSlug.toLowerCase()) ?? null
+      labels.find(
+        (entry) => entry.name.toLowerCase() === scopedLabelSlug.toLowerCase(),
+      ) ?? null
     );
-  }, [viewKind, labelSlug, labels]);
+  }, [scopedLabelSlug, labels]);
 
   const taskCountsByLabel = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -227,14 +275,41 @@ export function TasksWorkspaceClient({
     });
   }
 
+  function handleDeleteRequest(taskId: string) {
+    const task = tasks.find((entry) => entry.id === taskId);
+    if (!task) return;
+    setTaskToDelete(task);
+  }
+
+  function handleConfirmDelete() {
+    if (!taskToDelete) return;
+    const taskId = taskToDelete.id;
+    setTaskToDelete(null);
+    setTasks((prev) => prev.filter((entry) => entry.id !== taskId));
+    if (selectedTask?.id === taskId) setSelectedTask(null);
+
+    startTransition(async () => {
+      const result = await deleteTaskAction(taskId);
+      if (!result.ok) {
+        setTaskNotice({ type: "error", message: result.error });
+        refresh();
+        return;
+      }
+      setTaskNotice({ type: "success", message: "Task deleted" });
+      refresh();
+    });
+  }
+
   async function handleAddTask(sectionId: string | null, name: string): Promise<boolean> {
     const trimmed = name.trim();
     if (!trimmed) return false;
 
     const defaults = deriveTaskCreateDefaults({
-      viewKind,
-      filterQuery,
-      labelSlug,
+      viewKind:
+        projectScope?.view ??
+        (scopedLabelSlug ? "label" : scopedFilterQuery ? "filter" : viewKind),
+      filterQuery: scopedFilterQuery,
+      labelSlug: scopedLabelSlug,
       userId,
       labels,
     });
@@ -315,10 +390,22 @@ export function TasksWorkspaceClient({
     });
   }
 
-  const emptyStateVariant =
-    viewKind === "today" || viewKind === "upcoming" || viewKind === "inbox"
-      ? viewKind
-      : "default";
+  const emptyStateVariant = useMemo((): "today" | "upcoming" | "inbox" | "default" => {
+    if (projectScope?.view === "today" || viewKind === "today") return "today";
+    if (projectScope?.view === "upcoming" || viewKind === "upcoming") return "upcoming";
+    if (viewKind === "inbox") return "inbox";
+    return "default";
+  }, [viewKind, projectScope?.view]);
+  const globalTaskListProps =
+    viewKind !== "project"
+      ? {
+          onDelete: handleDeleteRequest,
+          completeTooltip:
+            viewKind === "inbox"
+              ? "Complete task — removes from Inbox"
+              : "Complete task",
+        }
+      : {};
 
   const labelEmptyCopy = activeLabel
     ? {
@@ -328,14 +415,16 @@ export function TasksWorkspaceClient({
     : null;
 
   return (
-    <div className="flex min-h-[calc(100dvh-2.75rem)] flex-col pb-6 lg:pb-0">
-      <TasksMobileViewTabs />
+    <TasksNavigationProvider>
+    <div className="flex min-h-0 flex-1 flex-col pb-6 lg:pb-0">
+      {viewKind !== "project" && <TasksMobileViewTabs />}
       <div className="flex flex-1 flex-col gap-6 lg:flex-row lg:gap-8">
         <div className="hidden lg:block">
           <TasksSidebar
             filters={filters}
             labels={labels}
             taskCountsByLabel={taskCountsByLabel}
+            projectId={project?.id}
           />
         </div>
 
@@ -343,7 +432,11 @@ export function TasksWorkspaceClient({
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <div className="space-y-1">
               {project && (
-                <NavBackLink href={projectPath(project.id)} label={project.name} />
+                <NavBackLink
+                  href={projectPath(project.id)}
+                  label={project.name}
+                  className="w-fit shrink-0"
+                />
               )}
               <h1 className="flex items-center gap-2 font-display text-xl font-extrabold tracking-tight text-hub-foreground">
                 {activeLabel && (
@@ -353,7 +446,7 @@ export function TasksWorkspaceClient({
                     aria-hidden
                   />
                 )}
-                <span>{title}</span>
+                <span>{displayTitle}</span>
                 {project && (
                   <ProjectPresenceStack
                     projectId={project.id}
@@ -408,7 +501,14 @@ export function TasksWorkspaceClient({
             </div>
           </div>
 
-          {viewKind === "project" && layout === "board" ? (
+          {viewKind === "browse" ? (
+            <TasksBrowseView
+              filters={filters}
+              labels={labels}
+              taskCountsByLabel={taskCountsByLabel}
+              onRefresh={refresh}
+            />
+          ) : viewKind === "project" && layout === "board" ? (
             <TaskBoardView
               sections={sectionData}
               editable={editable}
@@ -441,10 +541,11 @@ export function TasksWorkspaceClient({
               emptyStateDescription={labelEmptyCopy?.description}
               addTaskPlaceholder={labelAddPlaceholder}
               onQuickAdd={() => setQuickAddOpen(true)}
+              {...globalTaskListProps}
             />
           )}
 
-          {viewKind !== "project" && (
+          {viewKind !== "project" && viewKind !== "browse" && (
             <p className="mt-6 text-center text-[0.6875rem] text-hub-foreground/40">
               Press <kbd className="rounded border border-hub-foreground/15 px-1">Q</kbd> for
               Quick Add ·{" "}
@@ -517,6 +618,23 @@ export function TasksWorkspaceClient({
         onCreated={refresh}
       />
 
+      <HubConfirmDialog
+        open={Boolean(taskToDelete)}
+        title="Delete task?"
+        description={
+          taskToDelete ? (
+            <>
+              <span className="font-medium text-hub-foreground">{taskToDelete.name}</span> will be
+              permanently removed along with its comments.
+            </>
+          ) : null
+        }
+        confirmLabel="Delete task"
+        tone="danger"
+        onClose={() => setTaskToDelete(null)}
+        onConfirm={handleConfirmDelete}
+      />
+
       {taskNotice && (
         <div
           role="status"
@@ -534,5 +652,6 @@ export function TasksWorkspaceClient({
         </div>
       )}
     </div>
+    </TasksNavigationProvider>
   );
 }

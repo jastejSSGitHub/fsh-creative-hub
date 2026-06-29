@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { DEFAULT_SECTION_NAMES } from "@/lib/tasks/constants";
+import { normalizeBoardSections } from "@/lib/tasks/board-sections";
 import type {
   SectionWithTasks,
   TaskCommentWithAuthor,
@@ -226,10 +227,12 @@ export async function getProjectTasksGrouped(
     ];
   }
 
-  return sections.map((section) => ({
-    ...section,
-    tasks: nested.filter((t) => t.section_id === section.id),
-  }));
+  return normalizeBoardSections(
+    sections.map((section) => ({
+      ...section,
+      tasks: nested.filter((t) => t.section_id === section.id),
+    })),
+  );
 }
 
 export async function getTaskById(

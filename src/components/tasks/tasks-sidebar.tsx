@@ -21,6 +21,9 @@ import {
   TASKS_INBOX_PATH,
   TASKS_TODAY_PATH,
   TASKS_UPCOMING_PATH,
+  projectTasksFilterPath,
+  projectTasksLabelPath,
+  projectTasksViewPath,
   tasksFilterPath,
   tasksLabelPath,
 } from "@/lib/routes";
@@ -34,6 +37,9 @@ type TasksSidebarProps = {
   labels: HubLabel[];
   taskCountsByLabel?: Record<string, number>;
   onOpenQuickAdd?: () => void;
+  layout?: "sidebar" | "page";
+  /** When set, sidebar links stay on this project's tasks page with scoped query params. */
+  projectId?: string;
 };
 
 const MAIN_LINKS = [
@@ -91,8 +97,8 @@ function SidebarNavButton({
   label: string;
   icon: LucideIcon;
 }) {
-  const { pathname, navigate } = useTasksNavigation();
-  const active = pathname === href;
+  const { location, navigate } = useTasksNavigation();
+  const active = location === href;
 
   return (
     <button
@@ -121,8 +127,8 @@ function SidebarFilterButton({
   label: string;
   icon: LucideIcon;
 }) {
-  const { pathname, navigate } = useTasksNavigation();
-  const active = pathname === href;
+  const { location, navigate } = useTasksNavigation();
+  const active = location === href;
 
   return (
     <button
@@ -153,8 +159,8 @@ function SidebarTeamButton({
   color: string;
   count?: number;
 }) {
-  const { pathname, navigate } = useTasksNavigation();
-  const active = pathname === href;
+  const { location, navigate } = useTasksNavigation();
+  const active = location === href;
 
   return (
     <button
@@ -190,29 +196,60 @@ function SidebarTeamButton({
   );
 }
 
-export function TasksSidebar({ filters, labels, taskCountsByLabel }: TasksSidebarProps) {
+export function TasksSidebar({
+  filters,
+  labels,
+  taskCountsByLabel,
+  layout = "sidebar",
+  projectId,
+}: TasksSidebarProps) {
   const presetFilters = filters.filter((f) => f.is_preset || f.owner_id == null);
   const teamLabels = labels.filter((l) =>
     (TEAM_LABEL_SLUGS as readonly string[]).includes(l.name),
   );
+  const showMainLinks = layout === "sidebar";
+
+  const mainLinks = projectId
+    ? [
+        {
+          href: projectTasksViewPath(projectId, "today"),
+          label: "Today",
+          icon: Calendar,
+        },
+        {
+          href: projectTasksViewPath(projectId, "upcoming"),
+          label: "Upcoming",
+          icon: CalendarRange,
+        },
+      ]
+    : MAIN_LINKS;
 
   return (
-    <aside className="flex w-full shrink-0 flex-col gap-6 lg:w-52">
-      <nav className="space-y-1" aria-label="Task views">
-        {MAIN_LINKS.map((link) => (
-          <SidebarNavButton
-            key={link.href}
-            href={link.href}
-            label={link.label}
-            icon={link.icon}
-          />
-        ))}
-      </nav>
+    <aside
+      className={cn(
+        "flex w-full shrink-0 flex-col gap-6",
+        layout === "sidebar" && "lg:w-52",
+      )}
+    >
+      {showMainLinks ? (
+        <nav className="space-y-1" aria-label="Task views">
+          {mainLinks.map((link) => (
+            <SidebarNavButton
+              key={link.href}
+              href={link.href}
+              label={link.label}
+              icon={link.icon}
+            />
+          ))}
+        </nav>
+      ) : null}
 
       {presetFilters.length > 0 && (
         <SidebarScrollSection title="Filters" ariaLabel="Task filters">
           {presetFilters.map((filter) => {
-            const href = tasksFilterPath(filter.id);
+            const href = projectId
+              ? projectTasksFilterPath(projectId, filter.id)
+              : tasksFilterPath(filter.id);
             return (
               <SidebarFilterButton
                 key={filter.id}
@@ -228,7 +265,9 @@ export function TasksSidebar({ filters, labels, taskCountsByLabel }: TasksSideba
       {teamLabels.length > 0 && (
         <SidebarScrollSection title="Teams" ariaLabel="Team labels">
           {teamLabels.map((label) => {
-            const href = tasksLabelPath(label.name);
+            const href = projectId
+              ? projectTasksLabelPath(projectId, label.name)
+              : tasksLabelPath(label.name);
             return (
               <SidebarTeamButton
                 key={label.id}

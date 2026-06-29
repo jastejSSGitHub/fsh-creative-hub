@@ -1,7 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
+
 import { TasksNavigationProvider, useTasksNavigation } from "@/components/tasks/tasks-navigation-context";
 import { TasksWorkspaceClient } from "@/components/tasks/tasks-workspace-client";
+import { writeHubTabCache } from "@/lib/hub/tab-cache";
 import type { MainTasksViewData } from "@/lib/tasks/load-main-views-data";
 import { taskViewFromPath } from "@/lib/tasks/main-view-config";
 
@@ -40,6 +43,28 @@ function TasksMainWorkspaceContent({
 }
 
 export function TasksMainWorkspaceShell(props: TasksMainWorkspaceShellProps) {
+  const {
+    userId,
+    userDisplayName,
+    tasks,
+    labels,
+    filters,
+    projects,
+    members,
+  } = props;
+
+  useEffect(() => {
+    writeHubTabCache("tasks", {
+      userId,
+      userDisplayName,
+      tasks,
+      labels,
+      filters,
+      projects,
+      members,
+    });
+  }, [filters, labels, members, projects, tasks, userDisplayName, userId]);
+
   return (
     <TasksNavigationProvider>
       <TasksMainWorkspaceContent {...props} />

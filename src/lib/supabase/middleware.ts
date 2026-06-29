@@ -12,6 +12,17 @@ import {
 export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  const authCode = request.nextUrl.searchParams.get("code");
+  if (authCode && !pathname.startsWith("/auth/callback")) {
+    const callbackUrl = request.nextUrl.clone();
+    callbackUrl.pathname = "/auth/callback";
+    callbackUrl.searchParams.set("code", authCode);
+    if (!callbackUrl.searchParams.has("next")) {
+      callbackUrl.searchParams.set("next", PROJECTS_PATH);
+    }
+    return NextResponse.redirect(callbackUrl);
+  }
+
   // Docs are fully public — skip Supabase session refresh to avoid hangs.
   if (isDocsPath(pathname)) {
     return NextResponse.next({ request });
@@ -47,22 +58,12 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const authCode = request.nextUrl.searchParams.get("code");
-  if (authCode && !pathname.startsWith("/auth/callback")) {
-    const callbackUrl = request.nextUrl.clone();
-    callbackUrl.pathname = "/auth/callback";
-    callbackUrl.searchParams.set("code", authCode);
-    if (!callbackUrl.searchParams.has("next")) {
-      callbackUrl.searchParams.set("next", PROJECTS_PATH);
-    }
-    return NextResponse.redirect(callbackUrl);
-  }
-
   const isPublic =
     pathname === LANDING_PATH ||
     pathname === "/landing" ||
     pathname.startsWith(LOGIN_PATH) ||
     pathname.startsWith("/auth") ||
+    pathname.startsWith("/api/e2e/") ||
     isSharePath(pathname);
 
   if (!user && !isPublic) {

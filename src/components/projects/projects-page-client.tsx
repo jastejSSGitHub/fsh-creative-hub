@@ -25,6 +25,7 @@ import {
   trashProjectAction,
 } from "@/lib/projects/actions";
 import { captureProjectsPageSnapshot } from "@/lib/projects/snapshot";
+import { writeHubTabCache } from "@/lib/hub/tab-cache";
 import { fireConfetti } from "@/lib/confetti";
 import type { ProjectCardData } from "@/lib/projects/queries";
 import { hubCardGridClassName } from "@/lib/ui/hub-card-grid";
@@ -68,6 +69,10 @@ export function ProjectsPageClient({
   useEffect(() => {
     setLocalProjects(projects);
   }, [projects]);
+
+  useEffect(() => {
+    writeHubTabCache("projects", { projects, currentUserId });
+  }, [currentUserId, projects]);
 
   const activeProjects = useMemo(
     () => localProjects.filter((project) => !project.trashed_at),

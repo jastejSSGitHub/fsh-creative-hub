@@ -1,5 +1,3 @@
-import { redirect } from "next/navigation";
-
 import {
   getAllAccessibleTasks,
   getFilters,
@@ -12,8 +10,7 @@ import {
   getMockTasks,
   getMockMembers,
 } from "@/lib/dev-tools/mock-collaboration-data";
-import { LOGIN_PATH } from "@/lib/routes";
-import { createClient } from "@/lib/supabase/server";
+import { requireHubSession, getHubSupabase } from "@/lib/hub/session";
 import type { TaskWithMeta } from "@/lib/tasks/types";
 import type { HubFilter, HubLabel, HubProfile } from "@/types/database";
 
@@ -28,25 +25,13 @@ export type MainTasksViewData = {
 };
 
 export async function loadMainTasksViewData(): Promise<MainTasksViewData> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect(LOGIN_PATH);
-
-  const { data: profile } = await supabase
-    .from("hub_profiles")
-    .select("display_name")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  const displayName = profile?.display_name ?? "Me";
-
+  const session = await requireHubSession();
+  const displayName = session.displayName;
   const mockEnabled = await isMockCollaborationEnabledServer();
+  const supabase = await getHubSupabase();
 
   const [tasks, labels, filters, projects] = await Promise.all([
-    mockEnabled ? Promise.resolve([]) : getAllAccessibleTasks(supabase, user.id),
+    mockEnabled ? Promise.resolve([]) : getAllAccessibleTasks(supabase, session.userId),
     getLabels(supabase),
     getFilters(supabase),
     getUserProjectsForTasks(supabase),
@@ -54,9 +39,9 @@ export async function loadMainTasksViewData(): Promise<MainTasksViewData> {
 
   if (mockEnabled) {
     return {
-      userId: user.id,
+      userId: session.userId,
       userDisplayName: displayName,
-      tasks: getMockTasks(user.id, displayName, labels),
+      tasks: getMockTasks(session.userId, displayName, labels),
       labels,
       filters,
       projects: getMockProjects(),
@@ -65,7 +50,7 @@ export async function loadMainTasksViewData(): Promise<MainTasksViewData> {
   }
 
   return {
-    userId: user.id,
+    userId: session.userId,
     userDisplayName: displayName,
     tasks,
     labels,

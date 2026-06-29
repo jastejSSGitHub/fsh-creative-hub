@@ -151,7 +151,7 @@ export function ProjectCard({
       className={cn(
         "group relative flex h-full cursor-default select-none flex-col overflow-hidden rounded-md border bg-hub-surface shadow-sm transition-[box-shadow,border-color] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hub-primary/50",
         selected
-          ? "border-hub-accent ring-2 ring-hub-accent/35"
+          ? "border-hub-primary ring-2 ring-hub-primary/35"
           : "border-hub-foreground/10",
       )}
     >

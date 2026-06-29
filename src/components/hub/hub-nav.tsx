@@ -1,8 +1,11 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import Link, { useLinkStatus } from "next/link";
 
+import {
+  useHubTabNavigation,
+  type HubRootTab,
+} from "@/components/hub/hub-tab-navigation-provider";
 import { FOR_YOU_PATH, PROJECTS_PATH, TASKS_TODAY_PATH } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
@@ -10,28 +13,102 @@ type HubNavProps = {
   forYouCount: number;
 };
 
-const NAV_ITEMS = [
+const NAV_ITEMS: {
+  href: string;
+  label: string;
+  tab: HubRootTab;
+  badge?: boolean;
+}[] = [
   {
     href: PROJECTS_PATH,
     label: "Projects",
-    match: (path: string) =>
-      path.startsWith(PROJECTS_PATH) && !path.includes("/tasks"),
+    tab: "projects",
   },
   {
     href: TASKS_TODAY_PATH,
     label: "Tasks",
-    match: (path: string) => path.startsWith("/tasks"),
+    tab: "tasks",
   },
   {
     href: FOR_YOU_PATH,
     label: "For you",
-    match: (path: string) => path.startsWith(FOR_YOU_PATH),
+    tab: "for-you",
     badge: true,
   },
-] as const;
+];
+
+function HubNavLinkContent({
+  label,
+  active,
+  showBadge,
+  forYouCount,
+}: {
+  label: string;
+  active: boolean;
+  showBadge: boolean;
+  forYouCount: number;
+}) {
+  const { pending } = useLinkStatus();
+
+  return (
+    <>
+      <span className={cn(pending && !active && "opacity-90")}>{label}</span>
+      {showBadge && (
+        <span
+          className={cn(
+            "inline-flex min-w-[1.1rem] items-center justify-center rounded-full px-1 py-px font-mono text-[0.55rem] font-semibold leading-none",
+            active ? "bg-hub-final text-hub-foreground" : "bg-hub-primary text-white",
+          )}
+          aria-label={`${forYouCount} unread`}
+        >
+          {forYouCount > 99 ? "99+" : forYouCount}
+        </span>
+      )}
+    </>
+  );
+}
+
+function HubNavLink({
+  href,
+  label,
+  active,
+  showBadge,
+  forYouCount,
+  onNavigate,
+}: {
+  href: string;
+  label: string;
+  tab: HubRootTab;
+  active: boolean;
+  showBadge: boolean;
+  forYouCount: number;
+  onNavigate: (href: string) => void;
+}) {
+  return (
+    <Link
+      href={href}
+      prefetch
+      onClick={() => onNavigate(href)}
+      className={cn(
+        "relative inline-flex h-7 items-center justify-center gap-1.5 rounded-md px-2.5 text-[0.8125rem] font-medium transition-all duration-150",
+        active
+          ? "bg-white/12 text-white"
+          : "text-white/55 hover:bg-white/6 hover:text-white/90",
+      )}
+      aria-current={active ? "page" : undefined}
+    >
+      <HubNavLinkContent
+        label={label}
+        active={active}
+        showBadge={showBadge}
+        forYouCount={forYouCount}
+      />
+    </Link>
+  );
+}
 
 export function HubNav({ forYouCount }: HubNavProps) {
-  const pathname = usePathname();
+  const { activeTab, beginTabNavigation } = useHubTabNavigation();
 
   return (
     <nav
@@ -39,34 +116,20 @@ export function HubNav({ forYouCount }: HubNavProps) {
       aria-label="Hub navigation"
     >
       {NAV_ITEMS.map((item) => {
-        const active = item.match(pathname);
-        const showBadge = "badge" in item && forYouCount > 0;
+        const active = activeTab === item.tab;
+        const showBadge = Boolean(item.badge) && forYouCount > 0;
 
         return (
-          <Link
+          <HubNavLink
             key={item.href}
             href={item.href}
-            className={cn(
-              "relative inline-flex h-7 items-center justify-center gap-1.5 rounded-md px-2.5 text-[0.8125rem] font-medium transition-colors",
-              active
-                ? "bg-white/12 text-white"
-                : "text-white/55 hover:bg-white/6 hover:text-white/90",
-            )}
-            aria-current={active ? "page" : undefined}
-          >
-            {item.label}
-            {showBadge && (
-              <span
-                className={cn(
-                  "inline-flex min-w-[1.1rem] items-center justify-center rounded-full px-1 py-px font-mono text-[0.55rem] font-semibold leading-none",
-                  active ? "bg-hub-final text-hub-foreground" : "bg-hub-primary text-white",
-                )}
-                aria-label={`${forYouCount} unread`}
-              >
-                {forYouCount > 99 ? "99+" : forYouCount}
-              </span>
-            )}
-          </Link>
+            label={item.label}
+            tab={item.tab}
+            active={active}
+            showBadge={showBadge}
+            forYouCount={forYouCount}
+            onNavigate={beginTabNavigation}
+          />
         );
       })}
     </nav>

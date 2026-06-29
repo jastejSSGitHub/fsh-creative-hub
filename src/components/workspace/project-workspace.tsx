@@ -39,6 +39,11 @@ import { PROJECTS_PATH, reviewBoardPath } from "@/lib/routes";
 import { scrollToAssetCardWhenReady } from "@/lib/workspace/scroll-to-asset";
 import { deleteAssetAction } from "@/lib/workspace/actions";
 import {
+  getMockWorkspaceAssets,
+  isMockProjectId,
+} from "@/lib/dev-tools/mock-collaboration-data";
+import { readMockCollaborationData } from "@/lib/dev-tools/storage";
+import {
   getAssetDetail,
   getAssetsForInitiative,
   type ActivityWithActor,
@@ -489,6 +494,15 @@ export function ProjectWorkspace({
     fetchingInitiativeIdsRef.current.add(initiativeId);
     setInitiativeAssetsLoading(true);
     try {
+      if (readMockCollaborationData() && isMockProjectId(project.id)) {
+        loadedInitiativeIdsRef.current.add(initiativeId);
+        setAssetsByInitiative((prev) => ({
+          ...prev,
+          [initiativeId]: getMockWorkspaceAssets(initiativeId),
+        }));
+        return;
+      }
+
       const supabase = createClient();
       const data = await getAssetsForInitiative(supabase, initiativeId, "all");
       loadedInitiativeIdsRef.current.add(initiativeId);
@@ -595,7 +609,7 @@ export function ProjectWorkspace({
               <NavBackLink
                 href={backHref ?? PROJECTS_PATH}
                 label={project.name}
-                className="min-w-0 max-w-full shrink sm:max-w-[min(100%,14rem)]"
+                className="shrink-0"
               />
               <div className="min-w-0 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] sm:overflow-visible sm:pb-0 [&::-webkit-scrollbar]:hidden">
                 {detailToolbar}
@@ -829,6 +843,7 @@ export function ProjectWorkspace({
           open={shareDialogOpen}
           onClose={() => setShareDialogOpen(false)}
           projectId={project.id}
+          userId={userId}
           scopeType="presentation"
           scopeId={activeInitiative.id}
           defaultLabel={`${activeInitiative.name} reel`}

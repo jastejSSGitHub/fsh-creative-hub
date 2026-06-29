@@ -16,6 +16,8 @@ type HubSelectProps<T extends string = string> = {
   options: HubSelectOption<T>[];
   disabled?: boolean;
   variant?: "field" | "inline";
+  /** When false, the trigger sizes to its label instead of stretching (field variant only). */
+  fullWidth?: boolean;
   menuAlign?: "left" | "right";
   "aria-label"?: string;
   className?: string;
@@ -33,6 +35,7 @@ export function HubSelect<T extends string = string>({
   options,
   disabled = false,
   variant = "field",
+  fullWidth = true,
   menuAlign = "left",
   "aria-label": ariaLabel,
   className,
@@ -109,7 +112,10 @@ export function HubSelect<T extends string = string>({
   return (
     <div
       ref={rootRef}
-      className={cn("relative", variant === "field" && "w-full shrink-0")}
+      className={cn(
+        "relative shrink-0",
+        variant === "field" && (fullWidth ? "w-full" : "w-auto"),
+      )}
     >
       <button
         type="button"
@@ -122,7 +128,10 @@ export function HubSelect<T extends string = string>({
         className={cn(
           "relative inline-flex items-center text-[0.8125rem] outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-60",
           variant === "field" &&
-            "min-h-8 w-full rounded-[6px] border border-hub-foreground/12 bg-hub-surface py-0 pr-6 pl-2.5 text-hub-foreground focus-visible:border-[#18a0fb]/50 focus-visible:ring-1 focus-visible:ring-[#18a0fb]/40",
+            cn(
+              "min-h-8 rounded-[6px] border border-hub-foreground/12 bg-hub-surface py-0 pr-6 pl-2.5 text-hub-foreground focus-visible:border-[#18a0fb]/50 focus-visible:ring-1 focus-visible:ring-[#18a0fb]/40",
+              fullWidth ? "w-full" : "w-auto",
+            ),
           variant === "inline" &&
             "gap-0.5 bg-transparent py-0 pr-3 pl-0 text-hub-foreground/45 hover:text-hub-foreground/70 focus-visible:text-hub-foreground/70",
           open && variant === "field" && "border-[#18a0fb]/50 ring-1 ring-[#18a0fb]/40",

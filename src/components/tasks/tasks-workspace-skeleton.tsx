@@ -1,5 +1,13 @@
+import { LoadingAffirmation } from "@/components/hub/loading-affirmation";
 import { SkeletonBone } from "@/components/ui/skeleton-primitives";
 import { cn } from "@/lib/utils";
+
+const TASKS_LOADING_MESSAGES = [
+  "Loading your tasks…",
+  "Sorting by what's due…",
+  "Pulling in your projects…",
+  "Almost ready…",
+] as const;
 
 function TaskRowSkeleton({ width = "w-48" }: { width?: string }) {
   return (
@@ -57,6 +65,10 @@ export function TasksWorkspaceSkeleton({ title = "Today" }: TasksWorkspaceSkelet
             {ROW_WIDTHS.map((width, index) => (
               <TaskRowSkeleton key={index} width={width} />
             ))}
+          </div>
+
+          <div className="mt-8">
+            <LoadingAffirmation messages={TASKS_LOADING_MESSAGES} />
           </div>
         </div>
       </div>

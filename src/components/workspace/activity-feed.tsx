@@ -13,6 +13,8 @@ import {
   type ActivityDateGroup,
 } from "@/lib/workspace/group-activities-by-date";
 import { getActivityForProject, type ActivityWithActor } from "@/lib/workspace/queries";
+import { isMockProjectId } from "@/lib/dev-tools/mock-collaboration-data";
+import { readMockCollaborationData } from "@/lib/dev-tools/storage";
 import { cn } from "@/lib/utils";
 
 type ActivityFeedProps = {
@@ -127,6 +129,8 @@ function ActivityDateSection({ group }: { group: ActivityDateGroup }) {
 
 export function ActivityFeed({ activities: initialActivities, projectId }: ActivityFeedProps) {
   const [activities, setActivities] = useState(initialActivities);
+  const mockDemo =
+    readMockCollaborationData() && isMockProjectId(projectId);
 
   useEffect(() => {
     setActivities(initialActivities);
@@ -138,12 +142,19 @@ export function ActivityFeed({ activities: initialActivities, projectId }: Activ
   );
 
   const refresh = useCallback(async () => {
+    if (mockDemo) {
+      setActivities(initialActivities);
+      return;
+    }
+
     const supabase = createClient();
     const data = await getActivityForProject(supabase, projectId);
     setActivities(data);
-  }, [projectId]);
+  }, [initialActivities, mockDemo, projectId]);
 
   useEffect(() => {
+    if (mockDemo) return;
+
     const supabase = createClient();
     const channel = supabase
       .channel(`activity-${projectId}`)
@@ -164,7 +175,7 @@ export function ActivityFeed({ activities: initialActivities, projectId }: Activ
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [projectId, refresh]);
+  }, [mockDemo, projectId, refresh]);
 
   if (activities.length === 0) {
     return (

@@ -26,7 +26,7 @@ export function HubHeader({
   if (isHubDetailPath(pathname)) return null;
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/6 bg-hub-espresso">
+    <header className="z-40 shrink-0 border-b border-white/6 bg-hub-espresso">
       <div className="flex h-11 items-center gap-3 px-3 sm:gap-4 sm:px-4">
         <HubBrandLink displayName={displayName} />
 

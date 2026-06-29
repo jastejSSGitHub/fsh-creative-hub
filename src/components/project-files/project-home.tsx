@@ -10,7 +10,7 @@ import {
   navigateToProjectFile,
   ProjectFileCard,
 } from "@/components/project-files/project-file-card";
-import { ProjectTasksCard } from "@/components/tasks/project-tasks-card";
+import { ProjectTasksCard, navigateToProjectTasks } from "@/components/tasks/project-tasks-card";
 import { ProjectFileDeleteConfirmDialog } from "@/components/project-files/project-file-delete-confirm-dialog";
 import {
   ProjectContextMenu,
@@ -195,7 +195,11 @@ export function ProjectHome({
   const [sortOrder, setSortOrder] = useState<FileSortOrder>("newest");
   const [typeFilter, setTypeFilter] = useState<FileTypeFilter>("all");
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
+  const [tasksSelected, setTasksSelected] = useState(false);
   const [contextMenu, setContextMenu] = useState<FileContextMenuState>(null);
+  const [tasksContextMenu, setTasksContextMenu] = useState<{ x: number; y: number } | null>(
+    null,
+  );
   const [deleteConfirmFile, setDeleteConfirmFile] = useState<ProjectFileWithMeta | null>(null);
   const [deleteToastVisible, setDeleteToastVisible] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -328,6 +332,22 @@ export function ProjectHome({
     });
   }
 
+  function buildTasksContextMenuItems(): ProjectContextMenuItem[] {
+    return [
+      {
+        id: "open",
+        label: "Open",
+        onSelect: () => navigateToProjectTasks(router, project.id),
+      },
+      {
+        id: "open-new-tab",
+        label: "Open in new tab",
+        onSelect: () =>
+          navigateToProjectTasks(router, project.id, { newTab: true }),
+      },
+    ];
+  }
+
   function buildFileContextMenuItems(file: ProjectFileWithMeta): ProjectContextMenuItem[] {
     return [
       {
@@ -369,6 +389,27 @@ export function ProjectHome({
     ];
   }
 
+  function renderTasksCard() {
+    return (
+      <ProjectTasksCard
+        projectId={project.id}
+        projectName={project.name}
+        taskCount={openTaskCount}
+        selected={tasksSelected}
+        editorDisplayName={currentMember?.display_name ?? "Unknown user"}
+        editorAvatarUrl={currentMember?.avatar_url}
+        onSelect={() => {
+          setTasksSelected(true);
+          setSelectedFileId(null);
+        }}
+        onContextMenu={(x, y) => {
+          setTasksContextMenu({ x, y });
+          setContextMenu(null);
+        }}
+      />
+    );
+  }
+
   function renderAnimatedFileCard(file: ProjectFileWithMeta, isOnboardingTarget: boolean) {
     return (
       <AnimatedFileCard
@@ -380,7 +421,10 @@ export function ProjectHome({
         editorDisplayName={currentMember?.display_name ?? "Unknown user"}
         editorAvatarUrl={currentMember?.avatar_url}
         animateLayout={animateLayout}
-        onSelect={setSelectedFileId}
+        onSelect={(fileId) => {
+          setSelectedFileId(fileId);
+          setTasksSelected(false);
+        }}
         onFavoriteToggle={toggleFavorite}
         onContextMenu={(target, x, y) =>
           setContextMenu({ file: target, x, y })
@@ -424,7 +468,6 @@ export function ProjectHome({
               transition={FILE_LAYOUT_TRANSITION}
               className={cn(hubCardGridClassName, hasFavorites && "mt-3")}
             >
-              <ProjectTasksCard projectId={project.id} taskCount={openTaskCount} />
               {favoriteFiles.map((file) =>
                 renderAnimatedFileCard(file, file.id === onboardingTargetId),
               )}
@@ -453,7 +496,7 @@ export function ProjectHome({
               transition={FILE_LAYOUT_TRANSITION}
               className={cn(hubCardGridClassName, hasFavorites && "mt-3")}
             >
-              <ProjectTasksCard projectId={project.id} taskCount={openTaskCount} />
+              {renderTasksCard()}
               {regularFiles.map((file) =>
                 renderAnimatedFileCard(file, file.id === onboardingTargetId),
               )}
@@ -471,6 +514,7 @@ export function ProjectHome({
       onClick={(event) => {
         if (event.target === event.currentTarget) {
           setSelectedFileId(null);
+          setTasksSelected(false);
         }
       }}
     >
@@ -519,13 +563,14 @@ export function ProjectHome({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-end gap-2">
+      <div className="flex flex-nowrap items-center justify-end gap-2">
         <HubSelect
           value={typeFilter}
           onChange={setTypeFilter}
           options={FILE_TYPE_OPTIONS}
           aria-label="Filter files"
           variant="field"
+          fullWidth={false}
           menuAlign="right"
         />
 
@@ -547,9 +592,7 @@ export function ProjectHome({
 
       {filteredFiles.length === 0 ? (
         <div className="space-y-4">
-          <div className={hubCardGridClassName}>
-            <ProjectTasksCard projectId={project.id} taskCount={openTaskCount} />
-          </div>
+          <div className={hubCardGridClassName}>{renderTasksCard()}</div>
           <div className="rounded-md border border-dashed border-hub-foreground/15 bg-hub-surface/70 px-6 py-14 text-center">
           <p className="font-display text-lg font-extrabold text-hub-foreground">
             No files yet
@@ -580,6 +623,14 @@ export function ProjectHome({
       y={contextMenu?.y ?? 0}
       items={contextMenu ? buildFileContextMenuItems(contextMenu.file) : []}
       onClose={() => setContextMenu(null)}
+    />
+
+    <ProjectContextMenu
+      open={tasksContextMenu !== null}
+      x={tasksContextMenu?.x ?? 0}
+      y={tasksContextMenu?.y ?? 0}
+      items={buildTasksContextMenuItems()}
+      onClose={() => setTasksContextMenu(null)}
     />
 
     <ProjectFileDeleteConfirmDialog

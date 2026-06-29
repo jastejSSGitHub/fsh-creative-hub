@@ -6,6 +6,25 @@ import { buttonVariants } from "@/components/ui/button";
 import { FOR_YOU_PATH, PROJECTS_PATH } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
+const INTERNAL_ERROR_PATTERNS = [
+  /must be used within/i,
+  /invalid hook call/i,
+  /hydration failed/i,
+  /cannot read propert/i,
+  /is not a function/i,
+  /failed to fetch dynamically imported module/i,
+];
+
+export function getUserFacingErrorMessage(
+  error: Error,
+  fallback = "We hit a snag loading this page. Try again or head back to the hub.",
+): string {
+  const message = error.message?.trim();
+  if (!message) return fallback;
+  if (INTERNAL_ERROR_PATTERNS.some((pattern) => pattern.test(message))) return fallback;
+  return message;
+}
+
 type HubErrorStateProps = {
   title?: string;
   message?: string;
@@ -30,7 +49,7 @@ export function HubErrorState({
   return (
     <div
       className={cn(
-        "flex min-h-[50vh] flex-col items-center justify-center px-6 py-16 text-center",
+        "flex min-h-[50vh] w-full flex-1 flex-col items-center justify-center px-6 py-16 text-center",
         className,
       )}
     >

@@ -40,6 +40,8 @@ type TaskListViewProps = {
   emptyStateDescription?: string;
   addTaskPlaceholder?: string;
   onQuickAdd?: () => void;
+  onDelete?: (taskId: string) => void;
+  completeTooltip?: string;
 };
 
 export function TaskListView({
@@ -57,6 +59,8 @@ export function TaskListView({
   emptyStateDescription,
   addTaskPlaceholder,
   onQuickAdd,
+  onDelete,
+  completeTooltip,
 }: TaskListViewProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -174,6 +178,8 @@ export function TaskListView({
                       onSwipeComplete={onComplete}
                       onIndent={onIndent}
                       siblingAboveId={section.tasks[index - 1]?.id ?? null}
+                      onDelete={onDelete}
+                      completeTooltip={completeTooltip}
                     />
                     {task.subtasks?.map((subtask) => (
                       <TaskRow
@@ -185,6 +191,8 @@ export function TaskListView({
                         onOpen={onOpen}
                         sortableId={subtask.id}
                         onSwipeComplete={onComplete}
+                        onDelete={onDelete}
+                        completeTooltip={completeTooltip}
                       />
                     ))}
                   </div>

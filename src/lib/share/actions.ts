@@ -73,7 +73,7 @@ export async function createShareLinkAction(input: {
     });
 
     revalidatePath(projectPath(input.projectId));
-  revalidatePath(sharePath(data.token));
+    revalidatePath(sharePath(data.token));
 
     return { ok: true, token: data.token, id: data.id };
   } catch (error) {

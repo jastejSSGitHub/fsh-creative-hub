@@ -4,13 +4,14 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Indent, Outdent } from "lucide-react";
+import { ChevronRight, GripVertical, Indent, Outdent, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { TaskCompleteCheckbox } from "@/components/tasks/shared/task-complete-checkbox";
 import { TaskDueBadge } from "@/components/tasks/shared/task-due-badge";
 import { TaskLabelChip } from "@/components/tasks/shared/task-label-chip";
 import { TaskPriorityBadge } from "@/components/tasks/shared/task-priority-badge";
+import { HubTooltip } from "@/components/ui/hub-tooltip";
 import type { TaskWithMeta } from "@/lib/tasks/types";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +25,8 @@ type TaskRowProps = {
   onSwipeComplete?: (taskId: string) => void;
   onIndent?: (taskId: string, parentId: string | null) => void;
   siblingAboveId?: string | null;
+  onDelete?: (taskId: string) => void;
+  completeTooltip?: string;
 };
 
 export function TaskRow({
@@ -36,6 +39,8 @@ export function TaskRow({
   onSwipeComplete,
   onIndent,
   siblingAboveId,
+  onDelete,
+  completeTooltip = "Complete task",
 }: TaskRowProps) {
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const {
@@ -79,27 +84,38 @@ export function TaskRow({
       }}
     >
       {editable && (
-        <button
-          type="button"
-          className="flex size-8 shrink-0 cursor-grab items-center justify-center rounded-[4px] text-hub-foreground/25 opacity-0 transition-opacity hover:text-hub-foreground/50 group-hover:opacity-100 active:cursor-grabbing"
-          {...attributes}
-          {...listeners}
-          aria-label="Drag to reorder"
-        >
-          <GripVertical className="size-4" />
-        </button>
+        <HubTooltip label="Drag to reorder" side="top">
+          <button
+            type="button"
+            className="flex size-8 shrink-0 cursor-grab items-center justify-center rounded-[4px] text-hub-foreground/25 opacity-0 transition-opacity hover:text-hub-foreground/50 group-hover:opacity-100 active:cursor-grabbing"
+            {...attributes}
+            {...listeners}
+            aria-label="Drag to reorder"
+          >
+            <GripVertical className="size-4" />
+          </button>
+        </HubTooltip>
       )}
 
-      <TaskCompleteCheckbox
-        completed={task.completed}
-        onToggle={() => onComplete(task.id)}
-        disabled={!editable}
-        size="sm"
-      />
+      <HubTooltip
+        label={task.completed ? "Mark incomplete" : completeTooltip}
+        side="top"
+      >
+        <span className="inline-flex shrink-0">
+          <TaskCompleteCheckbox
+            completed={task.completed}
+            onToggle={() => onComplete(task.id)}
+            disabled={!editable}
+            size="sm"
+          />
+        </span>
+      </HubTooltip>
 
       <button
         type="button"
         onClick={() => onOpen(task)}
+        aria-label={`Open task: ${task.name}`}
+        title="View task details"
         className="flex min-w-0 flex-1 items-center gap-2 text-left"
       >
         <span
@@ -117,31 +133,62 @@ export function TaskRow({
             <TaskLabelChip key={label.id} name={label.name} color={label.color} />
           ))}
         </div>
+        <ChevronRight
+          className="ml-auto size-4 shrink-0 text-hub-foreground/25 transition-[color,opacity,transform] group-hover:translate-x-0.5 group-hover:text-hub-foreground/55 sm:opacity-0 sm:group-hover:opacity-100"
+          strokeWidth={2.25}
+          aria-hidden
+        />
       </button>
 
       {editable && onIndent && (
         <div className="flex shrink-0 opacity-0 transition-opacity group-hover:opacity-100">
           {depth === 0 && siblingAboveId && (
-            <button
-              type="button"
-              aria-label="Make sub-task"
-              onClick={() => onIndent(task.id, siblingAboveId)}
-              className="flex size-8 items-center justify-center rounded-[4px] text-hub-foreground/40 hover:bg-hub-foreground/5 hover:text-hub-foreground"
-            >
-              <Indent className="size-3.5" />
-            </button>
+            <HubTooltip label="Make sub-task" side="top">
+              <button
+                type="button"
+                aria-label="Make sub-task"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onIndent(task.id, siblingAboveId);
+                }}
+                className="flex size-8 items-center justify-center rounded-[4px] text-hub-foreground/40 hover:bg-hub-foreground/5 hover:text-hub-foreground"
+              >
+                <Indent className="size-3.5" />
+              </button>
+            </HubTooltip>
           )}
           {depth > 0 && (
-            <button
-              type="button"
-              aria-label="Outdent task"
-              onClick={() => onIndent(task.id, null)}
-              className="flex size-8 items-center justify-center rounded-[4px] text-hub-foreground/40 hover:bg-hub-foreground/5 hover:text-hub-foreground"
-            >
-              <Outdent className="size-3.5" />
-            </button>
+            <HubTooltip label="Outdent to top level" side="top">
+              <button
+                type="button"
+                aria-label="Outdent task"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onIndent(task.id, null);
+                }}
+                className="flex size-8 items-center justify-center rounded-[4px] text-hub-foreground/40 hover:bg-hub-foreground/5 hover:text-hub-foreground"
+              >
+                <Outdent className="size-3.5" />
+              </button>
+            </HubTooltip>
           )}
         </div>
+      )}
+
+      {editable && onDelete && (
+        <HubTooltip label="Delete task" side="top">
+          <button
+            type="button"
+            aria-label="Delete task"
+            onClick={(event) => {
+              event.stopPropagation();
+              onDelete(task.id);
+            }}
+            className="flex size-8 shrink-0 items-center justify-center rounded-[4px] text-hub-foreground/30 opacity-0 transition-[color,opacity] hover:bg-hub-rejected/10 hover:text-hub-rejected group-hover:opacity-100"
+          >
+            <Trash2 className="size-3.5" strokeWidth={2} />
+          </button>
+        </HubTooltip>
       )}
     </div>
   );

@@ -1,5 +1,6 @@
 import {
   TASKS_INBOX_PATH,
+  TASKS_PATH,
   TASKS_TODAY_PATH,
   TASKS_UPCOMING_PATH,
 } from "@/lib/routes";
@@ -36,6 +37,8 @@ export function mainTaskViewFromPath(pathname: string): {
       return { viewKind: "upcoming", title: "Upcoming" };
     case TASKS_INBOX_PATH:
       return { viewKind: "inbox", title: "Inbox" };
+    case TASKS_PATH:
+      return { viewKind: "browse", title: "Browse" };
     default:
       return null;
   }
@@ -75,4 +78,43 @@ export function taskViewFromPath(
   }
 
   return null;
+}
+
+export type ProjectTaskScope = {
+  title: string;
+  filterQuery?: string;
+  labelSlug?: string;
+  view?: "today" | "upcoming";
+};
+
+/** Resolve project tasks sidebar scope from `?filter=`, `?label=`, or `?view=` search params. */
+export function projectTaskScopeFromSearch(
+  searchParams: Pick<URLSearchParams, "get">,
+  filters: HubFilter[],
+  labels: HubLabel[],
+): ProjectTaskScope {
+  const view = searchParams.get("view");
+  if (view === "today") return { view: "today", title: "Today" };
+  if (view === "upcoming") return { view: "upcoming", title: "Upcoming" };
+
+  const filterId = searchParams.get("filter");
+  if (filterId) {
+    const filter = filters.find((entry) => entry.id === filterId);
+    if (filter) {
+      return { filterQuery: filter.query, title: filter.name };
+    }
+  }
+
+  const labelSlug = searchParams.get("label");
+  if (labelSlug) {
+    const label = labels.find(
+      (entry) => entry.name.toLowerCase() === labelSlug.toLowerCase(),
+    );
+    return {
+      labelSlug,
+      title: label ? `@${label.name}` : `@${labelSlug}`,
+    };
+  }
+
+  return { title: "Tasks" };
 }

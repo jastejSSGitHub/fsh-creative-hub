@@ -688,18 +688,88 @@ export async function getForYouItems(
   return sortForYouItems([...items.values()], now);
 }
 
+const COUNTABLE_FOR_YOU_KINDS = new Set([
+  "mention",
+  "task_mention",
+  "task_assigned",
+  "task_overdue",
+  "vote_requested",
+  "resolve_suggested",
+]);
+
+/** Lightweight badge count — parallel head-only queries instead of full inbox fetch. */
 export async function getForYouCount(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<number> {
-  const items = await getForYouItems(supabase, userId);
-  return items.filter(
-    (i) =>
-      i.kind === "mention" ||
-      i.kind === "task_mention" ||
-      i.kind === "task_assigned" ||
-      i.kind === "task_overdue" ||
-      i.kind === "vote_requested" ||
-      i.kind === "resolve_suggested",
-  ).length;
+  const [
+    { count: mentionCount },
+    { count: taskMentionCount },
+    { count: assignedCount },
+    { count: resolveCount },
+    { data: memberships },
+    { data: myVotes },
+  ] = await Promise.all([
+    supabase
+      .from("hub_comments")
+      .select("*", { count: "exact", head: true })
+      .contains("mentions", [userId])
+      .eq("resolved", false)
+      .neq("author_id", userId),
+    supabase
+      .from("hub_task_comments")
+      .select("*", { count: "exact", head: true })
+      .contains("mentions", [userId])
+      .neq("author_id", userId),
+    supabase
+      .from("hub_tasks")
+      .select("*", { count: "exact", head: true })
+      .eq("assignee_id", userId)
+      .eq("completed", false),
+    supabase
+      .from("hub_comments")
+      .select("*", { count: "exact", head: true })
+      .not("linked_task_id", "is", null)
+      .eq("resolved", false),
+    supabase.from("hub_project_members").select("project_id").eq("user_id", userId),
+    supabase.from("hub_votes").select("asset_id").eq("user_id", userId),
+  ]);
+
+  let voteRequestedCount = 0;
+  const projectIds = (memberships ?? []).map((row) => row.project_id);
+  const votedAssetIds = new Set((myVotes ?? []).map((vote) => vote.asset_id));
+
+  if (projectIds.length > 0) {
+    const { data: initiatives } = await supabase
+      .from("hub_initiatives")
+      .select("id")
+      .in("project_id", projectIds);
+
+    const initiativeIds = (initiatives ?? []).map((row) => row.id);
+    if (initiativeIds.length > 0) {
+      const { data: pendingAssets } = await supabase
+        .from("hub_assets")
+        .select("id")
+        .in("initiative_id", initiativeIds)
+        .eq("status", "pending")
+        .limit(30);
+
+      voteRequestedCount = (pendingAssets ?? []).filter(
+        (asset) => !votedAssetIds.has(asset.id),
+      ).length;
+    }
+  }
+
+  return (
+    (mentionCount ?? 0) +
+    (taskMentionCount ?? 0) +
+    (assignedCount ?? 0) +
+    (resolveCount ?? 0) +
+    voteRequestedCount
+  );
+}
+
+/** Exact count from hydrated items — use when items are already loaded. */
+export function countActionableForYouItems(items: ForYouItem[]): number {
+  return items.filter((item) => COUNTABLE_FOR_YOU_KINDS.has(item.kind)).length;
 }

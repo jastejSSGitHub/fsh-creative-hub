@@ -118,6 +118,30 @@ const CANVAS_PALETTES: FileTypeTheme[] = [
   },
 ];
 
+const TASKS_PALETTES: FileTypeTheme[] = [
+  {
+    gradient: "from-[#ecfdf5] via-[#d1fae5] to-[#a7f3d0]",
+    accent: "#059669",
+    labelPrimary: FILE_THUMB_LABEL_PRIMARY,
+    labelSecondary: "text-emerald-700/75",
+    illustrationTint: "rgba(5,150,105,0.12)",
+  },
+  {
+    gradient: "from-[#e0f2fe] via-[#bae6fd] to-[#7dd3fc]",
+    accent: "#0284c7",
+    labelPrimary: FILE_THUMB_LABEL_PRIMARY,
+    labelSecondary: "text-sky-700/75",
+    illustrationTint: "rgba(2,132,199,0.12)",
+  },
+  {
+    gradient: "from-[#f3e8ff] via-[#e9d5ff] to-[#d8b4fe]",
+    accent: "#9333ea",
+    labelPrimary: FILE_THUMB_LABEL_PRIMARY,
+    labelSecondary: "text-purple-700/75",
+    illustrationTint: "rgba(147,51,234,0.12)",
+  },
+];
+
 function hashString(value: string): number {
   let hash = 0;
   for (let index = 0; index < value.length; index += 1) {
@@ -139,6 +163,10 @@ export function getFileTypeTheme(
   return palettes[hashString(fileId) % palettes.length]!;
 }
 
+export function getTasksTheme(projectId: string): FileTypeTheme {
+  return TASKS_PALETTES[hashString(projectId) % TASKS_PALETTES.length]!;
+}
+
 export function fileTypeDisplayLines(type: HubProjectFileType): [string, string] {
   switch (type) {
     case "review_board":
@@ -150,4 +178,8 @@ export function fileTypeDisplayLines(type: HubProjectFileType): [string, string]
     default:
       return [type, ""];
   }
+}
+
+export function tasksDisplayLines(): [string, string] {
+  return ["Task", "List"];
 }

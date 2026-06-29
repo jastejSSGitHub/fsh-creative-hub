@@ -13,6 +13,7 @@ import {
 import type { SharedProjectNode } from "@/lib/inbox/sidebar-queries";
 import type { ForYouItem } from "@/lib/inbox/queries";
 import { forYouLensPath, type ForYouLens } from "@/lib/routes";
+import { writeHubTabCache } from "@/lib/hub/tab-cache";
 import { cn } from "@/lib/utils";
 
 type ForYouInboxProps = {
@@ -65,6 +66,28 @@ export function ForYouInbox({
   useEffect(() => {
     closeMobileSidebar();
   }, [lens, closeMobileSidebar]);
+
+  useEffect(() => {
+    writeHubTabCache("for-you", {
+      lens,
+      allItems,
+      items,
+      itemCounts,
+      sharedProjects,
+      userId,
+      userDisplayName,
+      userAvatarUrl,
+    });
+  }, [
+    allItems,
+    itemCounts,
+    items,
+    lens,
+    sharedProjects,
+    userAvatarUrl,
+    userDisplayName,
+    userId,
+  ]);
 
   useEffect(() => {
     if (!mobileSidebarOpen) return;
@@ -190,7 +213,7 @@ export function ForYouInbox({
           </nav>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="fsh-scroll flex-1 overflow-y-auto">
           <ForYouList items={items} lens={lens} />
         </div>
       </div>

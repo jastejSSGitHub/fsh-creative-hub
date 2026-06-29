@@ -146,7 +146,7 @@ export function ForYouSidebar({
 
         <div className="mx-3 my-2 border-t border-hub-foreground/8" role="separator" />
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
+        <div className="fsh-scroll min-h-0 flex-1 overflow-y-auto px-2 pb-4">
           <p className="px-2.5 py-1.5 text-xs font-semibold text-hub-foreground/55">
             Shared with me
           </p>

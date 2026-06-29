@@ -7,13 +7,16 @@ import { GrainOverlay } from "@/components/landing/grain-overlay";
 import { cn } from "@/lib/utils";
 
 type FeatureIllustrationFrameProps = {
-  gradientClassName: string;
+  /** @deprecated Prefer `backgroundImage` for landing art experiments. */
+  gradientClassName?: string;
+  backgroundImage?: string;
   children: ReactNode;
   className?: string;
 };
 
 export function FeatureIllustrationFrame({
   gradientClassName,
+  backgroundImage,
   children,
   className,
 }: FeatureIllustrationFrameProps) {
@@ -32,8 +35,17 @@ export function FeatureIllustrationFrame({
       <div
         className={cn(
           "relative w-full overflow-hidden rounded-md p-5 shadow-[0_24px_64px_rgba(11,11,11,0.12)] sm:p-6 md:p-8",
-          gradientClassName,
+          !backgroundImage && gradientClassName,
         )}
+        style={
+          backgroundImage
+            ? {
+                backgroundImage: `url(${backgroundImage})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }
+            : undefined
+        }
       >
         <GrainOverlay variant="frame" animated={false} />
         <div className="relative z-[2]">{children}</div>

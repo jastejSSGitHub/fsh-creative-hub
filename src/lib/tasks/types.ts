@@ -8,6 +8,7 @@ export type TasksViewKind =
   | "today"
   | "upcoming"
   | "inbox"
+  | "browse"
   | "project"
   | "label"
   | "filter";

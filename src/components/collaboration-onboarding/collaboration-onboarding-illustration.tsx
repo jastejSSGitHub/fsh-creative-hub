@@ -4,8 +4,34 @@ import { motion, useReducedMotion } from "framer-motion";
 import { Check, Lock, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { memberInitials } from "@/components/projects/member-avatar";
 import type { CollaborationOnboardingIllustration } from "@/lib/collaboration-onboarding/types";
+import { memberAvatarColor } from "@/lib/hub/member-avatar-color";
 import { cn } from "@/lib/utils";
+
+function MiniActorAvatar({
+  displayName,
+  colorSeed,
+  stacked = false,
+}: {
+  displayName: string;
+  colorSeed: string;
+  stacked?: boolean;
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex shrink-0 items-center justify-center rounded-full font-mono font-semibold text-white",
+        stacked
+          ? "relative size-3.5 border-2 border-white text-[0.4375rem]"
+          : "size-4 text-[0.4375rem]",
+      )}
+      style={{ backgroundColor: memberAvatarColor(colorSeed) }}
+    >
+      {memberInitials(displayName)}
+    </span>
+  );
+}
 
 type CollaborationOnboardingIllustrationProps = {
   variant: CollaborationOnboardingIllustration;
@@ -51,9 +77,27 @@ function NeedsYouFeedPreview({ reduced }: { reduced: boolean }) {
   }, [reduced]);
 
   const rows = [
-    { label: "@mention on Summer Poster", badge: "Mention", tone: "primary" as const },
-    { label: "Fix headline", badge: "Overdue", tone: "danger" as const },
-    { label: "Menu v3", badge: "Your vote", tone: "final" as const },
+    {
+      label: "@mention on Summer Poster",
+      badge: "Mention",
+      tone: "primary" as const,
+      actorName: "Preeti",
+      actorSeed: "preeti",
+    },
+    {
+      label: "Fix headline",
+      badge: "Overdue",
+      tone: "danger" as const,
+      actorName: "Sandeep",
+      actorSeed: "sandeep",
+    },
+    {
+      label: "Menu v3",
+      badge: "Your vote",
+      tone: "final" as const,
+      actorName: "Creative Hub",
+      actorSeed: "system",
+    },
   ];
 
   const order = phase >= 2 ? [1, 0, 2] : [0, 1, 2];
@@ -75,7 +119,7 @@ function NeedsYouFeedPreview({ reduced }: { reduced: boolean }) {
               transition={{ delay: i * 0.06, duration: 0.35 }}
               className="flex items-center gap-1.5 rounded-[4px] border border-hub-foreground/8 bg-hub-surface-muted/40 px-1.5 py-1"
             >
-              <span className="size-4 shrink-0 rounded-full bg-hub-foreground/10" />
+              <MiniActorAvatar displayName={row.actorName} colorSeed={row.actorSeed} />
               <span className="min-w-0 flex-1 truncate text-[0.625rem] font-medium text-hub-foreground/80">
                 {row.label}
               </span>
@@ -99,6 +143,11 @@ function NeedsYouFeedPreview({ reduced }: { reduced: boolean }) {
 
 function PrivacyFeedPreview({ reduced }: { reduced: boolean }) {
   const [checked, setChecked] = useState(false);
+  const teamMembers = [
+    { displayName: "Sandeep", colorSeed: "sandeep" },
+    { displayName: "Preeti", colorSeed: "preeti" },
+    { displayName: "Alex", colorSeed: "alex" },
+  ] as const;
 
   useEffect(() => {
     if (reduced) {
@@ -140,8 +189,13 @@ function PrivacyFeedPreview({ reduced }: { reduced: boolean }) {
           <Users className="size-2.5" /> Project
         </div>
         <div className="flex -space-x-1">
-          {[0, 1, 2].map((i) => (
-            <span key={i} className="size-3.5 rounded-full border border-white bg-hub-primary/30" />
+          {teamMembers.map((member) => (
+            <MiniActorAvatar
+              key={member.colorSeed}
+              displayName={member.displayName}
+              colorSeed={member.colorSeed}
+              stacked
+            />
           ))}
         </div>
         <p className="mt-1 truncate text-[0.625rem] text-hub-foreground/75">Team task</p>
@@ -251,7 +305,7 @@ function TriagePreview({ reduced }: { reduced: boolean }) {
         transition={{ duration: 2, repeat: Infinity, repeatDelay: 0.5 }}
         className="flex items-center gap-1.5 rounded-[4px] border border-hub-foreground/10 px-2 py-1.5"
       >
-        <span className="size-4 rounded-full bg-hub-foreground/10" />
+        <MiniActorAvatar displayName="Preeti" colorSeed="preeti" />
         <span className="flex-1 text-[0.625rem] text-hub-foreground/70">@mention item</span>
         <span className="text-[0.5rem] text-hub-foreground/40">Snooze</span>
       </motion.div>

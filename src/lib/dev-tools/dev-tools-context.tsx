@@ -27,6 +27,7 @@ import {
   writeMockCollaborationData,
   writeSimulateNewUser,
 } from "@/lib/dev-tools/storage";
+import { resetMockShareLinkOverrides } from "@/lib/dev-tools/mock-collaboration-data";
 
 const UNLOCK_CLICKS = 7;
 const UNLOCK_CLICK_WINDOW_MS = 2500;
@@ -103,6 +104,7 @@ export function DevToolsProvider({
     writeDevToolsUnlocked(false);
     writeSimulateNewUser(false);
     writeMockCollaborationData(false);
+    resetMockShareLinkOverrides();
     setUnlocked(false);
     setSimulateNewUserState(false);
     setMockCollaborationDataState(false);
@@ -125,6 +127,10 @@ export function DevToolsProvider({
       writeMockCollaborationData(on);
       setMockCollaborationDataState(on);
       dispatchDevToolsMockCollaborationChanged(on);
+
+      if (!on) {
+        resetMockShareLinkOverrides();
+      }
 
       if (on) {
         resetCollaborationOnboarding(userId);

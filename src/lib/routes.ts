@@ -21,11 +21,29 @@ export function isMarketingLightPath(pathname: string): boolean {
 }
 export const LOGIN_PATH = "/login" as const;
 export const PROJECTS_PATH = "/projects" as const;
+
+/** Project grid hub tab — `/projects` only, not project detail routes. */
+export function isProjectsGridPath(pathname: string): boolean {
+  return pathname === PROJECTS_PATH;
+}
 export const FOR_YOU_PATH = "/for-you" as const;
 export const TASKS_PATH = "/tasks" as const;
 export const TASKS_TODAY_PATH = "/tasks/today" as const;
 export const TASKS_UPCOMING_PATH = "/tasks/upcoming" as const;
 export const TASKS_INBOX_PATH = "/tasks/inbox" as const;
+
+const TASKS_PRIMARY_VIEW_PATHS = [
+  TASKS_TODAY_PATH,
+  TASKS_UPCOMING_PATH,
+  TASKS_INBOX_PATH,
+] as const;
+
+/** Mobile “Browse” tab — filters, labels, and other non-primary task views. */
+export function isTasksBrowsePath(pathname: string): boolean {
+  if (pathname === TASKS_PATH) return true;
+  if (!pathname.startsWith(`${TASKS_PATH}/`)) return false;
+  return !(TASKS_PRIMARY_VIEW_PATHS as readonly string[]).includes(pathname);
+}
 export const SHARE_PATH_PREFIX = "/share" as const;
 
 export function sharePath(token: string): `/share/${string}` {
@@ -44,6 +62,79 @@ export function projectTasksPath(
   projectId: string,
 ): `/projects/${string}/tasks` {
   return `/projects/${projectId}/tasks`;
+}
+
+export type ProjectTasksSubview = "today" | "upcoming";
+
+export type ProjectTasksScopeParams = {
+  filter?: string;
+  label?: string;
+  view?: ProjectTasksSubview;
+  task?: string;
+};
+
+/** Project tasks URL with optional in-project filter, label, or view scope. */
+export function projectTasksScopedPath(
+  projectId: string,
+  params?: ProjectTasksScopeParams,
+): string {
+  const base = projectTasksPath(projectId);
+  if (!params) return base;
+
+  const query = new URLSearchParams();
+  if (params.filter) query.set("filter", params.filter);
+  if (params.label) query.set("label", params.label);
+  if (params.view) query.set("view", params.view);
+  if (params.task) query.set("task", params.task);
+
+  const serialized = query.toString();
+  return serialized ? `${base}?${serialized}` : base;
+}
+
+export function projectTasksFilterPath(
+  projectId: string,
+  filterId: string,
+): string {
+  return projectTasksScopedPath(projectId, { filter: filterId });
+}
+
+export function projectTasksLabelPath(projectId: string, slug: string): string {
+  return projectTasksScopedPath(projectId, { label: slug });
+}
+
+export function projectTasksViewPath(
+  projectId: string,
+  view: ProjectTasksSubview,
+): string {
+  return projectTasksScopedPath(projectId, { view });
+}
+
+export function isProjectTasksPath(pathname: string): boolean {
+  return /^\/projects\/[^/]+\/tasks$/.test(pathname);
+}
+
+/** Global tasks workspace or project-scoped tasks board. */
+export function isTasksHubPath(pathname: string): boolean {
+  if (pathname === TASKS_PATH || pathname.startsWith(`${TASKS_PATH}/`)) {
+    return true;
+  }
+  return isProjectTasksPath(pathname);
+}
+
+export type HubRootTab = "projects" | "for-you" | "tasks";
+
+export function pathnameFromHubHref(href: string): string {
+  return href.split("?")[0]?.split("#")[0] ?? href;
+}
+
+export function hubRootTabFromPathname(pathname: string): HubRootTab {
+  if (pathname.startsWith(FOR_YOU_PATH)) return "for-you";
+  if (isTasksHubPath(pathname)) return "tasks";
+  return "projects";
+}
+
+export function hubRootTabFromHref(href: string): HubRootTab {
+  return hubRootTabFromPathname(pathnameFromHubHref(href));
 }
 
 export function tasksLabelPath(slug: string): `/tasks/labels/${string}` {

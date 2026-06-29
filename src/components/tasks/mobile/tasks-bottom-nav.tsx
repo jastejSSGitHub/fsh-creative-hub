@@ -9,6 +9,7 @@ import {
   TASKS_PATH,
   TASKS_TODAY_PATH,
   TASKS_UPCOMING_PATH,
+  isTasksBrowsePath,
 } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
@@ -51,7 +52,10 @@ export function TasksBottomNav() {
     >
       <div className="grid grid-cols-4">
         {LINKS.map((link) => {
-          const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
+          const active =
+            link.href === TASKS_PATH
+              ? isTasksBrowsePath(pathname ?? "")
+              : pathname === link.href;
           return (
             <Link
               key={link.href}

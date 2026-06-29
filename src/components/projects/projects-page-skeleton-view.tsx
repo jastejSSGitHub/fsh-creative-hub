@@ -3,8 +3,15 @@ import {
   type ProjectCardSnapshot,
   type ProjectsPageSnapshot,
 } from "@/lib/projects/snapshot";
+import { LoadingAffirmation } from "@/components/hub/loading-affirmation";
 import { SkeletonBone, SkeletonMediaSurface } from "@/components/ui/skeleton-primitives";
 import { cn } from "@/lib/utils";
+
+const PROJECTS_LOADING_MESSAGES = [
+  "Opening your projects…",
+  "Loading recent work…",
+  "Almost there…",
+] as const;
 
 const TITLE_WIDTH_CLASS: Record<ProjectCardSnapshot["titleWidth"], string> = {
   sm: "w-24",
@@ -105,6 +112,10 @@ export function ProjectsPageSkeletonView({
       ) : (
         renderCardGrid(allCards)
       )}
+
+      <div className="pt-4">
+        <LoadingAffirmation messages={PROJECTS_LOADING_MESSAGES} />
+      </div>
     </section>
   );
 }
