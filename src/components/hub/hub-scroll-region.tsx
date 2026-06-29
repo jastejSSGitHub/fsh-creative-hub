@@ -2,25 +2,16 @@
 
 import { usePathname } from "next/navigation";
 
-import { FOR_YOU_PATH } from "@/lib/routes";
-import { isCanvasPath, isHubDetailPath } from "@/lib/routes";
+import { isCanvasPath, usesHubFillScrollLayout } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
 type HubScrollRegionProps = {
   children: React.ReactNode;
 };
 
-function usesFillLayout(pathname: string) {
-  return (
-    isHubDetailPath(pathname) ||
-    isCanvasPath(pathname) ||
-    pathname.startsWith(FOR_YOU_PATH)
-  );
-}
-
 export function HubScrollRegion({ children }: HubScrollRegionProps) {
   const pathname = usePathname() ?? "";
-  const fillLayout = usesFillLayout(pathname);
+  const fillLayout = usesHubFillScrollLayout(pathname);
   const hideBottomNav = isCanvasPath(pathname);
 
   return (

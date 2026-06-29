@@ -193,6 +193,11 @@ export function isCanvasPath(pathname: string): boolean {
   return CANVAS_PATH_RE.test(pathname);
 }
 
+/** Routes that manage their own internal scroll instead of the hub shell scroller. */
+export function usesHubFillScrollLayout(pathname: string): boolean {
+  return isCanvasPath(pathname) || pathname.startsWith(FOR_YOU_PATH);
+}
+
 export type ForYouLens =
   | "needs-you"
   | "waiting-on-others"
