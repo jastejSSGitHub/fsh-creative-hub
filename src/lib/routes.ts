@@ -1,11 +1,23 @@
 export const LANDING_PATH = "/" as const;
 export const LANDING_ALIAS_PATH = "/landing" as const;
+export const DOCS_PATH = "/docs" as const;
 
 /** Routes that always render in light mode (marketing / public landing). */
 export const LANDING_PATHS = [LANDING_PATH, LANDING_ALIAS_PATH] as const;
 
+export const DOCS_PATH_PREFIX = "/docs" as const;
+
+export function isDocsPath(pathname: string): boolean {
+  return pathname === DOCS_PATH_PREFIX || pathname.startsWith(`${DOCS_PATH_PREFIX}/`);
+}
+
 export function isLandingPath(pathname: string): boolean {
   return (LANDING_PATHS as readonly string[]).includes(pathname);
+}
+
+/** Marketing and public docs routes always render in light mode. */
+export function isMarketingLightPath(pathname: string): boolean {
+  return isLandingPath(pathname) || isDocsPath(pathname);
 }
 export const LOGIN_PATH = "/login" as const;
 export const PROJECTS_PATH = "/projects" as const;

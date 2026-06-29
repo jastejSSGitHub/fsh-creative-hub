@@ -3,13 +3,13 @@
 import { usePathname } from "next/navigation";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 
-import { isLandingPath } from "@/lib/routes";
+import { isMarketingLightPath } from "@/lib/routes";
 
 const THEME_STORAGE_KEY = "hub.theme";
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const forceLight = isLandingPath(pathname);
+  const forceLight = isMarketingLightPath(pathname);
 
   return (
     <NextThemesProvider

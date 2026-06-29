@@ -1,9 +1,22 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
-import { LANDING_PATH, LOGIN_PATH, PROJECTS_PATH, isSharePath } from "@/lib/routes";
+import {
+  LANDING_PATH,
+  LOGIN_PATH,
+  PROJECTS_PATH,
+  isDocsPath,
+  isSharePath,
+} from "@/lib/routes";
 
 export async function updateSession(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Docs are fully public — skip Supabase session refresh to avoid hangs.
+  if (isDocsPath(pathname)) {
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -33,8 +46,6 @@ export async function updateSession(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  const { pathname } = request.nextUrl;
 
   const authCode = request.nextUrl.searchParams.get("code");
   if (authCode && !pathname.startsWith("/auth/callback")) {
