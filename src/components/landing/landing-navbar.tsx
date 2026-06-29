@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { PrimaryCta } from "@/components/landing/primary-cta";
+import { LANDING_SCROLL_ID, scrollElementTo } from "@/lib/scroll-container";
 import { cn } from "@/lib/utils";
 
 const NAV_LINKS: ReadonlyArray<{
@@ -30,7 +31,8 @@ export function LandingNavbar({ isLoggedIn }: LandingNavbarProps) {
   const ticking = useRef(false);
 
   const updateVisibility = useCallback(() => {
-    const currentY = window.scrollY;
+    const scrollRoot = document.getElementById(LANDING_SCROLL_ID);
+    const currentY = scrollRoot?.scrollTop ?? window.scrollY;
     const delta = currentY - lastScrollY.current;
 
     if (currentY < 48) {
@@ -47,6 +49,8 @@ export function LandingNavbar({ isLoggedIn }: LandingNavbarProps) {
   }, []);
 
   useEffect(() => {
+    const scrollRoot = document.getElementById(LANDING_SCROLL_ID);
+
     function onScroll() {
       if (!ticking.current) {
         ticking.current = true;
@@ -54,16 +58,24 @@ export function LandingNavbar({ isLoggedIn }: LandingNavbarProps) {
       }
     }
 
+    scrollRoot?.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    return () => {
+      scrollRoot?.removeEventListener("scroll", onScroll);
+      window.removeEventListener("scroll", onScroll);
+    };
   }, [updateVisibility]);
 
   useEffect(() => {
     if (!menuOpen) return;
-    const previous = document.body.style.overflow;
+    const scrollRoot = document.getElementById(LANDING_SCROLL_ID);
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousScrollOverflow = scrollRoot?.style.overflow ?? "";
     document.body.style.overflow = "hidden";
+    if (scrollRoot) scrollRoot.style.overflow = "hidden";
     return () => {
-      document.body.style.overflow = previous;
+      document.body.style.overflow = previousBodyOverflow;
+      if (scrollRoot) scrollRoot.style.overflow = previousScrollOverflow;
     };
   }, [menuOpen]);
 
@@ -75,7 +87,11 @@ export function LandingNavbar({ isLoggedIn }: LandingNavbarProps) {
     event.preventDefault();
     setMenuOpen(false);
     const target = document.querySelector(href);
-    target?.scrollIntoView({ behavior: prefersReducedMotion ? "auto" : "smooth" });
+    if (target instanceof HTMLElement) {
+      scrollElementTo(target, {
+        behavior: prefersReducedMotion ? "auto" : "smooth",
+      });
+    }
   }
 
   return (

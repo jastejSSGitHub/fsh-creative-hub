@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, useInView, useReducedMotion } from "framer-motion";
+import { FolderKanban } from "lucide-react";
 import Image from "next/image";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
@@ -118,10 +119,29 @@ const PICK_LOOP_MS = 5800;
 const DROP_LOOP_MS = 7000;
 const CONSENSUS_LOOP_MS = 6200;
 
-const PICK_SWATCHES = [
-  "from-[#E85D4C] to-[#F4A261]",
-  "from-[#2A9D8F] to-[#48CAE4]",
-  "from-[#7B2CBF] to-[#C77DFF]",
+const PICK_PROJECTS = [
+  {
+    name: "new coffee brand",
+    coverUrl: "/media/projects_thumbnails/blenz_thumbnail.png",
+    edited: "3d ago",
+    assetCount: 24,
+    dim: true,
+  },
+  {
+    name: "Spring Campaign",
+    coverUrl: "/media/capabilities/presentation/presentation2.png",
+    edited: "2d ago",
+    assetCount: 8,
+    selected: true,
+    dim: false,
+  },
+  {
+    name: "new supplement store",
+    coverUrl: "/media/projects_thumbnails/healthy-cart-canada.png",
+    edited: "1w ago",
+    assetCount: 16,
+    dim: true,
+  },
 ] as const;
 
 type LoopEvent<T> = {
@@ -265,12 +285,6 @@ function PickProjectVisual({ reduced }: { reduced: boolean }) {
     inView,
   );
 
-  const projects = [
-    { name: "Q1 Launch", dim: true },
-    { name: "Spring Campaign", dim: false, selected: true },
-    { name: "Brand Refresh", dim: true },
-  ];
-
   return (
     <VisualFrame accentClass="from-[#F8F2FF] to-white">
       <div ref={ref} className="flex h-full flex-col p-3.5 sm:p-4">
@@ -280,12 +294,12 @@ function PickProjectVisual({ reduced }: { reduced: boolean }) {
 
         <div className="relative mt-2 flex flex-1 items-center justify-center">
           <div className="grid w-full grid-cols-3 gap-1.5">
-            {projects.map((project, i) => {
-              const isTarget = project.selected;
+            {PICK_PROJECTS.map((project) => {
+              const isTarget = "selected" in project && project.selected;
               const isSelected = isTarget && phase === "select";
 
               return (
-                <motion.div
+                <motion.article
                   key={project.name}
                   initial={false}
                   animate={{
@@ -299,34 +313,51 @@ function PickProjectVisual({ reduced }: { reduced: boolean }) {
                     damping: 22,
                   }}
                   className={cn(
-                    "relative border bg-hub-surface p-2 shadow-sm",
-                    uiCardClass,
+                    "relative flex flex-col overflow-hidden rounded-md border bg-hub-surface shadow-sm",
                     isSelected
-                      ? "border-hub-accent ring-2 ring-hub-accent/45 shadow-[0_8px_24px_rgba(255,201,75,0.28)]"
+                      ? "border-hub-primary ring-2 ring-hub-primary/35 shadow-[0_8px_24px_rgba(255,201,75,0.28)]"
                       : "border-hub-foreground/10",
                   )}
                 >
-                  <div
-                    className={cn(
-                      "h-5 bg-gradient-to-br",
-                      PICK_SWATCHES[i],
-                      uiCardClass,
-                    )}
-                  />
-                  <p className="mt-1.5 truncate text-[0.5rem] font-semibold text-hub-foreground/80">
-                    {project.name}
-                  </p>
+                  <div className="relative aspect-[16/10] overflow-hidden bg-hub-foreground/5">
+                    <Image
+                      src={project.coverUrl}
+                      alt=""
+                      fill
+                      sizes="80px"
+                      className="object-cover"
+                      draggable={false}
+                    />
+                  </div>
+
+                  <div className="space-y-0.5 border-t border-hub-foreground/8 bg-hub-foreground/[0.03] p-1.5">
+                    <div className="flex items-start gap-1">
+                      <div className="mt-px flex size-3 shrink-0 items-center justify-center rounded bg-hub-accent/15 text-hub-accent">
+                        <FolderKanban className="size-2" aria-hidden />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h2 className="truncate font-display text-[0.45rem] font-extrabold leading-tight tracking-tight text-hub-foreground">
+                          {project.name}
+                        </h2>
+                        <p className="text-[0.35rem] text-hub-foreground/55">{project.edited}</p>
+                        <p className="text-[0.35rem] text-hub-foreground/45">
+                          {project.assetCount} assets
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
                   {isSelected ? (
                     <motion.span
                       initial={false}
                       animate={{ scale: 1, rotate: 0 }}
                       transition={{ type: "spring", stiffness: 500, damping: 18 }}
-                      className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-hub-approved text-[0.45rem] text-white shadow-sm"
+                      className="absolute -right-1 -top-1 z-10 flex size-4 items-center justify-center rounded-full bg-hub-approved text-[0.45rem] text-white shadow-sm"
                     >
                       ✓
                     </motion.span>
                   ) : null}
-                </motion.div>
+                </motion.article>
               );
             })}
           </div>

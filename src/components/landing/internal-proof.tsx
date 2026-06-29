@@ -30,6 +30,14 @@ export function InternalProof() {
           <p className="mt-3 font-mono text-[0.7rem] uppercase tracking-[0.18em] text-hub-foreground/45">
             For the FSH design team.
           </p>
+          <a
+            href="/docs"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-6 font-mono text-[0.65rem] uppercase tracking-[0.14em] text-hub-foreground/50 underline-offset-4 transition-colors hover:text-hub-primary hover:underline"
+          >
+            See how it&apos;s built → Documentation
+          </a>
         </div>
       </ScrollReveal>
     </section>

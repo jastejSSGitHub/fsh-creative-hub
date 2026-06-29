@@ -19,6 +19,7 @@
   --color-hub-surface-subtle: var(--hub-surface-subtle);
   --color-hub-approved: var(--hub-approved);
   --color-hub-rejected: var(--hub-rejected);
+  --color-hub-overdue: var(--hub-overdue);
   --color-hub-pending: var(--hub-pending);
   --color-hub-final: var(--hub-final);
   --color-hub-accent: var(--hub-accent);
@@ -81,6 +82,7 @@
   --hub-primary: #18a0fb;
   --hub-approved: #22c55e;
   --hub-rejected: #ef4444;
+  --hub-overdue: #9a6560;
   --hub-pending: #c2410c;
   --hub-final: #ffc94b;
   --hub-skeleton: color-mix(in srgb, var(--hub-espresso) 7%, transparent);
@@ -126,6 +128,7 @@
   color-scheme: dark;
   --hub-paper: #0c0c0c;
   --hub-foreground: #e8e8e8;
+  --hub-overdue: #c49a94;
   --hub-pending: #f97316;
   --hub-surface: #1e1e1e;
   --hub-surface-muted: #161616;
@@ -588,59 +591,149 @@
     background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='16' ry='16' stroke='%23a67c00' stroke-opacity='0.55' stroke-width='1.5' stroke-dasharray='14%2c 10' stroke-linecap='round'/%3e%3c/svg%3e");
   }
 
-  html.landing-scroll {
-    --landing-scrollbar-thumb: color-mix(
+  /* On-brand scrollbars — transparent track, minimal thumb only */
+  .fsh-scroll {
+    --fsh-scrollbar-thumb: color-mix(
       in srgb,
-      var(--hub-espresso) 22%,
+      var(--hub-espresso) 18%,
+      transparent
+    );
+    --fsh-scrollbar-thumb-hover: color-mix(
+      in srgb,
+      var(--hub-espresso) 32%,
       var(--hub-paper)
     );
-    --landing-scrollbar-thumb-hover: color-mix(
+    --fsh-scrollbar-thumb-active: color-mix(
       in srgb,
-      var(--hub-espresso) 38%,
-      var(--hub-paper)
-    );
-    --landing-scrollbar-thumb-active: color-mix(
-      in srgb,
-      var(--hub-accent) 70%,
+      var(--hub-primary) 55%,
       var(--hub-espresso)
     );
     scrollbar-width: thin;
-    scrollbar-color: var(--landing-scrollbar-thumb) transparent;
+    scrollbar-color: var(--fsh-scrollbar-thumb) transparent;
   }
 
-  html.landing-scroll::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
+  .fsh-scroll::-webkit-scrollbar {
+    width: 3px;
+    height: 3px;
   }
 
-  html.landing-scroll::-webkit-scrollbar-track {
+  .fsh-scroll::-webkit-scrollbar-track {
     background: transparent;
   }
 
-  html.landing-scroll::-webkit-scrollbar-thumb {
-    background-color: var(--landing-scrollbar-thumb);
+  .fsh-scroll::-webkit-scrollbar-thumb {
+    background-color: var(--fsh-scrollbar-thumb);
     border-radius: 999px;
   }
 
-  html.landing-scroll::-webkit-scrollbar-thumb:hover {
-    background-color: var(--landing-scrollbar-thumb-hover);
+  .fsh-scroll::-webkit-scrollbar-thumb:hover {
+    background-color: var(--fsh-scrollbar-thumb-hover);
   }
 
-  html.landing-scroll::-webkit-scrollbar-thumb:active {
-    background-color: var(--landing-scrollbar-thumb-active);
+  .fsh-scroll::-webkit-scrollbar-thumb:active {
+    background-color: var(--fsh-scrollbar-thumb-active);
   }
 
-  html.landing-scroll::-webkit-scrollbar-corner {
+  .fsh-scroll::-webkit-scrollbar-corner {
     background: transparent;
+  }
+
+  .fsh-scroll::-webkit-scrollbar-button {
+    display: none;
+    height: 0;
+    width: 0;
+  }
+
+  html.landing-scroll,
+  html.docs-scroll {
+    --fsh-scrollbar-thumb: color-mix(
+      in srgb,
+      var(--hub-espresso) 18%,
+      transparent
+    );
+    --fsh-scrollbar-thumb-hover: color-mix(
+      in srgb,
+      var(--hub-espresso) 32%,
+      var(--hub-paper)
+    );
+    --fsh-scrollbar-thumb-active: color-mix(
+      in srgb,
+      var(--hub-primary) 55%,
+      var(--hub-espresso)
+    );
+    scrollbar-width: thin;
+    scrollbar-color: var(--fsh-scrollbar-thumb) transparent;
+  }
+
+  html.landing-scroll::-webkit-scrollbar,
+  html.docs-scroll::-webkit-scrollbar {
+    width: 3px;
+    height: 3px;
+  }
+
+  html.landing-scroll::-webkit-scrollbar-track,
+  html.docs-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  html.landing-scroll::-webkit-scrollbar-thumb,
+  html.docs-scroll::-webkit-scrollbar-thumb {
+    background-color: var(--fsh-scrollbar-thumb);
+    border-radius: 999px;
+  }
+
+  html.landing-scroll::-webkit-scrollbar-thumb:hover,
+  html.docs-scroll::-webkit-scrollbar-thumb:hover {
+    background-color: var(--fsh-scrollbar-thumb-hover);
+  }
+
+  html.landing-scroll::-webkit-scrollbar-thumb:active,
+  html.docs-scroll::-webkit-scrollbar-thumb:active {
+    background-color: var(--fsh-scrollbar-thumb-active);
+  }
+
+  html.landing-scroll::-webkit-scrollbar-corner,
+  html.docs-scroll::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  .docs-subtle-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--hub-espresso) 18%, transparent)
+      transparent;
+  }
+
+  .docs-subtle-scrollbar::-webkit-scrollbar {
+    width: 3px;
+    height: 3px;
+  }
+
+  .docs-subtle-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .docs-subtle-scrollbar::-webkit-scrollbar-thumb {
+    background-color: color-mix(in srgb, var(--hub-espresso) 18%, transparent);
+    border-radius: 999px;
+  }
+
+  .docs-subtle-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in srgb, var(--hub-espresso) 32%, var(--hub-paper));
+  }
+
+  .docs-subtle-scrollbar::-webkit-scrollbar-button {
+    display: none;
+    height: 0;
+    width: 0;
   }
 
   .hub-subtle-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+    scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
   }
 
   .hub-subtle-scrollbar::-webkit-scrollbar {
-    width: 5px;
+    width: 3px;
   }
 
   .hub-subtle-scrollbar::-webkit-scrollbar-track {
@@ -648,12 +741,12 @@
   }
 
   .hub-subtle-scrollbar::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 255, 255, 0.18);
+    background-color: rgba(255, 255, 255, 0.16);
     border-radius: 999px;
   }
 
   .hub-subtle-scrollbar::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(255, 255, 255, 0.28);
+    background-color: rgba(255, 255, 255, 0.26);
   }
 
   .hub-subtle-scrollbar::-webkit-scrollbar-button {
