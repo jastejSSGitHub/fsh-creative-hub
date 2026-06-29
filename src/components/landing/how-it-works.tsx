@@ -27,7 +27,7 @@ const STEPS = [
 
 export function HowItWorks() {
   return (
-    <section className="border-t border-hub-foreground/8 bg-hub-paper px-5 py-20 sm:px-8 sm:py-28">
+    <section id="how-it-works" className="border-t border-hub-foreground/8 bg-hub-paper px-5 py-20 sm:px-8 sm:py-28 scroll-mt-24">
       <div className="mx-auto max-w-6xl">
         <div className="grid gap-12 md:grid-cols-3 md:gap-8 lg:gap-12">
           {STEPS.map((step, index) => (

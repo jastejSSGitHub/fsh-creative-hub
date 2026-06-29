@@ -3,6 +3,7 @@
 import { motion, useReducedMotion } from "framer-motion";
 import type { ReactNode } from "react";
 
+import { GrainOverlay } from "@/components/landing/grain-overlay";
 import { cn } from "@/lib/utils";
 
 type FeatureIllustrationFrameProps = {
@@ -34,7 +35,8 @@ export function FeatureIllustrationFrame({
           gradientClassName,
         )}
       >
-        {children}
+        <GrainOverlay variant="frame" animated={false} />
+        <div className="relative z-[2]">{children}</div>
       </div>
     </motion.div>
   );

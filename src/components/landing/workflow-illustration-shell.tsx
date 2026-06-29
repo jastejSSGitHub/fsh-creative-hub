@@ -81,66 +81,86 @@ export function WorkflowIllustrationShell({
 export const workflowTitleClass =
   "text-[0.7rem] font-semibold text-hub-foreground";
 
+export const workflowRowCardClass =
+  "rounded-sm border border-hub-foreground/10 bg-hub-surface px-2.5 py-1.5 shadow-sm";
+
 type WorkflowStackedRowsProps = {
   children: ReactNode;
-  /** Show a soft fade at the bottom when content stacks (e.g. peeking third row). */
-  fadeBottom?: boolean;
+  /** Faded third row — clipped and dissolved, not hard-cut. */
+  peek?: ReactNode;
   className?: string;
 };
 
-/** Vertical list area with optional bottom fade for stacked feed-style rows. */
+/**
+ * Two primary rows plus an optional peek row that fades out smoothly
+ * (no harsh mid-card clip).
+ */
 export function WorkflowStackedRows({
   children,
-  fadeBottom = false,
+  peek,
   className,
 }: WorkflowStackedRowsProps) {
   return (
-    <div className={cn("relative min-h-0 flex-1", className)}>
+    <div className={cn("relative flex min-h-0 flex-1 flex-col", className)}>
       <div className="space-y-1.5">{children}</div>
-      {fadeBottom ? (
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-hub-paper via-hub-paper/90 to-transparent"
-        />
-      ) : null}
+      {peek ? <WorkflowPeekSlot>{peek}</WorkflowPeekSlot> : null}
     </div>
   );
 }
 
-type WorkflowSkeletonRowProps = {
+function WorkflowPeekSlot({ children }: { children: ReactNode }) {
+  return (
+    <div className="relative mt-1.5 h-[2.4rem] shrink-0 overflow-hidden">
+      <div className="opacity-[0.38] saturate-[0.9]">{children}</div>
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/5 via-white/55 to-white"
+      />
+    </div>
+  );
+}
+
+type WorkflowPeekRowProps = {
   badge: string;
   badgeClass: string;
+  title: string;
+  meta?: string;
+  showDot?: boolean;
   className?: string;
 };
 
-/** Peek row: skeleton lines + fade so focus stays on the rows above. */
-export function WorkflowSkeletonRow({
+/** Low-emphasis row content for the peek slot (matches full rows, softer). */
+export function WorkflowPeekRow({
   badge,
   badgeClass,
+  title,
+  meta,
+  showDot = false,
   className,
-}: WorkflowSkeletonRowProps) {
+}: WorkflowPeekRowProps) {
   return (
-    <div
-      className={cn(
-        "relative overflow-hidden border border-hub-foreground/8 bg-hub-surface/80 px-2.5 py-2 shadow-sm",
-        "rounded-sm",
-        className,
-      )}
-    >
-      <span
-        className={cn(
-          "inline-block rounded px-1.5 py-px font-mono text-[0.4rem] font-semibold uppercase tracking-wide opacity-70",
-          badgeClass,
-        )}
-      >
-        {badge}
-      </span>
-      <div className="mt-1.5 h-2 w-[72%] animate-pulse rounded-sm bg-hub-foreground/10" />
-      <div className="mt-1 h-1.5 w-[48%] animate-pulse rounded-sm bg-hub-foreground/[0.06]" />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-white/30 to-hub-paper"
-      />
+    <div className={cn(workflowRowCardClass, "border-hub-foreground/8 bg-hub-surface/90", className)}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <span
+            className={cn(
+              "inline-block rounded px-1.5 py-px font-mono text-[0.4rem] font-semibold uppercase tracking-wide",
+              badgeClass,
+            )}
+          >
+            {badge}
+          </span>
+          <p className="mt-0.5 truncate text-[0.62rem] font-semibold text-hub-foreground/80">
+            {title}
+          </p>
+          {meta ? (
+            <p className="font-mono text-[0.45rem] text-hub-foreground/35">{meta}</p>
+          ) : null}
+        </div>
+        {showDot ? (
+          <span className="mt-1 size-1.5 shrink-0 rounded-full bg-hub-primary/60" />
+        ) : null}
+      </div>
     </div>
   );
 }

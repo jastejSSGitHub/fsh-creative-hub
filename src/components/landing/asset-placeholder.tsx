@@ -1,3 +1,4 @@
+import { GrainOverlay } from "@/components/landing/grain-overlay";
 import { cn } from "@/lib/utils";
 
 const THUMB_PALETTES = [
@@ -46,9 +47,10 @@ export function AssetPlaceholder({
           palette,
         )}
       />
-      <div className="absolute inset-0 bg-black/10" />
+      <GrainOverlay variant="frame" animated={false} />
+      <div className="absolute inset-0 z-[2] bg-black/10" />
       {label ? (
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-3 py-2.5">
+        <div className="absolute inset-x-0 bottom-0 z-[3] bg-gradient-to-t from-black/70 to-transparent px-3 py-2.5">
           <p className="font-mono text-[0.6rem] uppercase tracking-[0.14em] text-white/80">
             {label}
           </p>

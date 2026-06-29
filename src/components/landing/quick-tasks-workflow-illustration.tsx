@@ -37,7 +37,7 @@ function InvokePhase({ reduced }: { reduced: boolean }) {
           uiCardClass,
         )}
       >
-        <p className={workflowTitleClass}>Quick add</p>
+        <p className={workflowTitleClass}>Quick task</p>
         <div
           className={cn(
             "mt-2 flex items-center gap-2 border border-hub-foreground/10 bg-white px-2.5 py-2",

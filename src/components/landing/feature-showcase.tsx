@@ -151,13 +151,13 @@ const FEATURES: ReadonlyArray<{
 ];
 
 const ILLUSTRATION_FRAMES = {
-  PROJECTS: "bg-gradient-to-br from-[#7B2CBF] via-[#C77DFF] to-[#E0AAFF]",
-  COMMENTS: "bg-gradient-to-br from-[#3A86FF] via-[#8338EC] to-[#C77DFF]",
-  IDEAS: "bg-gradient-to-br from-[#FFC94B] via-[#F4A261] to-[#FF6B6B]",
-  PRESENT: "bg-gradient-to-br from-[#1a1a1a] via-[#3d3d3d] to-[#0b0b0b]",
-  FOR_YOU: "bg-gradient-to-br from-[#06b6d4] via-[#3b82f6] to-[#6366f1]",
-  QUICK_TASKS: "bg-gradient-to-br from-[#10b981] via-[#14b8a6] to-[#0ea5e9]",
-  COLLABORATION: "bg-gradient-to-br from-[#ec4899] via-[#a855f7] to-[#6366f1]",
+  PROJECTS: "bg-gradient-to-br from-[#5b21b6] via-[#7c3aed] to-[#a78bfa]",
+  COMMENTS: "bg-gradient-to-br from-[#1e3a8a] via-[#2563eb] to-[#60a5fa]",
+  IDEAS: "bg-gradient-to-br from-[#c2410c] via-[#ea580c] to-[#fdba74]",
+  PRESENT: "bg-gradient-to-br from-[#334155] via-[#475569] to-[#64748b]",
+  FOR_YOU: "bg-gradient-to-br from-[#1e40af] via-[#3b82f6] to-[#7dd3fc]",
+  QUICK_TASKS: "bg-gradient-to-br from-[#047857] via-[#10b981] to-[#6ee7b7]",
+  COLLABORATION: "bg-gradient-to-br from-[#9d174d] via-[#db2777] to-[#f472b6]",
 } as const;
 
 function ProjectsVisual() {
@@ -302,7 +302,7 @@ function FeatureVisual({
 
 export function FeatureShowcase() {
   return (
-    <section className="bg-hub-paper px-5 pt-10 pb-16 sm:px-8 sm:pt-12 sm:pb-24">
+    <section id="features" className="bg-hub-paper px-5 pt-10 pb-16 sm:px-8 sm:pt-12 sm:pb-24 scroll-mt-24">
       <div className="mx-auto max-w-6xl space-y-24 sm:space-y-32 lg:space-y-40">
         {FEATURES.map((feature, i) => {
           const reversed = i % 2 === 1;

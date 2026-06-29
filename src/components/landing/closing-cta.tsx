@@ -21,6 +21,16 @@ export function ClosingCta({ isLoggedIn, year }: ClosingCtaProps) {
         <p className="mt-16 font-mono text-[0.6rem] uppercase tracking-[0.16em] text-hub-paper/35">
           FSH Creative Hub · Internal · {year}
         </p>
+        <p className="mt-3">
+          <a
+            href="/docs"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-mono text-[0.6rem] uppercase tracking-[0.14em] text-hub-paper/50 underline-offset-4 transition-colors hover:text-hub-accent hover:underline"
+          >
+            Documentation →
+          </a>
+        </p>
       </ScrollReveal>
     </section>
   );

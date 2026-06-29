@@ -212,6 +212,11 @@
     mix-blend-mode: overlay;
   }
 
+  .grain-overlay-frame {
+    opacity: 0.72;
+    mix-blend-mode: soft-light;
+  }
+
   .grain-overlay-animated {
     animation: grain-shift 8s steps(10) infinite;
   }

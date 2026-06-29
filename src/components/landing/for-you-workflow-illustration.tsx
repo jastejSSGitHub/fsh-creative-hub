@@ -5,8 +5,9 @@ import { useEffect, useState } from "react";
 
 import {
   WorkflowIllustrationShell,
-  WorkflowSkeletonRow,
+  WorkflowPeekRow,
   WorkflowStackedRows,
+  workflowRowCardClass,
   workflowTitleClass,
 } from "@/components/landing/workflow-illustration-shell";
 import { cn } from "@/lib/utils";
@@ -16,8 +17,6 @@ const PHASES = [
   { id: "priority", label: "Sorted by urgency", duration: 4500 },
   { id: "triage", label: "Snooze & mark handled", duration: 4200 },
 ] as const;
-
-const uiCardClass = "rounded-sm";
 
 const FEED_ITEMS = [
   {
@@ -57,10 +56,7 @@ function FeedRow({
       initial={reduced ? false : { opacity: 0, x: -12 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: 0.25 + index * 0.2, type: "spring", stiffness: 300, damping: 24 }}
-      className={cn(
-        "border border-hub-foreground/10 bg-hub-surface px-2.5 py-1.5 shadow-sm",
-        uiCardClass,
-      )}
+      className={workflowRowCardClass}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
@@ -84,8 +80,7 @@ function FeedRow({
 }
 
 function FeedPhase({ reduced }: { reduced: boolean }) {
-  const [primary, secondary] = FEED_ITEMS;
-  const peek = FEED_ITEMS[2];
+  const [primary, secondary, peek] = FEED_ITEMS;
 
   return (
     <motion.div
@@ -103,10 +98,20 @@ function FeedPhase({ reduced }: { reduced: boolean }) {
         </span>
       </div>
 
-      <WorkflowStackedRows fadeBottom className="mt-2.5">
+      <WorkflowStackedRows
+        className="mt-2.5"
+        peek={
+          <WorkflowPeekRow
+            badge={peek.badge}
+            badgeClass={peek.badgeClass}
+            title={peek.title}
+            meta={peek.meta}
+            showDot
+          />
+        }
+      >
         <FeedRow item={primary} index={0} reduced={reduced} />
         <FeedRow item={secondary} index={1} reduced={reduced} />
-        <WorkflowSkeletonRow badge={peek.badge} badgeClass={peek.badgeClass} />
       </WorkflowStackedRows>
     </motion.div>
   );
@@ -124,12 +129,21 @@ function PriorityPhase({ reduced }: { reduced: boolean }) {
     >
       <p className={workflowTitleClass}>Needs you · priority</p>
 
-      <WorkflowStackedRows fadeBottom className="mt-2.5">
+      <WorkflowStackedRows
+        className="mt-2.5"
+        peek={
+          <WorkflowPeekRow
+            badge="Vote requested"
+            badgeClass="bg-violet-500/15 text-violet-700"
+            title="Menu photography set"
+          />
+        }
+      >
         <motion.div
           layout
           className={cn(
             "border-2 border-rose-400/35 bg-rose-500/8 px-2.5 py-1.5 shadow-sm",
-            uiCardClass,
+            "rounded-sm",
           )}
         >
           <span className="font-mono text-[0.4rem] font-semibold uppercase tracking-wide text-rose-700">
@@ -144,7 +158,7 @@ function PriorityPhase({ reduced }: { reduced: boolean }) {
           initial={reduced ? false : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.45 }}
-          className={cn("border border-hub-foreground/10 bg-hub-surface px-2.5 py-1.5", uiCardClass)}
+          className={workflowRowCardClass}
         >
           <span className="font-mono text-[0.4rem] font-semibold uppercase tracking-wide text-sky-700">
             Mention
@@ -153,8 +167,6 @@ function PriorityPhase({ reduced }: { reduced: boolean }) {
             @you on Hero banner v2
           </p>
         </motion.div>
-
-        <WorkflowSkeletonRow badge="Vote requested" badgeClass="bg-violet-500/15 text-violet-700" />
       </WorkflowStackedRows>
 
       <motion.p
@@ -181,7 +193,7 @@ function TriagePhase({ reduced }: { reduced: boolean }) {
     >
       <div>
         <p className={workflowTitleClass}>Triage without losing context</p>
-        <div className={cn("mt-2.5 border border-hub-foreground/10 bg-hub-surface p-3", uiCardClass)}>
+        <div className={cn("mt-2.5 rounded-sm border border-hub-foreground/10 bg-hub-surface p-3")}>
           <div className="flex items-center gap-2">
             <div className="min-w-0 flex-1">
               <p className="text-[0.62rem] font-semibold text-hub-foreground">
